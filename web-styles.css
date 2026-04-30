@@ -1,0 +1,19 @@
+/* Suppress React Native Web warnings in development */
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Hide React Native Web development warnings */
+#__react-native-web-warnings {
+  display: none !important;
+}
+
+/* Ensure proper CSS property handling */
+* {
+  box-sizing: border-box;
+}
