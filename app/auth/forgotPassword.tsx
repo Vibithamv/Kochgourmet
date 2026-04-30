@@ -399,20 +399,25 @@ export default function ForgotPassword() {
 const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
+    justifyContent: 'center',
+    paddingVertical: 24,
     paddingBottom: 40,
   },
 
   // Hero
   hero: {
     alignItems: 'center',
-    paddingTop: 72,
-    paddingBottom: 36,
+    paddingTop: 16,
+    paddingBottom: 20,
     paddingHorizontal: 24,
   },
   logo: {
-    width: 100,
-    height: 100,
-    marginBottom: 20,
+    width: '88%',
+    maxWidth: 200,
+    height: undefined,
+    aspectRatio: 527 / 77,
+    alignSelf: 'center',
+    marginBottom: 0,
   },
   appName: {
     fontSize: 26,
@@ -429,6 +434,9 @@ const styles = StyleSheet.create({
 
   // Card
   card: {
+    alignSelf: 'center',
+    width: '90%',
+    maxWidth: 440,
     marginHorizontal: 20,
     borderRadius: 24,
     padding: 28,

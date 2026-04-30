@@ -430,9 +430,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   logo: {
-    width: 100,
-    height: 100,
-    marginBottom: 20,
+    width: '88%',
+    maxWidth: 200,
+    height: undefined,
+    aspectRatio: 527 / 77,
+    alignSelf: 'center',
+    marginBottom: 10,
   },
   appName: {
     fontSize: 26,
