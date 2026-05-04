@@ -58,6 +58,17 @@ import {
 
 const screenWidth = Dimensions.get('window').width;
 
+/** True when CSV is empty, whitespace-only, or only a header row (no data to export). */
+function isEmptyCsvForDownload(csvText: string): boolean {
+  const trimmed = csvText.trim();
+  if (!trimmed) return true;
+  const lines = trimmed
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0);
+  return lines.length <= 1;
+}
+
 function createStyledListSeparator(
   separatorStyle: StyleProp<ViewStyle>
 ): React.FC {
@@ -272,11 +283,15 @@ const PortfolioScreen = React.memo(() => {
       const res = await portfolioDatas.portfolioActivities(await AsyncStorage.getItem('AccountID'), 1, 30);
 
       if (!res.success || !res.data || res.data.data.activities.length === 0) {
-        showAlert(t('common.alert'), t('portfolio.noTransactionsFound'));
+        showAlert(t('common.alert'), t('portfolio.noDataToDownload'));
         return;
       }
       console.log('res.data.data.activities', JSON.stringify(res.data.data.activities, null, 2));
       const csvContent = buildRecentActivitiesCsv(res.data.data.activities);
+      if (isEmptyCsvForDownload(csvContent)) {
+        showAlert(t('common.alert'), t('portfolio.noDataToDownload'));
+        return;
+      }
       console.log(csvContent);
       const fileName = `transactions_${Date.now()}.csv`;
       await saveCsvFileWithPlatformHandling(fileName, csvContent);
@@ -291,34 +306,39 @@ const PortfolioScreen = React.memo(() => {
   const downloadTransactionHistory = async () => {
     setReportsModalVisible(false)
     downloadReportsData.downloadTransactionHistory(await AsyncStorage.getItem('AccountID')).then(async (res) => {
-      if (res.success && res.data) {
-        const csvText = res.data;
-        // Create file path
-        const fileName = `transaction_history_${Date.now()}.csv`;
-
-        // Write file (temp for iOS, or if SAF fails)
-        const tempFilePath = `${(FileSystem as any).documentDirectory}${fileName}`;
-        await FileSystem.writeAsStringAsync(tempFilePath, csvText, {
-          encoding: 'utf8'
-        });
-
-        if (Platform.OS === 'android') {
-          try {
-            const permissions = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
-            if (permissions.granted) {
-              const uri = await FileSystem.StorageAccessFramework.createFileAsync(permissions.directoryUri, fileName, 'text/csv');
-              await FileSystem.writeAsStringAsync(uri, csvText, { encoding: 'utf8' });
-              showAlert(t('common.success'), t('portfolio.fileDownloadedSuccessfully'))
-            }
-          } catch (e) {
-            console.log(e);
-          }
-        } else {
-          await shareCsvOnIosWithSuccessAlert(tempFilePath);
-        }
-
-      } else {
+      if (!res.success || res.data == null) {
         showAlert(t('common.alert'), t('portfolio.failedToDownload'));
+        return;
+      }
+      const csvText = typeof res.data === 'string' ? res.data : '';
+      if (isEmptyCsvForDownload(csvText)) {
+        showAlert(t('common.alert'), t('portfolio.noDataToDownload'));
+        return;
+      }
+      const fileName = `transaction_history_${Date.now()}.csv`;
+
+      const tempFilePath = `${(FileSystem as any).documentDirectory}${fileName}`;
+      await FileSystem.writeAsStringAsync(tempFilePath, csvText, {
+        encoding: 'utf8',
+      });
+
+      if (Platform.OS === 'android') {
+        try {
+          const permissions = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
+          if (permissions.granted) {
+            const uri = await FileSystem.StorageAccessFramework.createFileAsync(
+              permissions.directoryUri,
+              fileName,
+              'text/csv'
+            );
+            await FileSystem.writeAsStringAsync(uri, csvText, { encoding: 'utf8' });
+            showAlert(t('common.success'), t('portfolio.fileDownloadedSuccessfully'));
+          }
+        } catch (e) {
+          console.log(e);
+        }
+      } else {
+        await shareCsvOnIosWithSuccessAlert(tempFilePath);
       }
     })
   }
@@ -326,36 +346,40 @@ const PortfolioScreen = React.memo(() => {
   const downloadPortfolio = async () => {
     setReportsModalVisible(false)
     downloadReportsData.downloadPortfolioReport(await AsyncStorage.getItem('AccountID')).then(async (res) => {
-      if (res.success && res.data) {
-        const csvText = res.data;
-
-        // Create file path
-        const fileName = `portfolio_${Date.now()}.csv`;
-
-        // Write file (temp for iOS, or if SAF fails)
-        const tempFilePath = `${(FileSystem as any).documentDirectory}${fileName}`;
-        // ⬇️ Write CSV
-        await FileSystem.writeAsStringAsync(tempFilePath, csvText, {
-          encoding: 'utf8',
-        });
-
-        if (Platform.OS === 'android') {
-          try {
-            const permissions = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
-            if (permissions.granted) {
-              const uri = await FileSystem.StorageAccessFramework.createFileAsync(permissions.directoryUri, fileName, 'text/csv');
-              await FileSystem.writeAsStringAsync(uri, csvText, { encoding: 'utf8' });
-              showAlert(t('common.success'), t('portfolio.fileDownloadedSuccessfully'))
-            }
-          } catch (e) {
-            console.log(e);
-          }
-        } else {
-          await shareCsvOnIosWithSuccessAlert(tempFilePath);
-        }
-
-      } else {
+      if (!res.success || res.data == null) {
         showAlert(t('common.alert'), t('portfolio.failedToDownload'));
+        return;
+      }
+      const csvText = typeof res.data === 'string' ? res.data : '';
+      if (isEmptyCsvForDownload(csvText)) {
+        showAlert(t('common.alert'), t('portfolio.noDataToDownload'));
+        return;
+      }
+
+      const fileName = `portfolio_${Date.now()}.csv`;
+
+      const tempFilePath = `${(FileSystem as any).documentDirectory}${fileName}`;
+      await FileSystem.writeAsStringAsync(tempFilePath, csvText, {
+        encoding: 'utf8',
+      });
+
+      if (Platform.OS === 'android') {
+        try {
+          const permissions = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
+          if (permissions.granted) {
+            const uri = await FileSystem.StorageAccessFramework.createFileAsync(
+              permissions.directoryUri,
+              fileName,
+              'text/csv'
+            );
+            await FileSystem.writeAsStringAsync(uri, csvText, { encoding: 'utf8' });
+            showAlert(t('common.success'), t('portfolio.fileDownloadedSuccessfully'));
+          }
+        } catch (e) {
+          console.log(e);
+        }
+      } else {
+        await shareCsvOnIosWithSuccessAlert(tempFilePath);
       }
     })
   }
@@ -364,35 +388,40 @@ const PortfolioScreen = React.memo(() => {
     setReportsModalVisible(false)
     downloadReportsData.downloadPerformanceReport(await AsyncStorage.getItem('AccountID')).then(async (res) => {
       console.log('downloadPerformance report response:', res);
-      if (res.success && res.data) {
-        const csvText = res.data;
-        // Create file path
-        const fileName = `performance_report_${Date.now()}.csv`;
-
-        // Write file (temp for iOS, or if SAF fails)
-        const tempFilePath = `${(FileSystem as any).documentDirectory}${fileName}`;
-        // ⬇️ Write CSV
-        await FileSystem.writeAsStringAsync(tempFilePath, csvText, {
-          encoding: 'utf8',
-        });
-
-        if (Platform.OS === 'android') {
-          try {
-            const permissions = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
-            if (permissions.granted) {
-              const uri = await FileSystem.StorageAccessFramework.createFileAsync(permissions.directoryUri, fileName, 'text/csv');
-              await FileSystem.writeAsStringAsync(uri, csvText, { encoding: 'utf8' });
-              showAlert(t('common.success'), t('portfolio.fileDownloadedSuccessfully'))
-            }
-          } catch (e) {
-            console.log(e);
-          }
-        } else {
-          await shareCsvOnIosWithSuccessAlert(tempFilePath);
-        }
-
-      } else {
+      if (!res.success || res.data == null) {
         showAlert(t('common.alert'), t('portfolio.failedToDownload'));
+        return;
+      }
+      const csvText = typeof res.data === 'string' ? res.data : '';
+      if (isEmptyCsvForDownload(csvText)) {
+        showAlert(t('common.alert'), t('portfolio.noDataToDownload'));
+        return;
+      }
+
+      const fileName = `performance_report_${Date.now()}.csv`;
+
+      const tempFilePath = `${(FileSystem as any).documentDirectory}${fileName}`;
+      await FileSystem.writeAsStringAsync(tempFilePath, csvText, {
+        encoding: 'utf8',
+      });
+
+      if (Platform.OS === 'android') {
+        try {
+          const permissions = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
+          if (permissions.granted) {
+            const uri = await FileSystem.StorageAccessFramework.createFileAsync(
+              permissions.directoryUri,
+              fileName,
+              'text/csv'
+            );
+            await FileSystem.writeAsStringAsync(uri, csvText, { encoding: 'utf8' });
+            showAlert(t('common.success'), t('portfolio.fileDownloadedSuccessfully'));
+          }
+        } catch (e) {
+          console.log(e);
+        }
+      } else {
+        await shareCsvOnIosWithSuccessAlert(tempFilePath);
       }
     })
   }

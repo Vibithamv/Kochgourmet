@@ -72,6 +72,30 @@ interface ExtendedProject {
 interface PaymentMethod {
   id: string;
   type: string;
+  /** Raw API value, e.g. `CUSTOMIBAN` for bank transfer. */
+  providerType: string;
+  bankName?: string;
+  accountName?: string;
+  accountNumber?: string;
+  /** BIC/SWIFT from API field `payment_bank_nr`. */
+  bic?: string;
+}
+
+function bicFromPaymentProvider(p: {
+  payment_bank_nr?: unknown;
+  payment_bic?: unknown;
+  bic?: unknown;
+  swift?: unknown;
+}): string {
+  const tryStr = (v: unknown) =>
+    typeof v === 'string' && v.trim().length > 0 ? v.trim() : '';
+  return (
+    tryStr(p.payment_bank_nr) ||
+    tryStr(p.payment_bic) ||
+    tryStr(p.bic) ||
+    tryStr(p.swift) ||
+    ''
+  );
 }
 
 interface LegalDocs {
@@ -109,7 +133,6 @@ export default function InvestmentScreen() {
   let documents: LegalDocs[] = [];
   const user = userManagement();
   const [walletID, setWalletID] = React.useState('');
-  const [walletAddress, setWalletAddress] = React.useState('');
   const [paymentTypeID, setPaymentTypeID] = React.useState('');
   const [paymentType, setPaymentType] = React.useState('');
   const [docs, setDocs] = useState<LegalDocs[]>([]);
@@ -137,7 +160,7 @@ export default function InvestmentScreen() {
   const loadProject = async () => {
     await performOfferingCheck();
     offering.details(id).then((data) => {
-       console.log('offering details data', JSON.stringify(data.data.data.legal_documents));
+       console.log('offering details data', JSON.stringify(data.data.data.paymentProviderList));
       if (data.success && data.data) {
         projectData = {
           id: data.data.data.id,
@@ -163,12 +186,26 @@ export default function InvestmentScreen() {
 
         setDocumentsArray((data.data.data.legal_documents ?? []).filter((documents: any) => documents.is_sign_required === true))
         paymentMethodData = data.data.data.paymentProviderList.map(
-          (p: any, index: number) => ({
+          (p: any) => ({
             id: p.id,
             type:
               p.payment_provider_type === 'CUSTOMIBAN'
                 ? 'BANK TRANSFER'
                 : p.payment_provider_type,
+            providerType: p.payment_provider_type ?? '',
+            bankName:
+              typeof p.payment_banking_name === 'string'
+                ? p.payment_banking_name
+                : '',
+            accountName:
+              typeof p.payment_account_name === 'string'
+                ? p.payment_account_name
+                : '',
+            accountNumber:
+              typeof p.payment_account_nr === 'string'
+                ? p.payment_account_nr
+                : '',
+            bic: bicFromPaymentProvider(p),
           })
         );
         setPaymentMethods(paymentMethodData);
@@ -212,15 +249,12 @@ export default function InvestmentScreen() {
           .filter((wallet: any) => wallet.status === 'ACTIVE')
           .map((wallet: any) => ({
             id: wallet.id,
-            address: wallet.name,
           }));
         const first = metawallets[0];
         if (first) {
           setWalletID(first.id);
-          setWalletAddress(first.address);
         } else {
           setWalletID('');
-          setWalletAddress('');
         }
         setAddress1(data.data.data.activeAccount.address.country || '');
         setAddress2(data.data.data.activeAccount.address.city || '');
@@ -334,11 +368,31 @@ export default function InvestmentScreen() {
         try {
           if (data?.success && data?.data) {
             if (paymentType === 'BANK TRANSFER') {
+              const selected = paymentMethods.find((p) => p.id === paymentTypeID);
+              const order = data?.data?.data?.order as
+                | { id?: string; reference?: string }
+                | undefined;
+              const orderReference =
+                (order?.reference != null && String(order.reference).trim()) ||
+                (order?.id != null && String(order.id).trim()) ||
+                '';
               router.replace({
                 pathname: '/investment/success',
                 params: {
                   amount: encodeURIComponent(formatCurrency(totalAmount)),
                   title: encodeURIComponent(project?.title || ''),
+                  bankDetails: encodeURIComponent(
+                    JSON.stringify({
+                      providerType: selected?.providerType ?? '',
+                      bankName: selected?.bankName ?? '',
+                      accountName: selected?.accountName ?? '',
+                      accountNumber: selected?.accountNumber ?? '',
+                      bic: selected?.bic ?? '',
+                    })
+                  ),
+                  ...(orderReference
+                    ? { orderReference: encodeURIComponent(orderReference) }
+                    : {}),
                 },
               });
             } else if (paymentType === 'STRIPE') {
@@ -645,7 +699,18 @@ export default function InvestmentScreen() {
     </View>
   );
 
-  const renderStep3 = () => (
+  const renderStep3 = () => {
+    const selectedPayment = paymentMethods.find((p) => p.id === paymentTypeID);
+    const showBankDetails =
+      selectedPayment?.providerType === 'CUSTOMIBAN' &&
+      Boolean(
+        (selectedPayment.bankName && selectedPayment.bankName.length > 0) ||
+          (selectedPayment.accountName && selectedPayment.accountName.length > 0) ||
+          (selectedPayment.accountNumber && selectedPayment.accountNumber.length > 0) ||
+          (selectedPayment.bic && selectedPayment.bic.length > 0)
+      );
+
+    return (
     <ScrollView style={styles.stepContent} showsVerticalScrollIndicator={false}>
       <View style={styles.headerSection}>
         <Check size={32} color={colors.success} />
@@ -705,13 +770,6 @@ export default function InvestmentScreen() {
           </Text>
           <Text style={styles.investorValue}>{address}</Text>
         </View> */}
-
-        <View style={styles.investorDetail}>
-          <Text style={[styles.investorLabel, { color: colors.text.primary }]}>
-            {t('investment.walletAddress')} *
-          </Text>
-          <Text style={[styles.investorValue, { color: colors.text.primary }]}>{walletAddress}</Text>
-        </View>
 
         <View style={styles.investorDetail}>
           <Text style={[styles.investorLabel, { color: colors.text.primary }]}>
@@ -780,6 +838,72 @@ export default function InvestmentScreen() {
         </View> */}
       </View>
 
+      {showBankDetails && selectedPayment ? (
+        <View
+          style={[
+            styles.investorSection,
+            { backgroundColor: colors.background.primary, borderColor: colors.border.primary },
+          ]}
+        >
+          <Text style={[styles.investorTitle, { color: colors.text.primary }]}>
+            {t('investment.bankTransferDetails')}
+          </Text>
+          <Text
+            style={[
+              styles.investorValue,
+              { color: colors.text.secondary, marginBottom: 16 },
+            ]}
+          >
+            {t('investment.bankTransferDetailsHint')}
+          </Text>
+          {selectedPayment.bankName ? (
+            <View style={styles.investorDetail}>
+              <Text style={[styles.investorLabel, { color: colors.text.primary }]}>
+                {t('investment.bankNameLabel')}
+              </Text>
+              <Text style={[styles.investorValue, { color: colors.text.primary }]}>
+                {selectedPayment.bankName}
+              </Text>
+            </View>
+          ) : null}
+          {selectedPayment.accountName ? (
+            <View style={styles.investorDetail}>
+              <Text style={[styles.investorLabel, { color: colors.text.primary }]}>
+                {t('investment.accountHolderLabel')}
+              </Text>
+              <Text style={[styles.investorValue, { color: colors.text.primary }]}>
+                {selectedPayment.accountName}
+              </Text>
+            </View>
+          ) : null}
+          {selectedPayment.accountNumber ? (
+            <View style={styles.investorDetail}>
+              <Text style={[styles.investorLabel, { color: colors.text.primary }]}>
+                {t('investment.accountNumberLabel')}
+              </Text>
+              <Text
+                style={[styles.investorValue, { color: colors.text.primary }]}
+                selectable
+              >
+                {selectedPayment.accountNumber}
+              </Text>
+            </View>
+          ) : null}
+          {selectedPayment.bic ? (
+            <View style={styles.investorDetail}>
+              <Text style={[styles.investorLabel, { color: colors.text.primary }]}>
+                {t('investment.bicLabel')}
+              </Text>
+              <Text
+                style={[styles.investorValue, { color: colors.text.primary }]}
+                selectable
+              >
+                {selectedPayment.bic}
+              </Text>
+            </View>
+          ) : null}
+        </View>
+      ) : null}
 
       <View style={styles.confirmationSection}>
         <TouchableOpacity
@@ -800,7 +924,8 @@ export default function InvestmentScreen() {
         </TouchableOpacity>
       </View>
     </ScrollView>
-  );
+    );
+  };
 
   if (loading) {
     return <InvestmentShimmer />;

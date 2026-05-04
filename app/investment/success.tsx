@@ -2,10 +2,10 @@ import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Check } from 'lucide-react-native';
+import { Building2, Check } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/contexts/ThemeContext';
-import { getColors, Typography } from '@/constants/theme';
+import { getColors, Typography, Spacing, BorderRadius } from '@/constants/theme';
 
 function decodeParam(value: string | string[] | undefined): string {
   const raw = Array.isArray(value) ? value[0] : value;
@@ -17,14 +17,53 @@ function decodeParam(value: string | string[] | undefined): string {
   }
 }
 
+type BankNextStepsPayload = {
+  providerType: string;
+  bankName: string;
+  accountName: string;
+  accountNumber: string;
+  bic: string;
+};
+
+function parseBankNextSteps(raw: string | string[] | undefined): BankNextStepsPayload | null {
+  const decoded = decodeParam(raw);
+  if (!decoded) return null;
+  try {
+    const o = JSON.parse(decoded) as Partial<BankNextStepsPayload>;
+    if (o.providerType !== 'CUSTOMIBAN') return null;
+    const has =
+      (o.bankName && o.bankName.length > 0) ||
+      (o.accountName && o.accountName.length > 0) ||
+      (o.accountNumber && o.accountNumber.length > 0) ||
+      (o.bic && o.bic.length > 0);
+    if (!has) return null;
+    return {
+      providerType: o.providerType ?? '',
+      bankName: o.bankName ?? '',
+      accountName: o.accountName ?? '',
+      accountNumber: o.accountNumber ?? '',
+      bic: o.bic ?? '',
+    };
+  } catch {
+    return null;
+  }
+}
+
 export default function InvestmentSuccessScreen() {
   const { t } = useTranslation();
   const { theme } = useTheme();
   const colors = getColors(theme);
   const insets = useSafeAreaInsets();
-  const params = useLocalSearchParams<{ amount?: string; title?: string }>();
+  const params = useLocalSearchParams<{
+    amount?: string;
+    title?: string;
+    bankDetails?: string;
+    orderReference?: string;
+  }>();
   const amountFormatted = decodeParam(params.amount);
   const projectTitle = decodeParam(params.title);
+  const bankNext = useMemo(() => parseBankNextSteps(params.bankDetails), [params.bankDetails]);
+  const orderReference = decodeParam(params.orderReference);
   const primaryBtnTextColor = colors.text.onPrimary;
 
   const summaryText = useMemo(() => {
@@ -41,6 +80,47 @@ export default function InvestmentSuccessScreen() {
     router.replace('/(tabs)/portfolio');
   };
 
+  const detailRows = useMemo(() => {
+    if (!bankNext) return [];
+    const rows: { label: string; value: string; rowKey: string }[] = [];
+    if (bankNext.providerType) {
+      rows.push({
+        rowKey: 'providerType',
+        label: t('investment.paymentProviderTypeLabel'),
+        value: bankNext.providerType,
+      });
+    }
+    if (bankNext.bankName) {
+      rows.push({
+        rowKey: 'bank',
+        label: t('investment.bankNameLabel'),
+        value: bankNext.bankName,
+      });
+    }
+    if (bankNext.accountName) {
+      rows.push({
+        rowKey: 'accountName',
+        label: t('investment.accountHolderLabel'),
+        value: bankNext.accountName,
+      });
+    }
+    if (bankNext.accountNumber) {
+      rows.push({
+        rowKey: 'iban',
+        label: t('investment.accountNumberLabel'),
+        value: bankNext.accountNumber,
+      });
+    }
+    if (bankNext.bic) {
+      rows.push({
+        rowKey: 'bic',
+        label: t('investment.bicLabel'),
+        value: bankNext.bic,
+      });
+    }
+    return rows;
+  }, [bankNext, t]);
+
   const stylesMemo = useMemo(
     () =>
       StyleSheet.create({
@@ -52,16 +132,6 @@ export default function InvestmentSuccessScreen() {
           paddingHorizontal: 20,
           paddingBottom: 16,
           borderBottomWidth: 1,
-        },
-        backButton: {
-          position: 'absolute',
-          left: 20,
-          width: 40,
-          height: 40,
-          borderRadius: 20,
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1,
         },
         headerTitleWrap: {
           flex: 1,
@@ -78,11 +148,9 @@ export default function InvestmentSuccessScreen() {
         scroll: { flex: 1 },
         scrollContent: {
           flexGrow: 1,
-          justifyContent: 'center',
-          alignItems: 'center',
-          paddingHorizontal: 24,
-          paddingTop: 32,
-          paddingBottom: 32,
+          paddingHorizontal: Spacing['2xl'],
+          paddingTop: Spacing['2xl'],
+          paddingBottom: Spacing['3xl'],
         },
         iconWrap: {
           width: 72,
@@ -91,26 +159,87 @@ export default function InvestmentSuccessScreen() {
           alignItems: 'center',
           justifyContent: 'center',
           alignSelf: 'center',
-          marginBottom: 24,
+          marginBottom: Spacing.lg,
         },
         body: {
-          fontSize: 16,
+          fontSize: Typography.fontSize.lg,
           fontFamily: Typography.fontFamily.regular,
           textAlign: 'center',
           lineHeight: 24,
-          marginBottom: 40,
+          marginBottom: Spacing['2xl'],
           width: '100%',
           maxWidth: 400,
           alignSelf: 'center',
+        },
+        nextStepsCard: {
+          width: '100%',
+          maxWidth: 400,
+          alignSelf: 'center',
+          borderRadius: BorderRadius.lg,
+          borderWidth: 1,
+          padding: Spacing.xl,
+          marginBottom: Spacing['2xl'],
+        },
+        nextStepsHeaderRow: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          marginBottom: Spacing.sm,
+        },
+        nextStepsIconCircle: {
+          width: 40,
+          height: 40,
+          borderRadius: 20,
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginRight: Spacing.md,
+        },
+        nextStepsEyebrow: {
+          fontSize: Typography.fontSize.xs,
+          fontFamily: Typography.fontFamily.semiBold,
+          letterSpacing: 1.2,
+          textTransform: 'uppercase',
+        },
+        nextStepsTitle: {
+          fontSize: Typography.fontSize['2xl'],
+          fontFamily: Typography.fontFamily.display,
+          letterSpacing: -0.3,
+          marginBottom: Spacing.lg,
+        },
+        detailRow: {
+          flexDirection: 'row',
+          alignItems: 'flex-start',
+          justifyContent: 'space-between',
+          marginBottom: Spacing.md,
+          gap: Spacing.md,
+        },
+        detailLabel: {
+          flex: 1,
+          fontSize: Typography.fontSize.xs,
+          fontFamily: Typography.fontFamily.medium,
+          letterSpacing: 0.8,
+          textTransform: 'uppercase',
+        },
+        detailValue: {
+          flex: 1,
+          fontSize: Typography.fontSize.sm,
+          fontFamily: Typography.fontFamily.bold,
+          textAlign: 'right',
+        },
+        referenceNote: {
+          fontSize: Typography.fontSize.sm,
+          fontFamily: Typography.fontFamily.regular,
+          lineHeight: 22,
+          marginTop: Spacing.md,
+          textAlign: 'justify',
         },
         cta: {
           paddingVertical: 16,
           paddingHorizontal: 32,
           borderRadius: 12,
           alignItems: 'center',
-          alignSelf: 'stretch',
           maxWidth: 400,
           width: '100%',
+          alignSelf: 'center',
         },
         ctaText: {
           fontSize: 16,
@@ -132,14 +261,6 @@ export default function InvestmentSuccessScreen() {
           },
         ]}
       >
-        {/* <TouchableOpacity
-          style={[stylesMemo.backButton, { backgroundColor: colors.background.secondary }]}
-          onPress={goPortfolio}
-          accessibilityRole="button"
-          accessibilityLabel={t('projectDetail.viewPortfolio')}
-        >
-          <ArrowLeft size={24} color={colors.text.primary} />
-        </TouchableOpacity> */}
         <View style={stylesMemo.headerTitleWrap}>
           <Text style={[stylesMemo.headerTitle, { color: colors.text.primary }]}>
             {t('investment.investmentSuccessful')}
@@ -156,6 +277,59 @@ export default function InvestmentSuccessScreen() {
           <Check size={40} color={colors.success} strokeWidth={2.5} />
         </View>
         <Text style={[stylesMemo.body, { color: colors.text.secondary }]}>{summaryText}</Text>
+
+        {bankNext && detailRows.length > 0 ? (
+          <View
+            style={[
+              stylesMemo.nextStepsCard,
+              {
+                backgroundColor: colors.background.card,
+                borderColor: colors.border.primary,
+              },
+            ]}
+          >
+            <View style={stylesMemo.nextStepsHeaderRow}>
+              <View
+                style={[
+                  stylesMemo.nextStepsIconCircle,
+                  { backgroundColor: colors.background.tertiary },
+                ]}
+              >
+                <Building2 size={22} color={colors.text.tertiary} />
+              </View>
+              <Text style={[stylesMemo.nextStepsEyebrow, { color: colors.text.tertiary }]}>
+                {t('investment.bankNextStepsEyebrow')}
+              </Text>
+            </View>
+            <Text style={[stylesMemo.nextStepsTitle, { color: colors.text.primary }]}>
+              {t('investment.completeBankTransferTitle')}
+            </Text>
+            {detailRows.map((row) => (
+              <View key={row.rowKey} style={stylesMemo.detailRow}>
+                <Text style={[stylesMemo.detailLabel, { color: colors.text.tertiary }]}>
+                  {row.label}
+                </Text>
+                <Text
+                  style={[stylesMemo.detailValue, { color: colors.text.primary }]}
+                  selectable
+                >
+                  {row.value}
+                </Text>
+              </View>
+            ))}
+            <Text
+              style={[stylesMemo.referenceNote, { color: colors.text.tertiary }]}
+              selectable
+            >
+              {orderReference
+                ? t('investment.bankTransferReferenceNoteWithRef', {
+                    reference: orderReference,
+                  })
+                : t('investment.bankTransferReferenceNote')}
+            </Text>
+          </View>
+        ) : null}
+
         <TouchableOpacity
           style={[stylesMemo.cta, { backgroundColor: colors.primary }]}
           onPress={goPortfolio}

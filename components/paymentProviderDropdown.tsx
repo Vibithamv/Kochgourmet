@@ -16,6 +16,11 @@ import { useTranslation } from "react-i18next";
 type PaymentMethod = {
   id: string;
   type: string;
+  providerType?: string;
+  bankName?: string;
+  accountName?: string;
+  accountNumber?: string;
+  bic?: string;
 };
 
 type Props = {

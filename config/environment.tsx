@@ -30,8 +30,8 @@ export const ENVIRONMENT_CONFIG: Record<EnvironmentName, EnvironmentConfig> = {
   },
   prod: {
     name: 'Production',
-     //baseURL: 'https://stage.go.floris3.com/portal',
-     baseURL: 'https://dev.go.simplytokenized.com/portal',
+     baseURL: 'https://stage.go.floris3.com/portal',
+     //baseURL: 'https://dev.go.simplytokenized.com/portal',
     timeout: 15000,
     debug: false,
   },

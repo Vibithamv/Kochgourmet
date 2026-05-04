@@ -862,26 +862,104 @@ export default function ProjectDetailScreen() {
                 <RenderHTML
                   contentWidth={width}
                   source={{ html: projectDescription() }}
-                  enableCSSInlineProcessing={false}
+                  enableCSSInlineProcessing
                   classesStyles={{
-                    'title': {
+                    title: {
                       color: colors.text.primary,
                       backgroundColor: 'transparent',
+                      marginTop: 12,
+                      marginBottom: 8,
                     },
-                    'desc': {
+                    desc: {
                       color: colors.text.primary,
                       backgroundColor: 'transparent',
+                      textAlign: 'justify',
+                      marginBottom: 10,
                     },
                   }}
                   baseStyle={{
                     color: colors.text.primary,
+                    textAlign: 'justify',
                   }}
                   tagsStyles={{
-                    p: { fontSize: 14, lineHeight: 20, color: colors.text.secondary },
+                    body: { textAlign: 'justify', marginBottom: 4 },
+                    div: { textAlign: 'justify', marginBottom: 10 },
+                    p: {
+                      fontSize: 14,
+                      lineHeight: 22,
+                      color: colors.text.secondary,
+                      textAlign: 'justify',
+                      marginTop: 0,
+                      marginBottom: 12,
+                    },
+                    ul: {
+                      marginTop: 4,
+                      marginBottom: 12,
+                      paddingLeft: 20,
+                    },
+                    ol: {
+                      marginTop: 4,
+                      marginBottom: 12,
+                      paddingLeft: 20,
+                    },
+                    li: {
+                      marginBottom: 8,
+                      lineHeight: 22,
+                      textAlign: 'justify',
+                    },
+                    h1: {
+                      fontSize: 22,
+                      fontWeight: '700',
+                      marginTop: 8,
+                      marginBottom: 10,
+                      color: colors.text.primary,
+                      textAlign: 'left',
+                    },
+                    h2: {
+                      fontSize: 18,
+                      fontWeight: '600',
+                      marginTop: 8,
+                      marginBottom: 8,
+                      color: colors.text.primary,
+                      textAlign: 'left',
+                    },
+                    h3: {
+                      fontSize: 16,
+                      fontWeight: '600',
+                      marginTop: 12,
+                      marginBottom: 6,
+                      color: colors.text.primary,
+                      textAlign: 'left',
+                    },
+                    h4: {
+                      fontSize: 15,
+                      fontWeight: '600',
+                      marginTop: 10,
+                      marginBottom: 4,
+                      color: colors.text.primary,
+                      textAlign: 'left',
+                    },
                     strong: { fontWeight: 'bold' },
-                    h1: { fontSize: 22, fontWeight: '700', marginBottom: 10, color: colors.text.primary },
-                    h2: { fontSize: 18, fontWeight: '600', marginBottom: 6, color: colors.text.primary },
-                    li: { marginBottom: 8 },
+                    hr: {
+                      height: 1,
+                      marginVertical: 14,
+                      backgroundColor: colors.border.primary,
+                    },
+                    dl: { marginBottom: 12 },
+                    dt: {
+                      fontWeight: '600',
+                      marginTop: 12,
+                      marginBottom: 4,
+                      color: colors.text.primary,
+                    },
+                    dd: {
+                      marginBottom: 10,
+                      marginLeft: 8,
+                      color: colors.text.secondary,
+                      lineHeight: 22,
+                      textAlign: 'justify',
+                    },
+                    span: { textAlign: 'justify' },
                   }}
                 />
                 {/* Project Highlights */}
@@ -1015,26 +1093,96 @@ export default function ProjectDetailScreen() {
                 <RenderHTML
                   contentWidth={width}
                   source={{ html: faq() }}
-                  enableCSSInlineProcessing={false}
+                  enableCSSInlineProcessing
                   classesStyles={{
                     'faq-answer': {
                       color: colors.text.primary,
                       backgroundColor: 'transparent',
+                      marginTop: 6,
+                      marginBottom: 16,
                     },
                     'faq-question': {
                       color: colors.text.primary,
                       backgroundColor: 'transparent',
+                      marginTop: 20,
+                      marginBottom: 8,
+                      fontWeight: '600',
                     },
                   }}
                   baseStyle={{
                     color: colors.text.primary,
                   }}
                   tagsStyles={{
-                    p: { fontSize: 14, lineHeight: 20, color: colors.text.secondary },
+                    body: { marginBottom: 4 },
+                    div: { marginBottom: 10 },
+                    p: {
+                      fontSize: 14,
+                      lineHeight: 22,
+                      color: colors.text.secondary,
+                      marginTop: 0,
+                      marginBottom: 12,
+                    },
+                    ul: {
+                      marginTop: 4,
+                      marginBottom: 12,
+                      paddingLeft: 20,
+                    },
+                    ol: {
+                      marginTop: 4,
+                      marginBottom: 12,
+                      paddingLeft: 20,
+                    },
+                    li: {
+                      marginBottom: 8,
+                      lineHeight: 22,
+                    },
+                    h1: {
+                      fontSize: 22,
+                      fontWeight: '700',
+                      marginTop: 8,
+                      marginBottom: 10,
+                      color: colors.text.primary,
+                    },
+                    h2: {
+                      fontSize: 18,
+                      fontWeight: '600',
+                      marginTop: 8,
+                      marginBottom: 8,
+                      color: colors.text.primary,
+                    },
+                    h3: {
+                      fontSize: 16,
+                      fontWeight: '600',
+                      marginTop: 12,
+                      marginBottom: 6,
+                      color: colors.text.primary,
+                    },
+                    h4: {
+                      fontSize: 15,
+                      fontWeight: '600',
+                      marginTop: 10,
+                      marginBottom: 4,
+                      color: colors.text.primary,
+                    },
                     strong: { fontWeight: 'bold' },
-                    h1: { fontSize: 22, fontWeight: '700', marginBottom: 10, color: colors.text.primary },
-                    h2: { fontSize: 18, fontWeight: '600', marginBottom: 6, color: colors.text.primary },
-                    li: { marginBottom: 8 },
+                    hr: {
+                      height: 1,
+                      marginVertical: 14,
+                      backgroundColor: colors.border.primary,
+                    },
+                    dl: { marginBottom: 12 },
+                    dt: {
+                      fontWeight: '600',
+                      marginTop: 12,
+                      marginBottom: 4,
+                      color: colors.text.primary,
+                    },
+                    dd: {
+                      marginBottom: 10,
+                      marginLeft: 8,
+                      color: colors.text.secondary,
+                      lineHeight: 22,
+                    },
                   }}
                 />
               </View>
