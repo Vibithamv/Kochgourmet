@@ -37,39 +37,39 @@ import { persistPlatformSignInOptionsFromValidateResponse } from '@/constants/pl
 
 void SplashScreen.preventAutoHideAsync();
 
-// Complete error suppression for Samsung devices
-LogBox.ignoreAllLogs(true);
+// Silence known noisy native warnings (mainly Samsung). LogBox is dev-only, so this is a no-op in prod.
+LogBox.ignoreLogs([
+  /NativeModule/,
+  /transform-origin/,
+  /onResponder/,
+  /onStartShouldSetResponder/,
+  /Metro/,
+  /Hermes/,
+]);
 
-// Global error handler for Samsung devices
+const NOISY_LOG_PATTERNS = [
+  'NativeModule',
+  'transform-origin',
+  'onResponder',
+  'onStartShouldSetResponder',
+  'Metro',
+  'Hermes',
+];
+const isNoisy = (args: unknown[]) => {
+  const message = args.join(' ');
+  return NOISY_LOG_PATTERNS.some((p) => message.includes(p));
+};
+
+// Filter the same noisy strings out of console.error/warn so they don't spam the dev terminal,
+// but always forward real errors to the original handler (incl. production — those are signal, not noise).
 const originalConsoleError = console.error;
 const originalConsoleWarn = console.warn;
 const platform = platformValidation();
 console.error = (...args) => {
-  // Only log in development and filter out known Samsung issues
-  if (__DEV__) {
-    const message = args.join(' ');
-    if (!message.includes('NativeModule') &&
-      !message.includes('transform-origin') &&
-      !message.includes('onResponder') &&
-      !message.includes('onStartShouldSetResponder') &&
-      !message.includes('Metro') &&
-      !message.includes('Hermes')) {
-      originalConsoleError(...args);
-    }
-  }
+  if (!isNoisy(args)) originalConsoleError(...args);
 };
-
 console.warn = (...args) => {
-  // Completely suppress warnings in production
-  if (__DEV__) {
-    const message = args.join(' ');
-    if (!message.includes('NativeModule') &&
-      !message.includes('transform-origin') &&
-      !message.includes('onResponder') &&
-      !message.includes('onStartShouldSetResponder')) {
-      originalConsoleWarn(...args);
-    }
-  }
+  if (!isNoisy(args)) originalConsoleWarn(...args);
 };
 
 type WhitelistRequestClient = ReturnType<typeof whitelistManagement>;

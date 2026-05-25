@@ -33,12 +33,6 @@ const TabIconSearch = createTabBarIcon(Search);
 const TabIconTrendingUp = createTabBarIcon(TrendingUp);
 const TabIconUser = createTabBarIcon(User);
 
-// Lazy load tab screens for better performance
-const HomeScreen = React.lazy(() => import('./index'));
-const ProjectsScreen = React.lazy(() => import('./projects'));
-const InvestmentsScreen = React.lazy(() => import('./portfolio'));
-const AccountScreen = React.lazy(() => import('./account'));
-
 export default function TabLayout() {
   useTenant();
   const { theme } = useTheme();
