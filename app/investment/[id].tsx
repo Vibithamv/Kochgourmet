@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -18,7 +18,6 @@ import {
   Plus,
   Minus,
   Check,
-  Building2,
 } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import {
@@ -67,7 +66,20 @@ interface ExtendedProject {
   pricePerToken: string;
   currency: string;
   asset_symbol?: string;
+  /** API offering access/type, e.g. `ACCESS_TRADITIONAL`. */
+  offeringType?: string;
 }
+
+function readOfferingTypeFromApi(data: unknown): string {
+  if (data == null || typeof data !== 'object' || Array.isArray(data)) return '';
+  const o = data as Record<string, unknown>;
+  const v =
+    o.type ?? o.offering_type ?? o.offeringType ?? o.access_type ?? o.accessType;
+  return typeof v === 'string' ? v : '';
+}
+
+const OFFERING_ACCESS_TRADITIONAL = 'ACCESS_TRADITIONAL';
+const OFFERING_DEBT_TRADITIONAL = 'DEBT_TRADITIONAL';
 
 interface PaymentMethod {
   id: string;
@@ -182,6 +194,7 @@ export default function InvestmentScreen() {
           is_whitelisted: false,
           pricePerToken: data.data.data.price_per_token,
           currency: data.data.data.main_currency,
+          offeringType: readOfferingTypeFromApi(data.data.data),
         };
 
         setDocumentsArray((data.data.data.legal_documents ?? []).filter((documents: any) => documents.is_sign_required === true))
@@ -422,6 +435,52 @@ export default function InvestmentScreen() {
       });
   };
 
+  const paymentConfirmCtaLabel =
+    project?.offeringType === OFFERING_ACCESS_TRADITIONAL
+      ? t('projectDetail.backThisProject')
+      : t('investment.toPayment');
+
+  const step1PrimaryTitle = useMemo(() => {
+    const name = project?.title ?? '';
+    const ot = project?.offeringType;
+    if (ot === OFFERING_ACCESS_TRADITIONAL) {
+      return t('investment.step1TitleParticipateIn', { name });
+    }
+    if (ot === OFFERING_DEBT_TRADITIONAL) {
+      return t('investment.step1TitleInvestIn', { name });
+    }
+    return t('investment.subscriptionCertificate');
+  }, [project?.offeringType, project?.title, t]);
+
+  /** Step 1 "Investment details" — property row: merged phrase for traditional access/debt types. */
+  const investmentDetailsPropertyLine = useMemo(() => {
+    const name = project?.title ?? '';
+    const ot = project?.offeringType;
+    if (ot === OFFERING_ACCESS_TRADITIONAL) {
+      return {
+        kind: 'merged' as const,
+        text: t('investment.step1TitleParticipateIn', { name }),
+      };
+    }
+    if (ot === OFFERING_DEBT_TRADITIONAL) {
+      return { kind: 'merged' as const, text: t('investment.step1TitleInvestIn', { name }) };
+    }
+    return { kind: 'split' as const };
+  }, [project?.offeringType, project?.title, t]);
+
+  const confirmSubscriptionText = useMemo(() => {
+    const count = tokenAmount;
+    const name = project?.title ?? '';
+    const ot = project?.offeringType;
+    if (ot === OFFERING_ACCESS_TRADITIONAL) {
+      return t('investment.confirmSubscriptionParticipate', { count, name });
+    }
+    if (ot === OFFERING_DEBT_TRADITIONAL) {
+      return t('investment.confirmSubscriptionInvest', { count, name });
+    }
+    return t('investment.confirmSubscription', { count });
+  }, [project?.offeringType, project?.title, tokenAmount, t]);
+
   const renderFooterAction = () => {
     if (currentStep === 1) {
       return (
@@ -432,9 +491,7 @@ export default function InvestmentScreen() {
           <Text
             style={[styles.nextButtonText, { color: colors.text.inverse }]}
           >
-            {hasSignableDocs
-              ? t('investment.signDocument')
-              : t('investment.toPayment')}
+            {hasSignableDocs ? t('investment.signDocument') : paymentConfirmCtaLabel}
           </Text>
         </TouchableOpacity>
       );
@@ -457,7 +514,7 @@ export default function InvestmentScreen() {
               },
             ]}
           >
-            {t('investment.toPayment')}
+            {paymentConfirmCtaLabel}
           </Text>
         </TouchableOpacity>
       );
@@ -497,12 +554,8 @@ export default function InvestmentScreen() {
   const renderStep1 = () => (
     <ScrollView style={styles.stepContent} showsVerticalScrollIndicator={false}>
       <View style={styles.headerSection}>
-        <Building2 size={32} color={colors.success} />
         <Text style={[styles.stepTitle, { color: colors.text.primary }]}>
-          {t('investment.subscriptionCertificate')}
-        </Text>
-        <Text style={[styles.stepSubtitle, { color: colors.text.primary }]}>
-          {t('investment.reviewDocument')}
+          {step1PrimaryTitle}
         </Text>
       </View>
 
@@ -540,13 +593,29 @@ export default function InvestmentScreen() {
 
       <View style={[styles.investmentDetails, { backgroundColor: colors.background.primary, borderColor: colors.border.primary, borderWidth: 1 }]}>
         <Text style={[styles.detailsTitle, { color: colors.text.primary }]}>
-          {t('investment.investmentDetails')}
+          {project?.offeringType === OFFERING_ACCESS_TRADITIONAL
+            ? t('investment.details')
+            : t('investment.investmentDetails')}
         </Text>
 
-        <View style={styles.detailRow}>
-          <Text style={[styles.detailLabel, { color: colors.text.primary }]}>{t('investment.property')}:</Text>
-          <Text style={[styles.detailValue, { color: colors.text.primary }]}>{project?.title}</Text>
-        </View>
+        {investmentDetailsPropertyLine.kind === 'merged' ? (
+          <View style={styles.detailRow}>
+            <Text
+              style={[styles.detailValue, { color: colors.text.primary, flex: 1 }]}
+            >
+              {investmentDetailsPropertyLine.text}
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.detailRow}>
+            <Text style={[styles.detailLabel, { color: colors.text.primary }]}>
+              {t('investment.property')}:
+            </Text>
+            <Text style={[styles.detailValue, { color: colors.text.primary }]}>
+              {project?.title}
+            </Text>
+          </View>
+        )}
 
         <View style={styles.detailRow}>
           <Text style={[styles.detailLabel, { color: colors.text.primary }]}>{t('investment.tokenAmount')}:</Text>
@@ -712,25 +781,31 @@ export default function InvestmentScreen() {
 
     return (
     <ScrollView style={styles.stepContent} showsVerticalScrollIndicator={false}>
-      <View style={styles.headerSection}>
-        <Check size={32} color={colors.success} />
-        <Text style={[styles.stepTitle, { color: colors.text.primary }]}>
-          {t('investment.digitalSubscriptionCertificate')}
-        </Text>
-        <Text style={[styles.stepSubtitle, { color: colors.text.primary }]}>
-          {t('investment.completeSubscription')}
-        </Text>
-      </View>
-
       <View style={[styles.summarySection, { backgroundColor: colors.background.primary, borderColor: colors.border.primary }]}>
         <Text style={[styles.summaryTitle, { color: colors.text.primary }]}>
-          {t('investment.investmentOverview')}
+          {project?.offeringType === OFFERING_ACCESS_TRADITIONAL
+            ? t('investment.overviewShort')
+            : t('investment.investmentOverview')}
         </Text>
 
-        <View style={styles.summaryRow}>
-          <Text style={[styles.summaryLabel, { color: colors.text.primary }]}>{t('investment.property')}:</Text>
-          <Text style={[styles.summaryValue, { color: colors.text.primary }]}>{project?.title}</Text>
-        </View>
+        {investmentDetailsPropertyLine.kind === 'merged' ? (
+          <View style={styles.summaryRow}>
+            <Text
+              style={[styles.summaryValue, { color: colors.text.primary, flex: 1 }]}
+            >
+              {investmentDetailsPropertyLine.text}
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.summaryRow}>
+            <Text style={[styles.summaryLabel, { color: colors.text.primary }]}>
+              {t('investment.property')}:
+            </Text>
+            <Text style={[styles.summaryValue, { color: colors.text.primary }]}>
+              {project?.title}
+            </Text>
+          </View>
+        )}
 
         <View style={styles.summaryRow}>
           <Text style={[styles.summaryLabel, { color: colors.text.primary }]}>
@@ -793,10 +868,22 @@ export default function InvestmentScreen() {
       <View style={[styles.orderSummary, { backgroundColor: colors.background.primary, borderColor: colors.border.primary }]}>
         <Text style={[styles.orderTitle, { color: colors.text.primary }]}>{t('investment.orderSummary')}</Text>
 
-        <View style={styles.orderRow}>
-          <Text style={[styles.orderLabel, { color: colors.text.primary }]}>{t('investment.property')}:</Text>
-          <Text style={[styles.orderValue, { color: colors.text.primary }]}>{project?.title}</Text>
-        </View>
+        {investmentDetailsPropertyLine.kind === 'merged' ? (
+          <View style={styles.orderRow}>
+            <Text style={[styles.orderValue, { color: colors.text.primary, flex: 1 }]}>
+              {investmentDetailsPropertyLine.text}
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.orderRow}>
+            <Text style={[styles.orderLabel, { color: colors.text.primary }]}>
+              {t('investment.property')}:
+            </Text>
+            <Text style={[styles.orderValue, { color: colors.text.primary }]}>
+              {project?.title}
+            </Text>
+          </View>
+        )}
 
         <View style={styles.orderRow}>
           <Text style={[styles.orderLabel, { color: colors.text.primary }]}>{t('investment.tokenAmount')}:</Text>
@@ -919,7 +1006,7 @@ export default function InvestmentScreen() {
             {confirmSubscription && <Check size={14} color={colors.text.inverse} />}
           </View>
           <Text style={[styles.confirmationText, { color: colors.text.primary }]}>
-            {t('investment.confirmSubscription', { count: tokenAmount })}
+            {confirmSubscriptionText}
           </Text>
         </TouchableOpacity>
       </View>
@@ -982,14 +1069,18 @@ export default function InvestmentScreen() {
           <ArrowLeft size={24} color={colors.text.primary} />
         </TouchableOpacity>
         <View style={styles.headerContent}>
-          <Text style={[styles.headerTitle, { color: colors.text.primary }]}>
-            {t('investment.tokenPurchase')}
-          </Text>
-          <Text
-            style={[styles.headerSubtitle, { color: colors.text.secondary }]}
-          >
-            {project.title}
-          </Text>
+          {currentStep === 2 ? null : (
+            <>
+              <Text style={[styles.headerTitle, { color: colors.text.primary }]}>
+                {t('investment.tokenPurchase')}
+              </Text>
+              <Text
+                style={[styles.headerSubtitle, { color: colors.text.secondary }]}
+              >
+                {project.title}
+              </Text>
+            </>
+          )}
         </View>
         <View style={styles.headerSpacer} />
       </View>
@@ -1138,13 +1229,8 @@ const styles = StyleSheet.create({
   stepTitle: {
     fontSize: 24,
     fontFamily: Typography.fontFamily.bold,
-    marginTop: 16,
+    marginTop: 0,
     marginBottom: 8,
-    textAlign: 'center',
-  },
-  stepSubtitle: {
-    fontSize: 16,
-    fontFamily: Typography.fontFamily.regular,
     textAlign: 'center',
   },
   documentSection: {

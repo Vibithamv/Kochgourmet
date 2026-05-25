@@ -23,7 +23,9 @@ type LocalizedMediaField =
   | 'faq'
   | 'offering_description'
   | 'dashboard_image'
-  | 'detail_page_image';
+  | 'detail_page_image'
+  /** Short marketing blurb per locale (e.g. under `publicsale_content.de.description`). */
+  | 'description';
 
 /** API may return localized blobs as JSON strings. */
 function unwrapLocalizedContentBlock(raw: unknown): unknown {
@@ -72,9 +74,9 @@ export function pickLocalizedHtmlField(
   return '';
 }
 
-function projectLocalizedMedia(
+function projectLocalizedField(
   project: OfferingDashboardImageSource,
-  field: 'dashboard_image' | 'detail_page_image',
+  field: LocalizedMediaField,
   language: string
 ): string {
   switch (project.status) {
@@ -121,7 +123,7 @@ export function projectDashboardImage(
   project: OfferingDashboardImageSource,
   language: string
 ): string {
-  return projectLocalizedMedia(project, 'dashboard_image', language);
+  return projectLocalizedField(project, 'dashboard_image', language);
 }
 
 /** Project detail hero: visibility-specific `detail_page_image`, then API fallbacks. */
@@ -129,5 +131,13 @@ export function projectDetailPageImage(
   project: OfferingDashboardImageSource,
   language: string
 ): string {
-  return projectLocalizedMedia(project, 'detail_page_image', language);
+  return projectLocalizedField(project, 'detail_page_image', language);
+}
+
+/** Card / list: visibility-specific short `description` for current locale, else ''. */
+export function projectLocalizedDescription(
+  project: OfferingDashboardImageSource,
+  language: string
+): string {
+  return projectLocalizedField(project, 'description', language);
 }

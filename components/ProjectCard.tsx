@@ -12,7 +12,10 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getColors, Typography, Spacing, BorderRadius, Shadows } from '@/constants/theme';
 import OptimizedImage from './OptimizedImage';
-import { projectDashboardImage } from '@/utils/offeringLocalizedContent';
+import {
+  projectDashboardImage,
+  projectLocalizedDescription,
+} from '@/utils/offeringLocalizedContent';
 
 type ProjectStatus = 'privatesale' | 'presale' | 'whitelisting' | 'announcement' | 'presaleannouncement' | 'public' | 'finished' | 'draft';
 
@@ -198,6 +201,8 @@ function ProjectCard({
   const statusInfo = getStatusInfo(project.status, project);
   const cardImageUri =
     projectDashboardImage(project, i18n.language) || project.image_url;
+  const cardDescription =
+    projectLocalizedDescription(project, i18n.language) || project.description;
   const activeButtonTextColor = colors.text.onPrimary;
   const buttonTextColor = statusInfo.buttonDisabled ? colors.text.tertiary : activeButtonTextColor;
 
@@ -282,7 +287,7 @@ function ProjectCard({
           </View>
 
           <Text style={[styles.projectDescription, { color: colors.text.secondary }]} numberOfLines={2}>
-            {project.description}
+            {cardDescription}
           </Text>
 
           {/* Key Metrics */}

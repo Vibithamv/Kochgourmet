@@ -179,17 +179,35 @@ export default function ProfileScreen() {
 
   const colors = getColors(theme);
 
+  const hasProfileEdit = React.useMemo(
+    () =>
+      password.trim().length > 0 ||
+      newPassword.trim().length > 0 ||
+      confirmPassword.trim().length > 0,
+    [password, newPassword, confirmPassword]
+  );
+
   const handleSaveChanges = () => {
     Keyboard.dismiss(); // hides keyboard
-    if (password !== '' || newPassword !== '' || confirmPassword !== '') {
-      if (!password) return setError(t('profile.enterPassword'));
-      if (!newPassword) return setError(t('profile.enterNewPassword'));
-      const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d])\S{8,}$/;
-      if (!regex.test(newPassword)) return setError(t('profile.validationError'))
-      if (!confirmPassword) return setError(t('profile.enterConfirmPassword'));
-      if (newPassword !== confirmPassword) return setError(t('profile.doNotMatch'));
-      setError('')
+    if (!hasProfileEdit) {
+      setPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setShowCurrentPassword(false);
+      setShowNewPassword(false);
+      setShowConfirmPassword(false);
+      setError('');
+      setEditMode(false);
+      return;
     }
+
+    if (!password) return setError(t('profile.enterPassword'));
+    if (!newPassword) return setError(t('profile.enterNewPassword'));
+    const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d])\S{8,}$/;
+    if (!regex.test(newPassword)) return setError(t('profile.validationError'));
+    if (!confirmPassword) return setError(t('profile.enterConfirmPassword'));
+    if (newPassword !== confirmPassword) return setError(t('profile.doNotMatch'));
+    setError('');
 
     setEditMode(false);
     setConfirmPassword('');
@@ -226,7 +244,14 @@ export default function ProfileScreen() {
           <Text style={[styles.headerSubtitle, { color: colors.text.secondary }]}>{t('profile.settingsSubtitle')}</Text>
         </View>
         <TouchableOpacity
-          style={[styles.editButton, { backgroundColor: editMode ? colors.success : colors.primary }]}
+          style={[
+            styles.editButton,
+            {
+              backgroundColor: editMode ? colors.success : colors.primary,
+              opacity: editMode && !hasProfileEdit ? 0.45 : 1,
+            },
+          ]}
+          disabled={editMode && !hasProfileEdit}
           onPress={editMode ? handleSaveChanges : () => setEditMode(true)}
         >
           {editMode ? (
@@ -284,8 +309,7 @@ export default function ProfileScreen() {
             icon={User}
             label={t('profile.firstName')}
             value={firstName}
-            onChangeText={(text) => setFirstName(text)}
-            onTextInputNativeFocus={scrollFocusedInputAboveKeyboard}
+            editable={false}
           />
 
           <ProfileInfoField
@@ -294,8 +318,7 @@ export default function ProfileScreen() {
             icon={User}
             label={t('profile.lastName')}
             value={lastName}
-            onChangeText={(text) => setLastName(text)}
-            onTextInputNativeFocus={scrollFocusedInputAboveKeyboard}
+            editable={false}
           />
 
           <ProfileInfoField

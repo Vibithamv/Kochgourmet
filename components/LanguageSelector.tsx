@@ -20,7 +20,7 @@ interface Language {
 const languages: Language[] = [
   { code: 'en', name: 'English', nativeName: 'English' },
   { code: 'de', name: 'German', nativeName: 'Deutsch' },
-  { code: 'es', name: 'Spanish', nativeName: 'Español' },
+  // { code: 'es', name: 'Spanish', nativeName: 'Español' },
 ];
 
 export default function LanguageSelector() {

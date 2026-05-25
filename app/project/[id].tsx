@@ -86,7 +86,19 @@ interface ExtendedProject {
   fundingEndDate: string;
   investors: string;
   asset_symbol: string;
+  /** API offering access/type, e.g. `ACCESS_TRADITIONAL`. */
+  offeringType?: string;
 }
+
+function readOfferingTypeFromApi(data: unknown): string {
+  if (data == null || typeof data !== 'object' || Array.isArray(data)) return '';
+  const o = data as Record<string, unknown>;
+  const v =
+    o.type ?? o.offering_type ?? o.offeringType ?? o.access_type ?? o.accessType;
+  return typeof v === 'string' ? v : '';
+}
+
+const OFFERING_ACCESS_TRADITIONAL = 'ACCESS_TRADITIONAL';
 
 function getRemainingTime(fundingStartDate: string): string {
   const startDate = new Date(fundingStartDate);
@@ -307,6 +319,7 @@ export default function ProjectDetailScreen() {
           fundingEndDate: formatDate(data.data.data.funding_end_date),
           investors: data.data.data.investors,
           asset_symbol: data.data.data.asset_symbol,
+          offeringType: readOfferingTypeFromApi(data.data.data),
         };
         setProject(projectData);
         setLoading(false);
@@ -432,6 +445,11 @@ export default function ProjectDetailScreen() {
   const localizedLang = i18n.language;
   const heroImageUri =
     projectDetailPageImage(project, localizedLang) || project.image_url;
+
+  const investCtaLabel =
+    project.offeringType === OFFERING_ACCESS_TRADITIONAL
+      ? t('projectDetail.backThisProject')
+      : t('dashboard.investNow');
 
   const projectDescription = () => {
     switch (project.status) {
@@ -726,7 +744,7 @@ export default function ProjectDetailScreen() {
                     style={styles.investButtonGradient}
                   >
                     <Text style={[styles.investButtonText, { color: investButtonForeground }]}>
-                      {t('dashboard.investNow')}
+                      {investCtaLabel}
                     </Text>
                     <ArrowRight size={20} color={investButtonForeground} />
                   </LinearGradient>
@@ -1295,7 +1313,7 @@ export default function ProjectDetailScreen() {
             <Text
               style={[styles.stickyButtonText, { color: colors.text.inverse }]}
             >
-              {t('dashboard.investNow')} •{' '}
+              {investCtaLabel} •{' '}
               {formatCurrency(
                 Number(project.minimum_investment),
                 project.main_currency

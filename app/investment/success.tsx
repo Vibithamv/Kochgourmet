@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Building2, Check } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/contexts/ThemeContext';
-import { getColors, Typography, Spacing, BorderRadius } from '@/constants/theme';
+import { getColors, getTypography, Spacing, BorderRadius } from '@/constants/theme';
 
 function decodeParam(value: string | string[] | undefined): string {
   const raw = Array.isArray(value) ? value[0] : value;
@@ -121,133 +121,133 @@ export default function InvestmentSuccessScreen() {
     return rows;
   }, [bankNext, t]);
 
-  const stylesMemo = useMemo(
-    () =>
-      StyleSheet.create({
-        container: { flex: 1 },
-        header: {
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'center',
-          paddingHorizontal: 20,
-          paddingBottom: 16,
-          borderBottomWidth: 1,
-        },
-        headerTitleWrap: {
-          flex: 1,
-          paddingHorizontal: 60,
-          alignItems: 'center',
-          justifyContent: 'center',
-        },
-        headerTitle: {
-          fontSize: 18,
-          fontFamily: Typography.fontFamily.bold,
-          letterSpacing: -0.3,
-          textAlign: 'center',
-        },
-        scroll: { flex: 1 },
-        scrollContent: {
-          flexGrow: 1,
-          paddingHorizontal: Spacing['2xl'],
-          paddingTop: Spacing['2xl'],
-          paddingBottom: Spacing['3xl'],
-        },
-        iconWrap: {
-          width: 72,
-          height: 72,
-          borderRadius: 36,
-          alignItems: 'center',
-          justifyContent: 'center',
-          alignSelf: 'center',
-          marginBottom: Spacing.lg,
-        },
-        body: {
-          fontSize: Typography.fontSize.lg,
-          fontFamily: Typography.fontFamily.regular,
-          textAlign: 'center',
-          lineHeight: 24,
-          marginBottom: Spacing['2xl'],
-          width: '100%',
-          maxWidth: 400,
-          alignSelf: 'center',
-        },
-        nextStepsCard: {
-          width: '100%',
-          maxWidth: 400,
-          alignSelf: 'center',
-          borderRadius: BorderRadius.lg,
-          borderWidth: 1,
-          padding: Spacing.xl,
-          marginBottom: Spacing['2xl'],
-        },
-        nextStepsHeaderRow: {
-          flexDirection: 'row',
-          alignItems: 'center',
-          marginBottom: Spacing.sm,
-        },
-        nextStepsIconCircle: {
-          width: 40,
-          height: 40,
-          borderRadius: 20,
-          alignItems: 'center',
-          justifyContent: 'center',
-          marginRight: Spacing.md,
-        },
-        nextStepsEyebrow: {
-          fontSize: Typography.fontSize.xs,
-          fontFamily: Typography.fontFamily.semiBold,
-          letterSpacing: 1.2,
-          textTransform: 'uppercase',
-        },
-        nextStepsTitle: {
-          fontSize: Typography.fontSize['2xl'],
-          fontFamily: Typography.fontFamily.display,
-          letterSpacing: -0.3,
-          marginBottom: Spacing.lg,
-        },
-        detailRow: {
-          flexDirection: 'row',
-          alignItems: 'flex-start',
-          justifyContent: 'space-between',
-          marginBottom: Spacing.md,
-          gap: Spacing.md,
-        },
-        detailLabel: {
-          flex: 1,
-          fontSize: Typography.fontSize.xs,
-          fontFamily: Typography.fontFamily.medium,
-          letterSpacing: 0.8,
-          textTransform: 'uppercase',
-        },
-        detailValue: {
-          flex: 1,
-          fontSize: Typography.fontSize.sm,
-          fontFamily: Typography.fontFamily.bold,
-          textAlign: 'right',
-        },
-        referenceNote: {
-          fontSize: Typography.fontSize.sm,
-          fontFamily: Typography.fontFamily.regular,
-          lineHeight: 22,
-          marginTop: Spacing.md,
-          textAlign: 'justify',
-        },
-        cta: {
-          paddingVertical: 16,
-          paddingHorizontal: 32,
-          borderRadius: 12,
-          alignItems: 'center',
-          maxWidth: 400,
-          width: '100%',
-          alignSelf: 'center',
-        },
-        ctaText: {
-          fontSize: 16,
-          fontFamily: Typography.fontFamily.semiBold,
-        },
-      }),
-    []
-  );
+  const stylesMemo = useMemo(() => {
+    const typo = getTypography(theme);
+    /** Match `investment/[id].tsx` body copy (e.g. `investorValue`, `agreementText`). */
+    const bodyLh = Math.round(typo.fontSize.base * typo.lineHeight.normal);
+
+    return StyleSheet.create({
+      container: { flex: 1 },
+      header: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingHorizontal: Spacing.xl,
+        paddingBottom: Spacing.lg,
+        borderBottomWidth: 1,
+      },
+      headerTitleWrap: {
+        flex: 1,
+        paddingHorizontal: 60,
+        alignItems: 'center',
+        justifyContent: 'center',
+      },
+      headerTitle: {
+        fontSize: typo.fontSize.xl,
+        fontFamily: typo.fontFamily.bold,
+        letterSpacing: typo.letterSpacing.normal,
+        textAlign: 'center',
+      },
+      scroll: { flex: 1 },
+      scrollContent: {
+        flexGrow: 1,
+        paddingHorizontal: Spacing['2xl'],
+        paddingTop: Spacing['2xl'],
+        paddingBottom: Spacing['3xl'],
+      },
+      iconWrap: {
+        width: 72,
+        height: 72,
+        borderRadius: 36,
+        alignItems: 'center',
+        justifyContent: 'center',
+        alignSelf: 'center',
+        marginBottom: Spacing.lg,
+      },
+      body: {
+        fontSize: typo.fontSize.base,
+        fontFamily: typo.fontFamily.regular,
+        textAlign: 'center',
+        lineHeight: bodyLh,
+        marginBottom: Spacing['2xl'],
+        width: '100%',
+        maxWidth: 400,
+        alignSelf: 'center',
+      },
+      nextStepsCard: {
+        width: '100%',
+        maxWidth: 400,
+        alignSelf: 'center',
+        borderRadius: BorderRadius.lg,
+        borderWidth: 1,
+        padding: Spacing.xl,
+        marginBottom: Spacing['2xl'],
+      },
+      nextStepsHeaderRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: Spacing.sm,
+      },
+      nextStepsIconCircle: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: Spacing.md,
+      },
+      nextStepsEyebrow: {
+        fontSize: typo.fontSize.base,
+        fontFamily: typo.fontFamily.semiBold,
+        letterSpacing: typo.letterSpacing.normal,
+      },
+      nextStepsTitle: {
+        fontSize: typo.fontSize.xl,
+        fontFamily: typo.fontFamily.bold,
+        letterSpacing: typo.letterSpacing.normal,
+        marginBottom: Spacing.lg,
+      },
+      detailRow: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        justifyContent: 'space-between',
+        marginBottom: Spacing.md,
+        gap: Spacing.md,
+      },
+      detailLabel: {
+        flex: 1,
+        fontSize: typo.fontSize.base,
+        fontFamily: typo.fontFamily.semiBold,
+        letterSpacing: typo.letterSpacing.normal,
+      },
+      detailValue: {
+        flex: 1,
+        fontSize: typo.fontSize.base,
+        fontFamily: typo.fontFamily.regular,
+        textAlign: 'right',
+      },
+      referenceNote: {
+        fontSize: typo.fontSize.base,
+        fontFamily: typo.fontFamily.regular,
+        lineHeight: bodyLh,
+        marginTop: Spacing.md,
+        textAlign: 'left',
+      },
+      cta: {
+        paddingVertical: Spacing.lg,
+        paddingHorizontal: Spacing['3xl'],
+        borderRadius: BorderRadius.md,
+        alignItems: 'center',
+        maxWidth: 400,
+        width: '100%',
+        alignSelf: 'center',
+      },
+      ctaText: {
+        fontSize: typo.fontSize.lg,
+        fontFamily: typo.fontFamily.semiBold,
+      },
+    });
+  }, [theme]);
 
   return (
     <View style={[stylesMemo.container, { backgroundColor: colors.background.secondary }]}>

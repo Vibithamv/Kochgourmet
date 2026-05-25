@@ -58,6 +58,32 @@ import {
 
 const screenWidth = Dimensions.get('window').width;
 
+const PORTFOLIO_PERFORMANCE_CHART_SEGMENTS = 4;
+
+/**
+ * react-native-chart-kit Y labels use (range/segments)*i + min then toFixed(decimalPlaces).
+ * With decimalPlaces 0 and a small range, fractional steps round to duplicate labels (e.g. 0,1,1,2,2).
+ */
+function performanceChartYAxisDecimalPlaces(
+  values: number[],
+  segmentCount: number
+): number {
+  if (values.length === 0 || segmentCount <= 0) return 0;
+  const finite = values.filter((v) => Number.isFinite(v));
+  if (finite.length === 0) return 0;
+  const min = Math.min(...finite);
+  const max = Math.max(...finite);
+  if (min === max) return 0;
+  const range = max - min;
+  const step = range / segmentCount;
+  if (step <= 0) return 0;
+  if (step < 0.01) return 4;
+  if (step < 0.1) return 3;
+  if (step < 1) return 2;
+  if (step < 10) return 1;
+  return 0;
+}
+
 /** True when CSV is empty, whitespace-only, or only a header row (no data to export). */
 function isEmptyCsvForDownload(csvText: string): boolean {
   const trimmed = csvText.trim();
@@ -426,52 +452,73 @@ const PortfolioScreen = React.memo(() => {
     })
   }
 
-  const primaryRgb = (() => {
+  const performanceChartFlat = React.useMemo(() => {
+    if (performance.length === 0) return false;
+    const finite = performance.filter((v) => Number.isFinite(v));
+    if (finite.length === 0) return true;
+    return Math.min(...finite) === Math.max(...finite);
+  }, [performance]);
+
+  const performanceYDecimals = React.useMemo(
+    () =>
+      performanceChartFlat
+        ? 0
+        : performanceChartYAxisDecimalPlaces(performance, PORTFOLIO_PERFORMANCE_CHART_SEGMENTS),
+    [performance, performanceChartFlat]
+  );
+
+  const primaryRgb = React.useMemo(() => {
     const hex = colors.primary.replace('#', '');
     const r = Number.parseInt(hex.substring(0, 2), 16);
     const g = Number.parseInt(hex.substring(2, 4), 16);
     const b = Number.parseInt(hex.substring(4, 6), 16);
     return `${r}, ${g}, ${b}`;
-  })();
+  }, [colors.primary]);
 
-  const portfolioData = {
-    labels: getLocalizedMonths(),
-    datasets: [
-      {
-        data: getLocalizedChartData(),
-        strokeWidth: 3,
-        color: (opacity = 1) => `rgba(${primaryRgb}, ${opacity})`,
+  const portfolioData = React.useMemo(
+    () => ({
+      labels: getLocalizedMonths(),
+      datasets: [
+        {
+          data: getLocalizedChartData(),
+          strokeWidth: 3,
+          color: (opacity = 1) => `rgba(${primaryRgb}, ${opacity})`,
+        },
+      ],
+    }),
+    [months, performance, primaryRgb]
+  );
+
+  const chartConfig = React.useMemo(
+    () => ({
+      backgroundColor: colors.background.card,
+      backgroundGradientFrom: colors.background.card,
+      backgroundGradientTo: colors.background.card,
+      decimalPlaces: performanceYDecimals,
+      color: (opacity = 1) => `rgba(${primaryRgb}, ${opacity})`,
+      labelColor: (opacity = 1) => (theme === 'light' ? '#6B7280' : '#94A3B8'),
+      style: { borderRadius: 0 },
+      propsForLabels: {
+        fontFamily: Typography.fontFamily.medium,
+        fontSize: 9,
       },
-    ],
-  };
-
-  const chartConfig = {
-    backgroundColor: colors.background.card,
-    backgroundGradientFrom: colors.background.card,
-    backgroundGradientTo: colors.background.card,
-    decimalPlaces: 0,
-    color: (opacity = 1) => `rgba(${primaryRgb}, ${opacity})`,
-    labelColor: (opacity = 1) => (theme === 'light' ? '#6B7280' : '#94A3B8'),
-    style: { borderRadius: 0 },
-    propsForLabels: {
-      fontFamily: Typography.fontFamily.medium,
-      fontSize: 9,
-    },
-    propsForBackgroundLines: {
-      strokeWidth: .1,
-      stroke: colors.text.primary,
-      strokeDasharray: '6,6',
-    },
-    withHorizontalLines: true,
-    withVerticalLines: false,
-    withDots: true,
-    withShadow: false,
-    fillShadowGradient: colors.primary,
-    fillShadowGradientFrom: colors.primary,
-    fillShadowGradientTo: 'transparent',
-    fillShadowGradientOpacity: 0.3,
-    useShadowColorFromDataset: false,
-  };
+      propsForBackgroundLines: {
+        strokeWidth: 0.1,
+        stroke: colors.text.primary,
+        strokeDasharray: '6,6',
+      },
+      withHorizontalLines: true,
+      withVerticalLines: false,
+      withDots: true,
+      withShadow: false,
+      fillShadowGradient: colors.primary,
+      fillShadowGradientFrom: colors.primary,
+      fillShadowGradientTo: 'transparent',
+      fillShadowGradientOpacity: 0.3,
+      useShadowColorFromDataset: false,
+    }),
+    [colors, theme, primaryRgb, performanceYDecimals]
+  );
 
   const renderPerformanceChartContent = () => {
     if (loading) {
@@ -501,7 +548,15 @@ const PortfolioScreen = React.memo(() => {
           withHorizontalLabels={true}
           withVerticalLines={false}
           withHorizontalLines={true}
-          segments={4}
+          {...(performanceChartFlat
+            ? {}
+            : { segments: PORTFOLIO_PERFORMANCE_CHART_SEGMENTS })}
+          formatYLabel={(label) => {
+            const n = Number.parseFloat(label);
+            if (!Number.isFinite(n)) return label;
+            if (Math.abs(n - Math.round(n)) < 1e-6) return String(Math.round(n));
+            return n.toString();
+          }}
         />
       </View>
     );

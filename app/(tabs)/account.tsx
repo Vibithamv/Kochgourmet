@@ -592,6 +592,7 @@ export default function AccountScreen() {
               paddingTop: Math.max(insets.top, 50),
               backgroundColor: colors.background.primary,
               borderBottomColor: colors.border.primary,
+              marginBottom: Spacing.lg,
             },
           ]}
         >

@@ -43,7 +43,6 @@ export default function KYCWebView() {
   }, []);
 
   const handleContinue = useCallback(async () => {
-    if (!kycConfirmed) return;
     setContinueLoading(true);
     try {
       await syncKycStatusAndNavigate();
@@ -53,7 +52,7 @@ export default function KYCWebView() {
     } finally {
       setContinueLoading(false);
     }
-  }, [kycConfirmed, syncKycStatusAndNavigate, showAlert, t]);
+  }, [syncKycStatusAndNavigate, showAlert, t]);
 
   const pollKycStatus = useCallback(async () => {
     const status = await fetchActiveAccountKycStatus();
@@ -160,41 +159,29 @@ export default function KYCWebView() {
           </View>
         )}
       </View>
-      <View
-        style={[
-          styles.footer,
-          { paddingBottom: Math.max(insets.bottom, Spacing.lg) },
-        ]}
-      >
-        <TouchableOpacity
+      {kycConfirmed ? (
+        <View
           style={[
-            styles.continueButton,
-            {
-              backgroundColor: kycConfirmed ? colors.primary : colors.background.secondary,
-              borderWidth: kycConfirmed ? 0 : 1,
-              borderColor: colors.border.primary,
-            },
+            styles.footer,
+            { paddingBottom: Math.max(insets.bottom, Spacing.lg) },
           ]}
-          onPress={() => void handleContinue()}
-          disabled={!kycConfirmed || continueLoading}
-          activeOpacity={0.85}
         >
-          {continueLoading ? (
-            <ActivityIndicator size="small" color={primaryBtnTextColor} />
-          ) : (
-            <Text
-              style={[
-                styles.continueButtonText,
-                {
-                  color: kycConfirmed ? primaryBtnTextColor : colors.text.tertiary,
-                },
-              ]}
-            >
-              {t('kycRequest.continueAfterWebView')}
-            </Text>
-          )}
-        </TouchableOpacity>
-      </View>
+          <TouchableOpacity
+            style={[styles.continueButton, { backgroundColor: colors.primary }]}
+            onPress={() => void handleContinue()}
+            disabled={continueLoading}
+            activeOpacity={0.85}
+          >
+            {continueLoading ? (
+              <ActivityIndicator size="small" color={primaryBtnTextColor} />
+            ) : (
+              <Text style={[styles.continueButtonText, { color: primaryBtnTextColor }]}>
+                {t('kycRequest.continueAfterWebView')}
+              </Text>
+            )}
+          </TouchableOpacity>
+        </View>
+      ) : null}
     </View>
   );
 }

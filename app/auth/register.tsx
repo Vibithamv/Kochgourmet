@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { router } from 'expo-router';
 import {
   View,
   Text,
@@ -17,7 +18,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getColors } from '@/constants/theme';
 import { userRegister } from '@/contexts/user_register';
-import ConfirmCodePopup from '@/components/confirmCodePopup';
+import { useRegisterPending } from '@/contexts/RegisterPendingContext';
 import { useGlobalAlert } from '@/contexts/AlertContext';
 import LanguageSelector from '@/components/LanguageSelector';
 import {
@@ -69,53 +70,6 @@ function alertRegisterFailure(message: string, t: TFunction, showAlert: ShowAler
     return;
   }
   showAlert(t('common.alert'), message || t('auth.register.registerFailed'));
-}
-
-type RegisterConfirmationContext = Readonly<{
-  firstName: string;
-  lastName: string;
-  password: string;
-  email: string;
-  t: TFunction;
-  showAlert: ShowAlertFn;
-  setPopupVisible: (v: boolean) => void;
-}>;
-
-async function runRegisterConfirmation(confirmationCode: string, ctx: RegisterConfirmationContext): Promise<void> {
-  const userRegisterVal = userRegister();
-  try {
-    const result = await userRegisterVal.userRegisterConfirmationApi(
-      ctx.firstName, ctx.lastName, ctx.password, ctx.email, confirmationCode
-    );
-    if (result.success) {
-      ctx.setPopupVisible(false);
-      ctx.showAlert(ctx.t('common.success'), ctx.t('auth.register.registerSuccess'), {
-        buttonText: 'Login',
-        buttonCallback: () => replaceLoginClearingAuthStack(),
-      });
-      return;
-    }
-    ctx.showAlert(ctx.t('common.failed'), result.error.error.message);
-  } catch (err) {
-    ctx.showAlert(ctx.t('common.failed'), ctx.t('auth.register.registerFailed'));
-    console.error('Registration confirmation error:', err);
-  }
-}
-
-type UserRegisterApi = ReturnType<typeof userRegister>;
-
-async function resendRegisterOtp(email: string, api: UserRegisterApi, t: TFunction, showAlert: ShowAlertFn): Promise<void> {
-  try {
-    const result = await api.userRegisterResendOTPApi(email);
-    if (result.success) {
-      showAlert(t('common.success'), t('auth.forgotPassword.checkEmailCode'));
-      return;
-    }
-    showAlert(t('common.failed'), result.error.error.message || t('auth.forgotPassword.sendResetCodeFailed'));
-  } catch (err) {
-    console.error('Resend OTP error:', err);
-    showAlert(t('common.error'), t('auth.forgotPassword.somethingWentWrong'));
-  }
 }
 
 // ── Field helpers ────────────────────────────────────────────────────────────
@@ -183,13 +137,13 @@ export default function RegisterScreen() {
   const [loading, setLoading] = useState(false);
   const [generalError, setGeneralError] = useState('');
   const [errors, setErrors] = useState<FieldErrors>({});
-  const [popupVisible, setPopupVisible] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   // Focus states
   const [focusedField, setFocusedField] = useState('');
 
   const userRegisterVal = userRegister();
+  const { setPending } = useRegisterPending();
   const { showAlert } = useGlobalAlert();
 
   const lastNameRef = useRef<TextInput>(null);
@@ -219,17 +173,13 @@ export default function RegisterScreen() {
     setLoading(false);
     if (registerResult.success) {
       requestAnimationFrame(() => {
-        setPopupVisible(true);
+        setPending({ firstName, lastName, email, password });
+        router.push('/auth/registerConfirm');
       });
       return;
     }
     alertRegisterFailure(registerResult.error.error.message, t, showAlert);
   };
-
-  const onConfirm = (confirmationCode: string) =>
-    runRegisterConfirmation(confirmationCode, { firstName, lastName, password, email, t, showAlert, setPopupVisible });
-
-  const handleResendOTP = () => resendRegisterOtp(email, userRegisterVal, t, showAlert);
 
   return (
     <LinearGradient colors={isDark ? ['#0D1117', '#14181F', '#1A1F28'] : [colors.background.secondary, colors.background.primary, colors.background.secondary]} style={{ flex: 1 }}>
@@ -403,15 +353,6 @@ export default function RegisterScreen() {
           </View>
         </View>
       </KeyboardAwareScrollView>
-
-      {popupVisible ? (
-        <ConfirmCodePopup
-          visible={popupVisible}
-          onDismiss={() => setPopupVisible(false)}
-          onConfirm={onConfirm}
-          resendOTP={handleResendOTP}
-        />
-      ) : null}
     </LinearGradient>
   );
 }
