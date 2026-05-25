@@ -87,6 +87,35 @@ export const userManagement = () => {
     }
   };
 
+  const updateProfilePicture = async (image: string, contentType: string) => {
+    try {
+      const response = await NetworkService.post(
+        '/profile/picture',
+        { image, contentType },
+        {
+          ...API_HEADER_CONFIG,
+          Authorization: `Bearer ${await AsyncStorage.getItem('IDToken')}`,
+          'x-refresh-token': `${await AsyncStorage.getItem('RefreshToken')}`,
+        },
+      );
+
+      if (response.success) {
+        return { success: true, data: response.data };
+      }
+      return { success: false, error: response.error, status: response.status };
+    } catch (error: unknown) {
+      let errorMessage = 'An unknown error occurred';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      console.log(
+        'Error',
+        'An error occurred while updating profile picture. Please try again.',
+      );
+      return { success: false, error: errorMessage };
+    }
+  };
+
   const switchAccount = async (accountID: string
   ) => {
     try {
@@ -131,6 +160,7 @@ export const userManagement = () => {
   return {
     getUser,
     updateProfile,
+    updateProfilePicture,
     switchAccount
   };
 };

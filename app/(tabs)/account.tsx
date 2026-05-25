@@ -59,6 +59,7 @@ export default function AccountScreen() {
   const [isConnectingAccount, setIsConnectingAccount] = useState(false);
   const [userName, setUserName] = useState('');
   const [email, setEmail] = useState('');
+  const [profilePictureUrl, setProfilePictureUrl] = useState<string | null>(null);
   const userAccount = userManagement();
   const [accounts, setAccounts] = useState<Accounts[]>([]);
   const { showAlert } = useGlobalAlert();
@@ -86,6 +87,10 @@ export default function AccountScreen() {
             data.data.data.activeAccount.name
           );
           setEmail(data.data.data.user.email);
+          const picture = data.data.data.user.profile_picture;
+          setProfilePictureUrl(
+            typeof picture === 'string' && picture.trim() ? picture : null,
+          );
           setUserID(data.data.data.user.id);
           if (data.data.data.accounts.length > 0) {
             const jsonObject = data.data.data.accounts;
@@ -254,7 +259,7 @@ export default function AccountScreen() {
         },
         profileSection: {
           paddingHorizontal: Spacing.xl,
-          marginBottom: Spacing['4xl'],
+          marginBottom: Spacing['2xl'],
         },
         profileCard: {
           borderRadius: BorderRadius.xl,
@@ -342,7 +347,7 @@ export default function AccountScreen() {
         },
         section: {
           paddingHorizontal: Spacing.xl,
-          marginBottom: Spacing['4xl'],
+          marginBottom: Spacing.xl,
         },
         sectionTitle: {
           fontSize: Typography.fontSize.xl,
@@ -632,37 +637,35 @@ export default function AccountScreen() {
         >
           <View style={styles.accountSwitcher}>
             <View style={styles.avatarContainer}>
-              <View
-                style={{
-                  width: 50,
-                  height: 50,
-                  borderRadius: 25,
-                  backgroundColor: `${colors.primary}25`,
-                  borderWidth: 1,
-                  borderColor: `${colors.primary}50`,
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                }}
-              >
-                <Text
+              {profilePictureUrl ? (
+                <Image
+                  source={{ uri: profilePictureUrl }}
+                  style={styles.avatar}
+                />
+              ) : (
+                <View
                   style={{
-                    color: colors.primary,
-                    fontSize: 22,
-                    fontFamily: 'Inter-Bold',
+                    width: 50,
+                    height: 50,
+                    borderRadius: 25,
+                    backgroundColor: `${colors.primary}25`,
+                    borderWidth: 1,
+                    borderColor: `${colors.primary}50`,
+                    justifyContent: 'center',
+                    alignItems: 'center',
                   }}
                 >
-                  {userName.charAt(0)}
-                </Text>
-              </View>
-              {/* <Image 
-                source={{ 
-                  uri: getCurrentAccountData().avatar
-                }} 
-                style={styles.avatar} 
-              />
-              <TouchableOpacity style={styles.cameraButton}>
-                <Camera size={16} color="#FFFFFF" />
-              </TouchableOpacity> */}
+                  <Text
+                    style={{
+                      color: colors.primary,
+                      fontSize: 22,
+                      fontFamily: 'Inter-Bold',
+                    }}
+                  >
+                    {userName.charAt(0)}
+                  </Text>
+                </View>
+              )}
             </View>
             <View style={styles.accountInfo}>
               <View style={styles.profileHeader}>
@@ -701,7 +704,7 @@ export default function AccountScreen() {
               </View>
             </View>
           </View>
-          <ChevronDown size={20} color={colors.text.tertiary} />
+          {/* <ChevronDown size={20} color={colors.text.tertiary} /> */}
         </TouchableOpacity>
       </View>
 

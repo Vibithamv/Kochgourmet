@@ -40,7 +40,14 @@ import {
   BorderRadius,
   Shadows,
 } from '@/constants/theme';
-import type { Transaction } from '@/types';
+import type { PortfolioActivity, Transaction } from '@/types';
+import TransactionDetailsModal from '@/components/TransactionDetailsModal';
+import { offeringDetails } from '@/hooks/offering_details';
+import {
+  findCustomIbanInPaymentProviderList,
+  isOrderedTransactionStatus,
+  type CustomIbanBankDetails,
+} from '@/utils/customIbanBankDetails';
 import { portfolio } from '@/hooks/portfolio';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
@@ -62,6 +69,64 @@ const PORTFOLIO_PERFORMANCE_CHART_SEGMENTS = 4;
 /** Default Y-axis max when all performance values are equal (e.g. all zero). */
 const PORTFOLIO_PERFORMANCE_CHART_EMPTY_Y_MAX = 5;
 const PORTFOLIO_PERFORMANCE_CHART_EMPTY_SEGMENTS = 5;
+
+function pickActivityString(source: Record<string, unknown>, keys: string[]): string {
+  for (const key of keys) {
+    const v = source[key];
+    if (typeof v === 'string' && v.trim().length > 0) return v.trim();
+  }
+  return '';
+}
+
+function toPortfolioActivity(p: Record<string, unknown>, index: number): PortfolioActivity {
+  const offering = (p.offering as Record<string, unknown> | undefined) ?? {};
+  const transactionType = String(p.transactionType ?? '');
+  return {
+    id: `${String(p.id ?? index)}-${index}`,
+    offeringId: p.offeringId != null ? String(p.offeringId) : undefined,
+    transactionType,
+    amount: Number(p.amount) || 0,
+    amountInCurrency: Number(p.amountInCurrency) || 0,
+    currency:
+      transactionType === 'Order'
+        ? String(p.currency ?? '')
+        : String(offering.currency ?? p.currency ?? ''),
+    status: String(p.status ?? ''),
+    transactionDate: String(p.transactionDate ?? ''),
+    offeringName: String(p.offeringName ?? ''),
+    offering: {
+      symbol: String(offering.symbol ?? ''),
+      currency: offering.currency != null ? String(offering.currency) : undefined,
+    },
+    paymentProviderType: pickActivityString(p, ['paymentProviderType', 'payment_provider_type']),
+    paymentBankingName: pickActivityString(p, ['paymentBankingName', 'payment_banking_name']),
+    paymentAccountName: pickActivityString(p, ['paymentAccountName', 'payment_account_name']),
+    paymentAccountNr: pickActivityString(p, [
+      'paymentAccountNr',
+      'payment_account_nr',
+      'payment_bank_nr',
+    ]),
+    paymentBic: pickActivityString(p, ['paymentBic', 'payment_bic', 'bic']),
+  };
+}
+
+function toTransaction(activity: PortfolioActivity): Transaction {
+  return {
+    id: activity.id,
+    type: activity.transactionType as Transaction['type'],
+    amount: activity.amount,
+    amountInCurrency: activity.amountInCurrency,
+    symbol: activity.offering.symbol,
+    status:
+      activity.transactionType === 'Send' || activity.transactionType === 'Receive'
+        ? 'completed'
+        : activity.status,
+    created_at: activity.transactionDate,
+    description: activity.offeringName,
+    currency: activity.currency,
+    activity,
+  };
+}
 
 /**
  * react-native-chart-kit Y labels use (range/segments)*i + min then toFixed(decimalPlaces).
@@ -114,12 +179,27 @@ const PortfolioScreen = React.memo(() => {
   const { theme } = useTheme();
   const shimmerAnim = useShimmerAnim();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [selectedTransaction, setSelectedTransaction] = useState<PortfolioActivity | null>(null);
+  const [transactionDetailVisible, setTransactionDetailVisible] = useState(false);
+  const [transactionBankDetails, setTransactionBankDetails] =
+    useState<CustomIbanBankDetails | null>(null);
+  const [transactionBankLoading, setTransactionBankLoading] = useState(false);
+  const transactionBankCacheRef = React.useRef<
+    Map<string, CustomIbanBankDetails | null>
+  >(new Map());
+  const offeringDetailsApi = offeringDetails();
   const [selectedPeriod, setSelectedPeriod] = useState<'3m' | '6m' | '1y'>(
     '6m'
   );
   const [periodDropdownVisible, setPeriodDropdownVisible] = useState(false);
   const [reportsModalVisible, setReportsModalVisible] = useState(false);
   const { showAlert } = useGlobalAlert();
+
+  const showNoDownloadDataAlert = () => {
+    showAlert(t('portfolio.noDataAvailable'), t('portfolio.noDataToShowRightNow'), {
+      buttonText: t('common.ok'),
+    });
+  };
   const colors = getColors(theme);
   const portfolioDatas = portfolio();
   const styles = React.useMemo(() => createStyles(colors), [colors]);
@@ -227,19 +307,9 @@ const PortfolioScreen = React.memo(() => {
                   p.transactionType === 'Receive' ||
                   p.transactionType === 'Order' || p.transactionType === 'Payment'
               )
-              .map((p: any, index: number) => ({
-                id: `${p.id}-${index}`,
-                offering_id: p.offeringId,
-                type: p.transactionType,
-                amount: p.amount,
-                amountInCurrency: p.amountInCurrency,
-                symbol: p.offering.symbol,
-                status: p.transactionType === 'Send' ||
-                  p.transactionType === 'Receive' ? 'completed' : p.status,
-                created_at: p.transactionDate,
-                description: p.offeringName,
-                currency: p.transactionType === 'Order' ? p.currency : p.offering.currency,
-              }));
+              .map((p: any, index: number) =>
+                toTransaction(toPortfolioActivity(p as Record<string, unknown>, index))
+              );
 
             setTransactions(portfolioTransaction);
           }
@@ -308,17 +378,22 @@ const PortfolioScreen = React.memo(() => {
 
   const downloadRecentTransactions = async () => {
     try {
+      if (transactions.length === 0) {
+        showNoDownloadDataAlert();
+        return;
+      }
+
       setLoading(true);
       const res = await portfolioDatas.portfolioActivities(await AsyncStorage.getItem('AccountID'), 1, 30);
 
       if (!res.success || !res.data || res.data.data.activities.length === 0) {
-        showAlert(t('common.alert'), t('portfolio.noDataToDownload'));
+        showNoDownloadDataAlert();
         return;
       }
       console.log('res.data.data.activities', JSON.stringify(res.data.data.activities, null, 2));
       const csvContent = buildRecentActivitiesCsv(res.data.data.activities);
       if (isEmptyCsvForDownload(csvContent)) {
-        showAlert(t('common.alert'), t('portfolio.noDataToDownload'));
+        showNoDownloadDataAlert();
         return;
       }
       console.log(csvContent);
@@ -341,7 +416,7 @@ const PortfolioScreen = React.memo(() => {
       }
       const csvText = typeof res.data === 'string' ? res.data : '';
       if (isEmptyCsvForDownload(csvText)) {
-        showAlert(t('common.alert'), t('portfolio.noDataToDownload'));
+        showNoDownloadDataAlert();
         return;
       }
       const fileName = `transaction_history_${Date.now()}.csv`;
@@ -381,7 +456,7 @@ const PortfolioScreen = React.memo(() => {
       }
       const csvText = typeof res.data === 'string' ? res.data : '';
       if (isEmptyCsvForDownload(csvText)) {
-        showAlert(t('common.alert'), t('portfolio.noDataToDownload'));
+        showNoDownloadDataAlert();
         return;
       }
 
@@ -423,7 +498,7 @@ const PortfolioScreen = React.memo(() => {
       }
       const csvText = typeof res.data === 'string' ? res.data : '';
       if (isEmptyCsvForDownload(csvText)) {
-        showAlert(t('common.alert'), t('portfolio.noDataToDownload'));
+        showNoDownloadDataAlert();
         return;
       }
 
@@ -573,6 +648,59 @@ const PortfolioScreen = React.memo(() => {
     );
   };
 
+  const closeTransactionDetail = () => {
+    setTransactionDetailVisible(false);
+    setSelectedTransaction(null);
+    setTransactionBankDetails(null);
+    setTransactionBankLoading(false);
+  };
+
+  const loadOrderedTransactionBankDetails = async (activity: PortfolioActivity) => {
+    const offeringId = activity.offeringId?.trim();
+    if (!offeringId) {
+      setTransactionBankDetails(null);
+      setTransactionBankLoading(false);
+      return;
+    }
+
+    if (transactionBankCacheRef.current.has(offeringId)) {
+      setTransactionBankDetails(transactionBankCacheRef.current.get(offeringId) ?? null);
+      setTransactionBankLoading(false);
+      return;
+    }
+
+    setTransactionBankLoading(true);
+    setTransactionBankDetails(null);
+
+    try {
+      await performOfferingCheck();
+      const res = await offeringDetailsApi.details(offeringId);
+      let bank: CustomIbanBankDetails | null = null;
+      if (res.success && res.data?.data?.paymentProviderList) {
+        bank = findCustomIbanInPaymentProviderList(res.data.data.paymentProviderList);
+      }
+      transactionBankCacheRef.current.set(offeringId, bank);
+      setTransactionBankDetails(bank);
+    } catch (error) {
+      console.error('Failed to load offering bank details:', error);
+      transactionBankCacheRef.current.set(offeringId, null);
+      setTransactionBankDetails(null);
+    } finally {
+      setTransactionBankLoading(false);
+    }
+  };
+
+  const openTransactionDetail = (activity: PortfolioActivity) => {
+    setSelectedTransaction(activity);
+    setTransactionDetailVisible(true);
+    setTransactionBankDetails(null);
+    setTransactionBankLoading(false);
+
+    if (isOrderedTransactionStatus(activity.status)) {
+      void loadOrderedTransactionBankDetails(activity);
+    }
+  };
+
   const formatCurrency = (amount: number, currency: string) => {
     const symbols: Record<string, string> = {
       BTC: '₿',
@@ -634,7 +762,9 @@ const PortfolioScreen = React.memo(() => {
       }
 
       return (
-      <View
+      <TouchableOpacity
+        activeOpacity={0.7}
+        onPress={() => openTransactionDetail(transaction.activity)}
         style={[
           styles.transactionItem,
           { borderBottomColor: colors.border.secondary },
@@ -696,7 +826,7 @@ const PortfolioScreen = React.memo(() => {
             {transaction.status}
           </Text>
         </View>
-      </View>
+      </TouchableOpacity>
       );
     },
     [formatCurrency, colors, currency]
@@ -1234,6 +1364,15 @@ const PortfolioScreen = React.memo(() => {
         </View>
       </View>
     </Modal>
+
+    <TransactionDetailsModal
+      visible={transactionDetailVisible}
+      activity={selectedTransaction}
+      formatCurrency={formatCurrency}
+      bankDetails={transactionBankDetails}
+      bankLoading={transactionBankLoading}
+      onClose={closeTransactionDetail}
+    />
     </>
   );
 });

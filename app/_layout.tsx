@@ -277,7 +277,7 @@ export default function RootLayout() {
     PlayfairDisplay_500Medium,
     PlayfairDisplay_700Bold,
   });
-  const [showSplash, setShowSplash] = useState(true);
+  const [showSplash, setShowSplash] = useState(false);
   const userAccount = useMemo(() => userManagement(), []);
   const request = useMemo(() => whitelistManagement(), []);
 

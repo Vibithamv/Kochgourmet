@@ -9,16 +9,20 @@ import {
   ActivityIndicator,
   findNodeHandle,
   Platform,
+  Image,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ArrowLeft, User, Mail, Lock, Check, Eye, EyeOff, Edit } from 'lucide-react-native';
+import { ArrowLeft, User, Mail, Lock, Check, Eye, EyeOff, Edit, Camera } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getColors, Typography, Spacing, BorderRadius, Shadows } from '@/constants/theme';
 import { userManagement } from '@/hooks/userManagement';
 import { useGlobalAlert } from '@/contexts/AlertContext';
+import { messageFromApiError } from '@/utils/apiErrorMessage';
+import { prepareProfilePicturePayload } from '@/utils/profilePictureUpload';
 
 type ProfileInfoFieldIcon = React.ComponentType<{ size?: number; color?: string }>;
 type ProfileInfoFieldColors = ReturnType<typeof getColors>;
@@ -129,6 +133,8 @@ export default function ProfileScreen() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
+  const [profilePictureUrl, setProfilePictureUrl] = useState<string | null>(null);
+  const [uploadingPicture, setUploadingPicture] = useState(false);
   const userProfile = userManagement();
   const { showAlert } = useGlobalAlert();
   const [loading, setLoading] = useState(true);
@@ -152,6 +158,7 @@ export default function ProfileScreen() {
     try {
       setLoading(true)
       userProfile.getUser().then((data: any) => {
+        console.log('data', JSON.stringify(data, null, 2));
         setLoading(false)
         if (data.success && data.data) {
           const accountName = data.data.data.activeAccount?.name;
@@ -164,6 +171,10 @@ export default function ProfileScreen() {
             setLastName(data.data.data.user.last_name ?? '');
           }
           setEmail(data.data.data.user.email);
+          const picture = data.data.data.user.profile_picture;
+          setProfilePictureUrl(
+            typeof picture === 'string' && picture.trim() ? picture : null,
+          );
         } else if (data.status === 401) {
           showAlert(t('profile.sessionExpired'), t('profile.loginAgain'));
           router.replace("/auth/login");
@@ -178,6 +189,97 @@ export default function ProfileScreen() {
 
 
   const colors = getColors(theme);
+  const isDark = theme === 'dark' || theme === 'darkGreen';
+  const primaryBtnTextColor = isDark ? '#0D1117' : '#FFFFFF';
+
+  const refreshUserProfile = useCallback(async () => {
+    const data = await userProfile.getUser();
+    if (data.success && data.data) {
+      const picture = data.data.data.user.profile_picture;
+      setProfilePictureUrl(
+        typeof picture === 'string' && picture.trim() ? picture : null,
+      );
+      return true;
+    }
+    if (data.status === 401) {
+      showAlert(t('profile.sessionExpired'), t('profile.loginAgain'));
+      router.replace('/auth/login');
+      return false;
+    }
+    showAlert(t('common.error'), t('common.errorMessage'));
+    return false;
+  }, [showAlert, t, userProfile]);
+
+  const handleChangeProfilePhoto = useCallback(async () => {
+    if (uploadingPicture || loading) return;
+
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      showAlert(t('common.error'), t('profile.photoPermissionDenied'));
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.85,
+    });
+
+    if (result.canceled || !result.assets?.[0]?.uri) {
+      return;
+    }
+
+    const asset = result.assets[0];
+    const prepared = await prepareProfilePicturePayload(
+      asset.uri,
+      asset.mimeType ?? null,
+      asset.fileSize ?? null,
+    );
+
+    if (!prepared.ok) {
+      if (prepared.error === 'tooLarge') {
+        showAlert(t('common.failed'), t('profile.photoTooLarge'));
+      } else if (prepared.error === 'unsupported') {
+        showAlert(t('common.failed'), t('profile.photoUnsupportedFormat'));
+      } else {
+        showAlert(t('common.failed'), t('profile.photoUpdateFailed'));
+      }
+      return;
+    }
+
+    setUploadingPicture(true);
+    try {
+      const upload = await userProfile.updateProfilePicture(
+        prepared.payload.image,
+        prepared.payload.contentType,
+      );
+
+      if (upload.success) {
+        const refreshed = await refreshUserProfile();
+        if (refreshed) {
+          showAlert(t('common.success'), t('profile.photoUpdateSuccess'));
+        }
+      } else if (upload.status === 401) {
+        showAlert(t('profile.sessionExpired'), t('profile.loginAgain'));
+        router.replace('/auth/login');
+      } else {
+        showAlert(
+          t('common.failed'),
+          messageFromApiError(upload.error, t('profile.photoUpdateFailed')),
+        );
+      }
+    } finally {
+      setUploadingPicture(false);
+    }
+  }, [
+    loading,
+    refreshUserProfile,
+    showAlert,
+    t,
+    uploadingPicture,
+    userProfile,
+  ]);
 
   const hasProfileEdit = React.useMemo(
     () =>
@@ -278,24 +380,55 @@ export default function ProfileScreen() {
         <View style={styles.photoSection}>
           <View style={[styles.photoCard, { backgroundColor: colors.background.card, borderColor: colors.border.primary }]}>
             <View style={styles.photoContainer}>
-              <View style={{
-                width: 70, // diameter
-                height: 70,
-                borderRadius: 35, // make it round
-                backgroundColor: 'grey',
-                justifyContent: 'center',
-                alignItems: 'center',
-              }}>
-                <Text style={{
-                  color: 'white',
-                  fontSize: 40,
-                  fontWeight: 'bold',
-                  textAlign: 'center', // Add this for extra safety
-                }}>{firstName.charAt(0)}</Text>
-              </View>
+              {profilePictureUrl ? (
+                <Image
+                  source={{ uri: profilePictureUrl }}
+                  style={styles.profilePhoto}
+                />
+              ) : (
+                <View
+                  style={{
+                    width: 80,
+                    height: 80,
+                    borderRadius: 40,
+                    backgroundColor: `${colors.primary}25`,
+                    borderWidth: 1,
+                    borderColor: `${colors.primary}50`,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: colors.primary,
+                      fontSize: 32,
+                      fontFamily: 'Inter-Bold',
+                      textAlign: 'center',
+                    }}
+                  >
+                    {(firstName || email).charAt(0).toUpperCase()}
+                  </Text>
+                </View>
+              )}
+              <TouchableOpacity
+                style={[
+                  styles.photoEditButton,
+                  {
+                    backgroundColor: colors.primary,
+                    opacity: uploadingPicture ? 0.6 : 1,
+                  },
+                ]}
+                onPress={handleChangeProfilePhoto}
+                disabled={uploadingPicture || loading}
+                accessibilityLabel={t('profile.photo')}
+              >
+                <Camera size={14} color={primaryBtnTextColor} />
+              </TouchableOpacity>
             </View>
             <Text style={[styles.photoLabel, { color: colors.text.primary }]}>{t('profile.photo')}</Text>
-            {/* <Text style={[styles.photoSubtext, { color: colors.text.secondary }]}>Update your profile picture</Text> */}
+            <Text style={[styles.photoSubtext, { color: colors.text.secondary }]}>
+              {uploadingPicture ? t('profile.uploadingPhoto') : t('profile.photoSubtext')}
+            </Text>
           </View>
         </View>
 
@@ -471,8 +604,8 @@ export default function ProfileScreen() {
           )}
         </View>
       </KeyboardAwareScrollView>
-      {loading && (
-        <View style={styles.loadingOverlay}>
+      {(loading || uploadingPicture) && (
+        <View style={[styles.loadingOverlay, { backgroundColor: colors.background.overlay }]}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
       )}

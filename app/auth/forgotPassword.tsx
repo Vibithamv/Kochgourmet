@@ -11,7 +11,8 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { replaceLoginClearingAuthStack } from '@/utils/authNavigation';
-import { Eye, EyeOff, Mail, Lock, Hash } from 'lucide-react-native';
+import { Eye, EyeOff, Mail, Lock } from 'lucide-react-native';
+import ConfirmationCodeInput, { CONFIRMATION_CODE_LENGTH } from '@/components/ConfirmationCodeInput';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getColors } from '@/constants/theme';
@@ -43,7 +44,9 @@ function buildEmailFieldErrors(email: string, t: TFunction): FieldErrors {
 function buildResetFieldErrors(password: string, confirmationCode: string, t: TFunction): FieldErrors {
   const next: FieldErrors = {};
   if (!password) next.password = t('auth.forgotPassword.enterNewPassword');
-  if (!confirmationCode) next.confirmationCode = t('auth.forgotPassword.enterConfirmationCode');
+  if (confirmationCode.length < CONFIRMATION_CODE_LENGTH) {
+    next.confirmationCode = t('auth.confirmationCode.enterCode');
+  }
   return next;
 }
 
@@ -132,7 +135,6 @@ function ResetStep({
   onResetPassword, newPasswordRef, confirmationCodeRef,
 }: ResetStepProps) {
   const [passwordFocused, setPasswordFocused] = useState(false);
-  const [codeFocused, setCodeFocused] = useState(false);
   const { theme } = useTheme();
   const colors = getColors(theme);
   const isDark = theme === 'dark' || theme === 'darkGreen';
@@ -189,23 +191,15 @@ function ResetStep({
         <Text style={[styles.label, { color: colors.text.primary }]}>
           {t('auth.forgotPassword.confirmationCode')}<Text style={styles.required}> *</Text>
         </Text>
-        <View style={[styles.inputRow, { backgroundColor: colors.background.secondary, borderColor: codeFocused ? colors.border.focus : colors.border.primary }, errors.confirmationCode ? styles.inputRowError : null]}>
-          <Hash size={18} color={codeFocused ? colors.border.focus : colors.text.tertiary} style={styles.inputIcon} />
-          <TextInput
-            ref={confirmationCodeRef}
-            style={[styles.input, { color: colors.text.primary }]}
-            value={confirmationCode}
-            onChangeText={(text) => { setConfirmationCode(text); setErrors((p) => ({ ...p, confirmationCode: '' })); }}
-            placeholder={t('auth.forgotPassword.confirmationCode')}
-            placeholderTextColor={colors.text.placeholder}
-            keyboardType="numeric"
-            returnKeyType="done"
-            onFocus={() => setCodeFocused(true)}
-            onBlur={() => setCodeFocused(false)}
-            onSubmitEditing={onResetPassword}
-            maxLength={10}
-          />
-        </View>
+        <ConfirmationCodeInput
+          value={confirmationCode}
+          onChangeText={(text) => {
+            setConfirmationCode(text);
+            setErrors((p) => ({ ...p, confirmationCode: '' }));
+          }}
+          hasError={!!errors.confirmationCode}
+          inputRef={confirmationCodeRef}
+        />
         {errors.confirmationCode ? <Text style={styles.errorText}>{errors.confirmationCode}</Text> : null}
         {generalError ? <Text style={styles.generalError}>{generalError}</Text> : null}
       </View>

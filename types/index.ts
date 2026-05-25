@@ -51,17 +51,41 @@ export interface Portfolio {
   active_investments: number;
 }
 
+export interface PortfolioActivityOffering {
+  symbol: string;
+  currency?: string;
+}
+
+/** Raw portfolio activity from `/portfolio/activities`. */
+export interface PortfolioActivity {
+  id: string;
+  offeringId?: string;
+  transactionType: string;
+  amount: number;
+  amountInCurrency: number;
+  currency: string;
+  status: string;
+  transactionDate: string;
+  offeringName: string;
+  offering: PortfolioActivityOffering;
+  paymentProviderType?: string;
+  paymentBankingName?: string;
+  paymentAccountName?: string;
+  paymentAccountNr?: string;
+  paymentBic?: string;
+}
+
 export interface Transaction {
   id: string;
-  // user_id: string;
-  type: 'Send' | 'Receive';
+  type: 'Send' | 'Receive' | 'Order' | 'Payment';
   amount: number;
   amountInCurrency: number;
   symbol: string;
-  status: 'pending' | 'completed' | 'failed';
+  status: string;
   created_at: string;
   description: string;
   currency: string;
+  activity: PortfolioActivity;
 }
 
 export interface Tenant {

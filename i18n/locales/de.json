@@ -14,6 +14,7 @@
     "success": "Erfolg",
     "cancel": "Abbrechen",
     "confirm": "Bestätigen",
+    "ok": "OK",
     "save": "Speichern",
     "delete": "Löschen",
     "edit": "Bearbeiten",
@@ -86,7 +87,7 @@
       "enterPassword": "Bitte Passwort eingeben",
       "enterConfirmPassword": "Bitte Passwort bestätigen",
       "passwordsDontMatch": "Passwörter stimmen nicht überein",
-      "verifyEmailDescription": "Geben Sie den Bestätigungscode ein, den wir an {{email}} gesendet haben."
+      "verifyEmailDescription": "Wir haben einen Bestätigungscode an {{email}} gesendet."
     },
     "forgotPassword": {
       "email": "E-Mail",
@@ -115,7 +116,7 @@
       "cancel": "Abbrechen",
       "confirm": "Bestätigen",
       "resend": "Erneut senden",
-      "enterCode": "Bitte Bestätigungscode eingeben"
+      "enterCode": "Bitte geben Sie den 6-stelligen Bestätigungscode ein"
     },
     "errors": {
       "fillAllFields": "Bitte füllen Sie alle Felder aus",
@@ -162,6 +163,13 @@
     "settingsTitle": "Profil Einstellungen",
     "settingsSubtitle": "Verwalten Sie Ihr Profil und Ihre Sicherheit",
     "photo": "Profilfoto",
+    "photoSubtext": "Tippen Sie auf das Kamera-Symbol, um Ihr Profilbild zu aktualisieren",
+    "photoUpdateSuccess": "Ihr Profilbild wurde aktualisiert.",
+    "photoUpdateFailed": "Profilbild konnte nicht aktualisiert werden. Bitte versuchen Sie es erneut.",
+    "photoTooLarge": "Das Bild darf höchstens 500 KB groß sein.",
+    "photoUnsupportedFormat": "Verwenden Sie ein JPEG-, PNG-, GIF- oder WebP-Bild.",
+    "photoPermissionDenied": "Zugriff auf die Fotomediathek ist erforderlich, um ein Profilbild auszuwählen.",
+    "uploadingPhoto": "Foto wird hochgeladen…",
     "basicInfo": "Basisinformationen",
     "firstName": "Vorname",
     "lastName": "Nachname",
@@ -242,6 +250,7 @@
     "principalAmount": "Kapitalbetrag",
     "performance": "Performance",
     "noDataAvailable": "Keine Daten verfügbar",
+    "noDataToShowRightNow": "Derzeit sind keine Daten für Sie verfügbar.",
     "today": "Heute",
     "dayAgo": "Vor 1 Tag",
     "daysAgo": "Vor {{count}} Tagen",
@@ -250,6 +259,14 @@
     "failedFetchPortfolio": "Portfolio konnte nicht geladen werden",
     "failedFetchActivities": "Portfolio-Aktivitäten konnten nicht geladen werden",
     "noRecentTransactions": "Keine aktuellen Transaktionen gefunden",
+    "transactionDetails": "Transaktionsdetails",
+    "transactionDetailType": "Typ",
+    "transactionDetailStatus": "Status",
+    "transactionDetailDate": "Datum",
+    "transactionDetailOffering": "Angebot",
+    "transactionDetailTokenAmount": "Token-Betrag",
+    "transactionDetailAmount": "Betrag",
+    "transactionDetailNumberOfTokens": "Anzahl der Token",
     "selectWalletAddress": "Wallet-Adresse auswählen",
     "noWalletsConnected": "Keine Wallets verbunden",
     "noEmbeddedWalletsConnected": "Keine eingebettete Wallet verbunden. Fügen Sie eine unter Meine Wallets hinzu.",
@@ -593,6 +610,11 @@
     "target": "Ziel",
     "funded": "Finanziert",
     "failedMsg": "Abrufen der Angebotsdetails fehlgeschlagen. Bitte versuchen Sie es erneut.",
+    "selectTokens": "Token auswählen",
+    "annualIncome": "Jahreseinkommen",
+    "monthlyIncome": "Monatliches Einkommen",
+    "projected5Year": "Prognose 5 Jahre",
+    "ownership": "Eigentumsanteil",
     "draft": "Entworfen",
     "next": "Weiter"
   },
@@ -707,7 +729,8 @@
     },
     "emailSupport": {
       "title": "E-Mail-Support",
-      "description": "Senden Sie uns eine detaillierte Nachricht"
+      "description": "Senden Sie uns eine detaillierte Nachricht",
+      "unavailable": "E-Mail-App konnte nicht geöffnet werden. Bitte schreiben Sie uns an {{email}}."
     },
     "phoneSupport": {
       "title": "Telefon-Support",
@@ -728,6 +751,9 @@
     },
     "faq": {
       "title": "Häufig gestellte Fragen",
+      "browseOfficialWebsite": "Durchsuchen Sie die FAQs auf unserer offiziellen Website für ausführliche Hinweise und Unterstützung.",
+      "openOfficialWebsite": "Offizielle FAQs auf kochgourmet.com öffnen",
+      "linkUnavailable": "Die FAQ-Seite konnte nicht geöffnet werden. Bitte besuchen Sie kochgourmet.com/faqs in Ihrem Browser.",
       "q1": "Wie fange ich an zu investieren?",
       "a1": "Um mit dem Investieren zu beginnen, schließen Sie Ihre KYC-Verifizierung ab, fügen Sie eine Zahlungsmethode hinzu und durchsuchen Sie die verfügbaren Projekte. Sie können in die meisten Projekte bereits ab 500 € investieren.",
       "q2": "Was ist die KYC-Verifizierung?",

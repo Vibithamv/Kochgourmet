@@ -14,7 +14,7 @@ import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useNavigation } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
-import { ArrowLeft, Hash } from 'lucide-react-native';
+import { ArrowLeft } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -24,44 +24,14 @@ import { useRegisterPending } from '@/contexts/RegisterPendingContext';
 import { useGlobalAlert } from '@/contexts/AlertContext';
 import { replaceLoginClearingAuthStack } from '@/utils/authNavigation';
 import LanguageSelector from '@/components/LanguageSelector';
-
-const CONFIRMATION_CODE_MAX_LENGTH = 10;
-
-function InputRow({
-  icon,
-  children,
-  focused,
-  hasError,
-  colors,
-}: Readonly<{
-  icon: React.ReactNode;
-  children: React.ReactNode;
-  focused: boolean;
-  hasError: boolean;
-  colors: ReturnType<typeof getColors>;
-}>) {
-  return (
-    <View
-      style={[
-        styles.inputRow,
-        {
-          backgroundColor: colors.background.secondary,
-          borderColor: focused ? colors.border.focus : colors.border.primary,
-        },
-        hasError ? styles.inputRowError : null,
-      ]}
-    >
-      <View style={styles.inputIcon}>{icon}</View>
-      {children}
-    </View>
-  );
-}
+import ConfirmationCodeInput, { CONFIRMATION_CODE_LENGTH } from '@/components/ConfirmationCodeInput';
 
 export default function RegisterConfirmScreen() {
   const { t } = useTranslation();
   const { theme } = useTheme();
   const colors = getColors(theme);
   const isDark = theme === 'dark' || theme === 'darkGreen';
+  const primaryBtnTextColor = isDark ? '#0D1117' : '#FFFFFF';
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const { pending, setPending } = useRegisterPending();
@@ -69,7 +39,6 @@ export default function RegisterConfirmScreen() {
   const userRegisterVal = userRegister();
 
   const [code, setCode] = useState('');
-  const [codeFocused, setCodeFocused] = useState(false);
   const [errorKey, setErrorKey] = useState('');
   const [loadingConfirm, setLoadingConfirm] = useState(false);
   const [loadingResend, setLoadingResend] = useState(false);
@@ -125,6 +94,11 @@ export default function RegisterConfirmScreen() {
     replaceLoginClearingAuthStack();
   };
 
+  const handleCodeChange = (text: string) => {
+    setCode(text);
+    if (errorKey) setErrorKey('');
+  };
+
   const handleResend = async () => {
     setLoadingResend(true);
     try {
@@ -147,8 +121,7 @@ export default function RegisterConfirmScreen() {
 
   const handleConfirm = async () => {
     Keyboard.dismiss();
-    const trimmed = code.trim();
-    if (!trimmed) {
+    if (code.length < CONFIRMATION_CODE_LENGTH) {
       setErrorKey('auth.confirmationCode.enterCode');
       return;
     }
@@ -160,7 +133,7 @@ export default function RegisterConfirmScreen() {
         pending.lastName,
         pending.password,
         pending.email,
-        trimmed
+        code
       );
       if (result.success) {
         setPending(null);
@@ -202,6 +175,10 @@ export default function RegisterConfirmScreen() {
           >
             <ArrowLeft size={24} color={colors.text.primary} />
           </TouchableOpacity>
+          <Text style={[styles.headerTitle, { color: colors.text.primary }]} numberOfLines={1}>
+            {t('auth.confirmationCode.title')}
+          </Text>
+          <View style={styles.headerSpacer} />
         </View>
 
         <View style={styles.hero}>
@@ -220,31 +197,15 @@ export default function RegisterConfirmScreen() {
           <Text style={[styles.label, { color: colors.text.primary }]}>
             {t('auth.forgotPassword.confirmationCode')}
           </Text>
-          <InputRow
-            icon={<Hash size={18} color={codeFocused ? colors.border.focus : colors.text.tertiary} />}
-            focused={codeFocused}
+
+          <ConfirmationCodeInput
+            value={code}
+            onChangeText={handleCodeChange}
             hasError={!!errorKey}
-            colors={colors}
-          >
-            <TextInput
-              ref={codeInputRef}
-              style={[styles.input, { color: colors.text.primary }]}
-              value={code}
-              onChangeText={(text) => {
-                setCode(text);
-                if (errorKey) setErrorKey('');
-              }}
-              placeholder={t('auth.forgotPassword.confirmationCode')}
-              placeholderTextColor={colors.text.placeholder}
-              keyboardType="number-pad"
-              maxLength={CONFIRMATION_CODE_MAX_LENGTH}
-              returnKeyType="done"
-              onSubmitEditing={handleConfirm}
-              onFocus={() => setCodeFocused(true)}
-              onBlur={() => setCodeFocused(false)}
-            />
-          </InputRow>
-          {errorKey ? <Text style={styles.errorText}>{t(errorKey)}</Text> : null}
+            inputRef={codeInputRef}
+          />
+
+          {errorKey ? <Text style={[styles.errorText, { color: colors.error }]}>{t(errorKey)}</Text> : null}
 
           <TouchableOpacity onPress={handleConfirm} disabled={loadingConfirm} activeOpacity={0.85} style={styles.primaryBtnWrap}>
             <LinearGradient
@@ -260,9 +221,9 @@ export default function RegisterConfirmScreen() {
               style={styles.button}
             >
               {loadingConfirm ? (
-                <ActivityIndicator size="small" color={colors.primary} />
+                <ActivityIndicator size="small" color={primaryBtnTextColor} />
               ) : (
-                <Text style={[styles.buttonText, { color: colors.text.onPrimary }]}>
+                <Text style={[styles.buttonText, { color: primaryBtnTextColor }]}>
                   {t('auth.confirmationCode.confirm')}
                 </Text>
               )}
@@ -276,16 +237,15 @@ export default function RegisterConfirmScreen() {
             style={[
               styles.resendButton,
               {
-                backgroundColor: colors.interactive.hover,
-                borderColor: colors.primary,
+                backgroundColor: colors.background.secondary,
                 opacity: loadingResend || loadingConfirm ? 0.5 : 1,
               },
             ]}
           >
             {loadingResend ? (
-              <ActivityIndicator size="small" color={colors.primary} />
+              <ActivityIndicator size="small" color={colors.text.primary} />
             ) : (
-              <Text style={[styles.resendText, { color: colors.primary }]}>{t('auth.confirmationCode.resend')}</Text>
+              <Text style={[styles.resendText, { color: colors.text.primary }]}>{t('auth.confirmationCode.resend')}</Text>
             )}
           </TouchableOpacity>
 
@@ -304,6 +264,8 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 20,
     paddingBottom: 8,
   },
@@ -313,6 +275,16 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  headerTitle: {
+    flex: 1,
+    fontSize: 17,
+    fontFamily: 'Inter-SemiBold',
+    textAlign: 'center',
+    letterSpacing: -0.2,
+  },
+  headerSpacer: {
+    width: 44,
   },
   hero: {
     alignItems: 'center',
@@ -350,30 +322,10 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 13,
     fontFamily: 'Inter-Medium',
-    marginBottom: 8,
+    marginBottom: 12,
     letterSpacing: 0.1,
   },
-  inputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 12,
-    borderWidth: 1.5,
-  },
-  inputRowError: {
-    borderColor: '#EF4444',
-  },
-  inputIcon: {
-    marginLeft: 14,
-  },
-  input: {
-    flex: 1,
-    paddingVertical: 14,
-    paddingHorizontal: 10,
-    fontSize: 15,
-    fontFamily: 'Inter-Regular',
-  },
   errorText: {
-    color: '#EF4444',
     fontSize: 12,
     fontFamily: 'Inter-Regular',
     marginTop: 8,
@@ -398,7 +350,6 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 20,
     borderRadius: 12,
-    borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
   },

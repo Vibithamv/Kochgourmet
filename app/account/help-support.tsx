@@ -8,6 +8,7 @@ import {
   TextInput,
   Modal,
   Linking,
+  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowLeft, MessageCircle, Mail, Phone, ExternalLink, Send, X, CircleHelp as HelpCircle, Book, Video, Users, Clock, CircleCheck as CheckCircle } from 'lucide-react-native';
@@ -16,6 +17,10 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getColors, Typography, Spacing, BorderRadius, Shadows } from '@/constants/theme';
 import { useGlobalAlert } from '@/contexts/AlertContext';
+
+/** Support inbox — must be a full address (`user@domain`) for mailto: to populate the To field. */
+const SUPPORT_EMAIL = 'cooperation@kochgourmet.com';
+const OFFICIAL_FAQS_URL = 'https://www.kochgourmet.com/faqs';
 
 interface FAQItem {
   id: string;
@@ -46,6 +51,50 @@ export default function HelpSupportScreen() {
   });
   const { showAlert } = useGlobalAlert();
   const colors = getColors(theme);
+
+  const openEmailSupport = async () => {
+    const mailtoUrl = `mailto:${SUPPORT_EMAIL}`;
+    const showUnavailable = () => {
+      showAlert(
+        t('common.error'),
+        t('helpSupport.emailSupport.unavailable', { email: SUPPORT_EMAIL })
+      );
+    };
+
+    try {
+      // iOS: open Mail directly — canOpenURL often returns false despite a working mail app.
+      if (Platform.OS === 'ios') {
+        await Linking.openURL(mailtoUrl);
+        return;
+      }
+
+      const canOpen = await Linking.canOpenURL(mailtoUrl);
+      if (!canOpen) {
+        showUnavailable();
+        return;
+      }
+      await Linking.openURL(mailtoUrl);
+    } catch {
+      showUnavailable();
+    }
+  };
+
+  const openOfficialFaqs = async () => {
+    try {
+      if (Platform.OS === 'ios') {
+        await Linking.openURL(OFFICIAL_FAQS_URL);
+        return;
+      }
+      const canOpen = await Linking.canOpenURL(OFFICIAL_FAQS_URL);
+      if (!canOpen) {
+        showAlert(t('common.error'), t('helpSupport.faq.linkUnavailable'));
+        return;
+      }
+      await Linking.openURL(OFFICIAL_FAQS_URL);
+    } catch {
+      showAlert(t('common.error'), t('helpSupport.faq.linkUnavailable'));
+    }
+  };
 
   const faqItems: FAQItem[] = [
     {
@@ -87,38 +136,38 @@ export default function HelpSupportScreen() {
   ];
 
   const supportOptions: SupportOption[] = [
-    {
-      id: 'chat',
-      title: t('helpSupport.liveChat.title'),
-      description: t('helpSupport.liveChat.description'),
-      icon: MessageCircle,
-      action: () => showAlert(t('helpSupport.liveChat.alertTitle'), t('helpSupport.liveChat.alertMsg')),
-      available: false,
-    },
+    // {
+    //   id: 'chat',
+    //   title: t('helpSupport.liveChat.title'),
+    //   description: t('helpSupport.liveChat.description'),
+    //   icon: MessageCircle,
+    //   action: () => showAlert(t('helpSupport.liveChat.alertTitle'), t('helpSupport.liveChat.alertMsg')),
+    //   available: false,
+    // },
     {
       id: 'email',
       title: t('helpSupport.emailSupport.title'),
       description: t('helpSupport.emailSupport.description'),
       icon: Mail,
-      action: () => void Linking.openURL('mailto:someone@example.com'),
+      action: () => void openEmailSupport(),
       available: true,
     },
-    {
-      id: 'phone',
-      title: t('helpSupport.phoneSupport.title'),
-      description: t('helpSupport.phoneSupport.description'),
-      icon: Phone,
-      action: () => void Linking.openURL('tel:+1-555-899999'),
-      available: true,
-    },
-    {
-      id: 'docs',
-      title: t('helpSupport.documentation.title'),
-      description: t('helpSupport.documentation.description'),
-      icon: Book,
-      action: () => showAlert(t('helpSupport.documentation.alertTitle'), t('helpSupport.documentation.alertMsg')),
-      available: false,
-    },
+    // {
+    //   id: 'phone',
+    //   title: t('helpSupport.phoneSupport.title'),
+    //   description: t('helpSupport.phoneSupport.description'),
+    //   icon: Phone,
+    //   action: () => void Linking.openURL('tel:+1-555-899999'),
+    //   available: true,
+    // },
+    // {
+    //   id: 'docs',
+    //   title: t('helpSupport.documentation.title'),
+    //   description: t('helpSupport.documentation.description'),
+    //   icon: Book,
+    //   action: () => showAlert(t('helpSupport.documentation.alertTitle'), t('helpSupport.documentation.alertMsg')),
+    //   available: false,
+    // },
   ];
 
   const handleSendMessage = () => {
@@ -213,7 +262,7 @@ export default function HelpSupportScreen() {
         </View>
 
         {/* Business Hours */}
-        <View style={styles.section}>
+        {/* <View style={styles.section}>
           <View style={[styles.businessHoursCard, { backgroundColor: colors.background.card, borderColor: colors.border.primary }]}>
             <View style={styles.businessHoursHeader}>
               <Clock size={20} color={colors.info} />
@@ -234,13 +283,39 @@ export default function HelpSupportScreen() {
               </View>
             </View>
           </View>
-        </View>
+        </View> */}
 
         {/* FAQ Section */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>{t('helpSupport.faq.title')}</Text>
 
-          <View style={styles.faqList}>
+          <View
+            style={[
+              styles.faqCard,
+              {
+                backgroundColor: colors.background.card,
+                borderColor: colors.border.primary,
+              },
+            ]}
+          >
+            <Text style={[styles.faqWebsiteHint, { color: colors.text.secondary }]}>
+              {t('helpSupport.faq.browseOfficialWebsite')}
+            </Text>
+            <TouchableOpacity
+              style={styles.faqWebsiteLinkRow}
+              onPress={() => void openOfficialFaqs()}
+              activeOpacity={0.7}
+              accessibilityRole="link"
+              accessibilityLabel={t('helpSupport.faq.openOfficialWebsite')}
+            >
+              <Text style={[styles.faqWebsiteLink, { color: colors.primary }]}>
+                {OFFICIAL_FAQS_URL}
+              </Text>
+              <ExternalLink size={16} color={colors.primary} />
+            </TouchableOpacity>
+          </View>
+
+          {/* <View style={styles.faqList}>
             {faqItems.map((faq) => (
               <TouchableOpacity
                 key={faq.id}
@@ -256,11 +331,11 @@ export default function HelpSupportScreen() {
                 )}
               </TouchableOpacity>
             ))}
-          </View>
+          </View> */}
         </View>
 
         {/* Resources */}
-        <View style={styles.section}>
+        {/* <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>{t('helpSupport.resources.title')}</Text>
 
           <TouchableOpacity style={[styles.resourceItem, { backgroundColor: colors.background.card, borderColor: colors.border.primary }]}>
@@ -295,7 +370,7 @@ export default function HelpSupportScreen() {
             </View>
             <ExternalLink size={16} color={colors.text.tertiary} />
           </TouchableOpacity>
-        </View>
+        </View> */}
       </ScrollView>
 
       {/* Contact Form Modal */}
@@ -527,6 +602,28 @@ const styles = StyleSheet.create({
   businessHoursTime: {
     fontSize: Typography.fontSize.base,
     fontFamily: Typography.fontFamily.regular,
+  },
+  faqCard: {
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.xl,
+    borderWidth: 1,
+    ...Shadows.sm,
+  },
+  faqWebsiteHint: {
+    fontSize: Typography.fontSize.base,
+    fontFamily: Typography.fontFamily.regular,
+    lineHeight: 22,
+    marginBottom: Spacing.md,
+  },
+  faqWebsiteLinkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  faqWebsiteLink: {
+    fontSize: Typography.fontSize.base,
+    fontFamily: Typography.fontFamily.medium,
+    flex: 1,
   },
   faqList: {
     gap: Spacing.md,

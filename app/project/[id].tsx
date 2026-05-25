@@ -38,6 +38,8 @@ import { useGlobalAlert } from '@/contexts/AlertContext';
 import { useFocusEffect } from '@react-navigation/native';
 import { useOfferingCheck } from '@/hooks/useOfferingCheck';
 import { ProjectDetailShimmer } from '@/components/Shimmer';
+import OfferingTokenSlider from '@/components/OfferingTokenSlider';
+import { parseOfferingNumber } from '@/utils/offeringTokenMetrics';
 import {
   pickLocalizedHtmlField,
   projectDetailPageImage,
@@ -64,6 +66,10 @@ interface ExtendedProject {
   target_amount: number;
   raised_amount: number;
   minimum_investment: number;
+  hardcap: number;
+  price_per_token: number;
+  /** API `field_2` — annual income base for calculator. */
+  annual_income_base: number;
   expected_return: number;
   duration_months: number;
   /** API `detail_page_image` (+ optional `heroImage`) when localized `detail_page_image` is missing */
@@ -260,6 +266,7 @@ export default function ProjectDetailScreen() {
   const insets = useSafeAreaInsets();
   const scrollY = useRef(new Animated.Value(0)).current;
   const [project, setProject] = useState<ExtendedProject | null>(null);
+  const [selectedTokens, setSelectedTokens] = useState(1);
   const [loading, setLoading] = useState(true);
   const { showAlert } = useGlobalAlert();
   const colors = getColors(theme);
@@ -284,6 +291,7 @@ export default function ProjectDetailScreen() {
     setLoading(true);
     await performOfferingCheck();
     offering.details(id).then((data) => {
+      console.log('data', JSON.stringify(data, null, 2));
       if (data.success && data.data) {
         projectData = {
           id: data.data.data.id,
@@ -292,8 +300,17 @@ export default function ProjectDetailScreen() {
           location: 'Baden bei Wien, AT',
           target_amount: 14000000,
           raised_amount: data.data.data.raised_amount,
-          minimum_investment: data.data.data.minimum_investment,
-          expected_return: 4,
+          minimum_investment: parseOfferingNumber(
+            data.data.data.minimum_investment,
+            1
+          ),
+          hardcap: parseOfferingNumber(
+            data.data.data.hardcap ?? data.data.data.field_0,
+            1
+          ),
+          price_per_token: parseOfferingNumber(data.data.data.price_per_token, 0),
+          annual_income_base: parseOfferingNumber(data.data.data.field_2, 0),
+          expected_return: parseOfferingNumber(data.data.data.field_1, 4),
           duration_months: 36,
           image_url:
             (typeof data.data.data.detail_page_image === 'string'
@@ -322,6 +339,9 @@ export default function ProjectDetailScreen() {
           offeringType: readOfferingTypeFromApi(data.data.data),
         };
         setProject(projectData);
+        setSelectedTokens(
+          Math.max(1, Math.round(projectData.minimum_investment))
+        );
         setLoading(false);
       } else {
         setLoading(false);
@@ -754,6 +774,18 @@ export default function ProjectDetailScreen() {
             <Text style={[styles.minInvestmentText, { color: colors.text.tertiary }]}>
               {t('dashboard.minInvestment')}: {Number(project.minimum_investment)} {project.asset_symbol}
             </Text>
+
+            {project.hardcap >= project.minimum_investment ? (
+              <OfferingTokenSlider
+                tokenSymbol={project.asset_symbol}
+                currency={project.main_currency}
+                minTokens={project.minimum_investment}
+                maxTokens={project.hardcap}
+                annualIncomeBase={project.annual_income_base}
+                value={selectedTokens}
+                onChange={setSelectedTokens}
+              />
+            ) : null}
           </View>
 
           {/* Key Metrics Cards */}

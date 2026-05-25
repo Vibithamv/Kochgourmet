@@ -14,6 +14,7 @@
     "success": "Éxito",
     "cancel": "Cancelar",
     "confirm": "Confirmar",
+    "ok": "OK",
     "save": "Guardar",
     "delete": "Eliminar",
     "edit": "Editar",
@@ -86,7 +87,7 @@
       "enterPassword": "Por favor, ingrese la contraseña",
       "enterConfirmPassword": "Por favor, confirme la contraseña",
       "passwordsDontMatch": "Las contraseñas no coinciden",
-      "verifyEmailDescription": "Introduce el código de confirmación que enviamos a {{email}}."
+      "verifyEmailDescription": "Enviamos un código de verificación a {{email}}."
     },
     "forgotPassword": {
       "email": "Correo electrónico",
@@ -115,7 +116,7 @@
       "cancel": "Cancelar",
       "confirm": "Confirmar",
       "resend": "Reenviar",
-      "enterCode": "Por favor, ingrese el código de confirmación"
+      "enterCode": "Por favor, ingrese el código de confirmación de 6 dígitos"
     },
     "errors": {
       "fillAllFields": "Por favor completa todos los campos",
@@ -219,6 +220,7 @@
     "principalAmount": "Monto principal",
     "performance": "Rendimiento",
     "noDataAvailable": "No hay datos disponibles",
+    "noDataToShowRightNow": "No hay datos para mostrarle en este momento.",
     "today": "Hoy",
     "dayAgo": "Hace 1 día",
     "daysAgo": "Hace {{count}} días",
@@ -227,6 +229,14 @@
     "failedFetchPortfolio": "Error al obtener el portafolio",
     "failedFetchActivities": "Error al obtener las actividades del portafolio",
     "noRecentTransactions": "No se encontraron transacciones recientes",
+    "transactionDetails": "Detalles de la transacción",
+    "transactionDetailType": "Tipo",
+    "transactionDetailStatus": "Estado",
+    "transactionDetailDate": "Fecha",
+    "transactionDetailOffering": "Oferta",
+    "transactionDetailTokenAmount": "Cantidad de tokens",
+    "transactionDetailAmount": "Importe",
+    "transactionDetailNumberOfTokens": "Número de tokens",
     "selectWalletAddress": "Seleccionar dirección de billetera",
     "noWalletsConnected": "No hay billeteras conectadas",
     "noEmbeddedWalletsConnected": "No hay billetera integrada. Agrega una en Mis billeteras.",
@@ -389,6 +399,13 @@
     "settingsTitle": "Configuración del perfil",
     "settingsSubtitle": "Administra tu perfil y seguridad",
     "photo": "Foto de perfil",
+    "photoSubtext": "Toca el icono de la cámara para actualizar tu foto de perfil",
+    "photoUpdateSuccess": "Tu foto de perfil se ha actualizado.",
+    "photoUpdateFailed": "No se pudo actualizar la foto de perfil. Inténtalo de nuevo.",
+    "photoTooLarge": "La imagen debe ser de 500 KB o menos.",
+    "photoUnsupportedFormat": "Usa una imagen JPEG, PNG, GIF o WebP.",
+    "photoPermissionDenied": "Se requiere acceso a la galería de fotos para elegir una foto de perfil.",
+    "uploadingPhoto": "Subiendo foto…",
     "basicInfo": "Información básica",
     "firstName": "Nombre",
     "lastName": "Apellido",
@@ -589,6 +606,11 @@
     "target": "Objetivo",
     "funded": "Financiado",
     "failedMsg": "Error al obtener los detalles de la oferta. Por favor, inténtelo de nuevo.",
+    "selectTokens": "Seleccionar tokens",
+    "annualIncome": "Ingresos anuales",
+    "monthlyIncome": "Ingresos mensuales",
+    "projected5Year": "Proyección a 5 años",
+    "ownership": "Participación",
     "draft": "Redactado",
     "next": "Siguiente"
   },
@@ -703,7 +725,8 @@
     },
     "emailSupport": {
       "title": "Soporte por Correo",
-      "description": "Envíanos un mensaje detallado"
+      "description": "Envíanos un mensaje detallado",
+      "unavailable": "No se pudo abrir la aplicación de correo. Escríbanos a {{email}}."
     },
     "phoneSupport": {
       "title": "Soporte Telefónico",
@@ -724,6 +747,9 @@
     },
     "faq": {
       "title": "Preguntas Frecuentes",
+      "browseOfficialWebsite": "Consulte las preguntas frecuentes en nuestro sitio web oficial para obtener orientación y asistencia detalladas.",
+      "openOfficialWebsite": "Abrir las FAQ oficiales en kochgourmet.com",
+      "linkUnavailable": "No se pudo abrir la página de preguntas frecuentes. Visite kochgourmet.com/faqs en su navegador.",
       "q1": "¿Cómo empiezo a invertir?",
       "a1": "Para comenzar a invertir, completa tu verificación KYC, agrega un método de pago y explora los proyectos disponibles. Puedes invertir desde $500 en la mayoría de los proyectos.",
       "q2": "¿Qué es la verificación KYC?",

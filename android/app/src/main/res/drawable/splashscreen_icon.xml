@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <inset xmlns:android="http://schemas.android.com/apk/res/android"
     android:drawable="@drawable/kochgourmet_logo"
-    android:insetLeft="28%"
-    android:insetRight="28%"
-    android:insetTop="40%"
+    android:insetLeft="17%"
+    android:insetRight="17%"
+    android:insetTop="42%"
     android:insetBottom="42%" />

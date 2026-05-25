@@ -178,14 +178,14 @@ export default function AccountInfoScreen() {
             onChangeText={(text) => setAccountInfo(prev => ({ ...prev, fullName: text }))}
           />
 
-          <AccountInfoField
+          {/* <AccountInfoField
             editMode={editMode}
             colors={colors}
             icon={Building}
             label={t('account.companyNameLabel')}
             value={accountInfo.companyName}
             onChangeText={(text) => setAccountInfo(prev => ({ ...prev, companyName: text }))}
-          />
+          /> */}
 
           <AccountInfoField
             editMode={editMode}
@@ -411,7 +411,7 @@ const styles = StyleSheet.create({
   },
   section: {
     paddingHorizontal: Spacing.xl,
-    marginBottom: Spacing['3xl'],
+    marginBottom: Spacing['2xl'],
     paddingTop: Spacing.xl,
   },
   sectionTitle: {

@@ -64,6 +64,8 @@
         }
       },
       "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "Allow access to your photos to update your profile picture.",
+        "NSPhotoLibraryAddUsageDescription": "Allow access to save photos to your library when needed.",
         "LSApplicationQueriesSchemes": [
           "metamask",
           "mailto",
@@ -98,6 +100,12 @@
         }
       ],
       "expo-web-browser",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow access to your photos to update your profile picture."
+        }
+      ],
       [
         "expo-notifications",
         {
