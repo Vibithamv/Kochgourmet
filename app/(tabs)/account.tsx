@@ -28,6 +28,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { router } from 'expo-router';
 import LanguageSelector from '@/components/LanguageSelector';
+import AsseteraLogo from '@/components/AsseteraLogo';
 import ThemeToggle from '@/components/ThemeToggle';
 import {
   getColors,
@@ -235,17 +236,9 @@ export default function AccountScreen() {
           alignItems: 'center',
         },
         headerLogoWrap: {
-          width: 48,
-          height: 48,
-          marginRight: 25,
+          height: 28,
+          marginRight: 16,
           justifyContent: 'center',
-          alignItems: 'center',
-          overflow: 'visible',
-        },
-        headerLogo: {
-          position: 'absolute',
-          width: 76,
-          height: 76,
         },
         headerTitle: {
           fontSize: Typography.fontSize['2xl'],
@@ -603,11 +596,7 @@ export default function AccountScreen() {
         >
           <View style={styles.headerInner}>
             <View style={styles.headerLogoWrap}>
-              <Image
-                source={require('../../assets/images/kochgourmet-logo.png')}
-                style={styles.headerLogo}
-                resizeMode="contain"
-              />
+              <AsseteraLogo width={130} height={25} />
             </View>
             <View>
               <Text style={[styles.headerTitle, { color: colors.text.primary }]}>

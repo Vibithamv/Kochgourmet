@@ -236,7 +236,7 @@ export default function OfferingTokenSlider({
   );
 
   const locale = i18n.language;
-  const thumbPercent = `${displayRatio * 100}%`;
+  const thumbPercent: `${number}%` = `${displayRatio * 100}%`;
 
   const handleTrackLayout = (e: LayoutChangeEvent) => {
     trackLayoutRef.current.width = e.nativeEvent.layout.width;

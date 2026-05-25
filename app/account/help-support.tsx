@@ -19,8 +19,8 @@ import { getColors, Typography, Spacing, BorderRadius, Shadows } from '@/constan
 import { useGlobalAlert } from '@/contexts/AlertContext';
 
 /** Support inbox — must be a full address (`user@domain`) for mailto: to populate the To field. */
-const SUPPORT_EMAIL = 'cooperation@kochgourmet.com';
-const OFFICIAL_FAQS_URL = 'https://www.kochgourmet.com/faqs';
+const SUPPORT_EMAIL = 'support@assetera.com';
+const OFFICIAL_FAQS_URL = 'https://www.assetera.com/faqs';
 
 interface FAQItem {
   id: string;

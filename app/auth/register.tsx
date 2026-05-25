@@ -8,7 +8,6 @@ import {
   StyleSheet,
   Keyboard,
   ActivityIndicator,
-  Image,
 } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { replaceLoginClearingAuthStack } from '@/utils/authNavigation';
@@ -21,6 +20,7 @@ import { userRegister } from '@/contexts/user_register';
 import { useRegisterPending } from '@/contexts/RegisterPendingContext';
 import { useGlobalAlert } from '@/contexts/AlertContext';
 import LanguageSelector from '@/components/LanguageSelector';
+import AsseteraLogo from '@/components/AsseteraLogo';
 import {
   registerPasswordFieldErrorI18nKey,
   type RegisterPasswordFieldErrorCode,
@@ -193,11 +193,9 @@ export default function RegisterScreen() {
       >
         {/* Hero */}
         <View style={styles.hero}>
-          <Image
-            source={require('../../assets/images/kochgourmet-logo.png')}
-            style={styles.logo}
-            resizeMode="contain"
-          />
+          <View style={styles.logo}>
+            <AsseteraLogo width="100%" height="100%" />
+          </View>
           <Text style={[styles.appName, { color: colors.text.primary }]}>{t('auth.register.title')}</Text>
           <Text style={[styles.tagline, { color: colors.text.tertiary }]}>{t('auth.register.subtitle')}</Text>
         </View>
@@ -373,8 +371,7 @@ const styles = StyleSheet.create({
   logo: {
     width: '88%',
     maxWidth: 200,
-    height: undefined,
-    aspectRatio: 527 / 77,
+    aspectRatio: 243 / 46,
     alignSelf: 'center',
     marginBottom: 10,
   },

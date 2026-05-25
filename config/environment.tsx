@@ -20,7 +20,7 @@ export interface EnvironmentConfig {
 // Detect current environment (React Native provides __DEV__)
 export const CURRENT_ENVIRONMENT: EnvironmentName = __DEV__ ? 'dev' : 'prod';
 
-const KOCHGOURMET_TENANT: TenantKeys = {
+const ASSETERA_TENANT: TenantKeys = {
   apiKey: '747ea1cf4806d024a53b',
   investKey: '6ec73de16fa5f63ca99e',
   iframePage: 'localhost:5174',
@@ -33,21 +33,21 @@ export const ENVIRONMENT_CONFIG: Record<EnvironmentName, EnvironmentConfig> = {
     baseURL: 'https://stage.go.floris3.com/portal',
     timeout: 10000,
     debug: true,
-    tenant: KOCHGOURMET_TENANT,
+    tenant: ASSETERA_TENANT,
   },
   stage: {
     name: 'Staging',
     baseURL: 'https://stage.go.floris3.com/portal',
     timeout: 15000,
     debug: true,
-    tenant: KOCHGOURMET_TENANT,
+    tenant: ASSETERA_TENANT,
   },
   prod: {
     name: 'Production',
     baseURL: 'https://stage.go.floris3.com/portal',
     timeout: 15000,
     debug: false,
-    tenant: KOCHGOURMET_TENANT,
+    tenant: ASSETERA_TENANT,
   },
 };
 

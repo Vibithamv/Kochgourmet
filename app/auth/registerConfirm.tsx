@@ -7,7 +7,6 @@ import {
   StyleSheet,
   Keyboard,
   ActivityIndicator,
-  Image,
   BackHandler,
 } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
@@ -25,6 +24,7 @@ import { useGlobalAlert } from '@/contexts/AlertContext';
 import { replaceLoginClearingAuthStack } from '@/utils/authNavigation';
 import LanguageSelector from '@/components/LanguageSelector';
 import ConfirmationCodeInput, { CONFIRMATION_CODE_LENGTH } from '@/components/ConfirmationCodeInput';
+import AsseteraLogo from '@/components/AsseteraLogo';
 
 export default function RegisterConfirmScreen() {
   const { t } = useTranslation();
@@ -182,11 +182,9 @@ export default function RegisterConfirmScreen() {
         </View>
 
         <View style={styles.hero}>
-          <Image
-            source={require('../../assets/images/kochgourmet-logo.png')}
-            style={styles.logo}
-            resizeMode="contain"
-          />
+          <View style={styles.logo}>
+            <AsseteraLogo width="100%" height="100%" />
+          </View>
           <Text style={[styles.screenTitle, { color: colors.text.primary }]}>{t('auth.confirmationCode.title')}</Text>
           <Text style={[styles.subtitle, { color: colors.text.secondary }]}>
             {t('auth.register.verifyEmailDescription', { email: pending.email })}
@@ -295,8 +293,7 @@ const styles = StyleSheet.create({
   logo: {
     width: '88%',
     maxWidth: 200,
-    height: undefined,
-    aspectRatio: 527 / 77,
+    aspectRatio: 243 / 46,
     alignSelf: 'center',
     marginBottom: 10,
   },

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Script to generate Android launcher icons from the KOCHGOURMET app icon.
+ * Script to generate Android launcher icons from the Assetera app icon.
  * Creates icons in all required densities for Android
  */
 
@@ -9,7 +9,7 @@ const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
-const sourceImage = path.join(__dirname, '../assets/images/kochgourmet-app-icon.png');
+const sourceImage = path.join(__dirname, '../assets/images/assetera-app-icon.png');
 const androidResPath = path.join(__dirname, '../android/app/src/main/res');
 
 // Android icon sizes for different densities

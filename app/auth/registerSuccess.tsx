@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Image, BackHandler, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, BackHandler, ScrollView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -9,6 +9,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { getColors } from '@/constants/theme';
 import { replaceLoginClearingAuthStack } from '@/utils/authNavigation';
 import LanguageSelector from '@/components/LanguageSelector';
+import AsseteraLogo from '@/components/AsseteraLogo';
 
 export default function RegisterSuccessScreen() {
   const { t } = useTranslation();
@@ -50,11 +51,9 @@ export default function RegisterSuccessScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.centerBlock}>
-          <Image
-            source={require('../../assets/images/kochgourmet-logo.png')}
-            style={styles.logo}
-            resizeMode="contain"
-          />
+          <View style={styles.logo}>
+            <AsseteraLogo width="100%" height="100%" />
+          </View>
           <View
             style={[
               styles.iconRing,
@@ -102,8 +101,7 @@ const styles = StyleSheet.create({
   logo: {
     width: '88%',
     maxWidth: 200,
-    height: undefined,
-    aspectRatio: 527 / 77,
+    aspectRatio: 243 / 46,
     marginBottom: 28,
   },
   iconRing: {

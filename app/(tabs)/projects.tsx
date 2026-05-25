@@ -2,7 +2,6 @@ import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
-  Image,
   FlatList,
   TextInput,
   StyleSheet,
@@ -21,6 +20,7 @@ import { router } from 'expo-router';
 import { useOfferingCheck } from '@/hooks/useOfferingCheck';
 import { useFocusEffect } from '@react-navigation/native';
 import { ProjectsShimmer } from '@/components/Shimmer';
+import AsseteraLogo from '@/components/AsseteraLogo';
 
 type ProjectStatus = 'privatesale' | 'presale' | 'whitelisting' | 'announcement' | 'presaleannouncement' | 'public' | 'finished' | 'draft';
 
@@ -150,11 +150,7 @@ const ProjectListScreen = React.memo(() => {
       <View style={[styles.header, { paddingTop: Math.max(insets.top, 50), backgroundColor: colors.background.primary, borderBottomColor: colors.border.primary }]}>
         <View style={styles.headerInner}>
           <View style={styles.headerLogoWrap}>
-            <Image
-              source={require('../../assets/images/kochgourmet-logo.png')}
-              style={styles.headerLogo}
-              resizeMode="contain"
-            />
+            <AsseteraLogo width={130} height={25} />
           </View>
           <Text
             style={[
@@ -248,17 +244,9 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   headerLogoWrap: {
-    width: 48,
-    height: 48,
-    marginRight: 25,
+    height: 28,
+    marginRight: 16,
     justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'visible',
-  },
-  headerLogo: {
-    position: 'absolute',
-    width: 76,
-    height: 76,
   },
   headerTitle: {
     fontSize: Typography.fontSize['2xl'],

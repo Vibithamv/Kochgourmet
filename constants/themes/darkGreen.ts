@@ -1,10 +1,11 @@
-// KOCHGOURMET — forest night (deep green base, coral primary, sage accents)
+// Assetera — "indigo midnight" variant (deeper bg than `dark`, slightly cooler surfaces, same indigo accents)
+// Kept under the historical `darkGreen` name to avoid breaking ThemeContext consumers.
 export const DarkGreenTheme = {
-  primary: '#F08A72',
-  primaryDark: '#EE7B5F',
-  secondary: '#8B2323',
-  accent: '#6BA888',
-  success: '#7BC99A',
+  primary: '#7468F5',
+  primaryDark: '#5545E5',
+  secondary: '#E5CE45',
+  accent: '#E5CE45',
+  success: '#34D399',
   warning: '#FBBF24',
   error: '#F87171',
   info: '#60A5FA',
@@ -12,53 +13,53 @@ export const DarkGreenTheme = {
   status: {
     privateSale: '#A78BFA',
     preSale: '#FBBF24',
-    whitelist: '#7D8F84',
-    public: '#F08A72',
+    whitelist: '#7A7A85',
+    public: '#7468F5',
     announcement: '#60A5FA',
-    finished: '#7D8F84',
+    finished: '#7A7A85',
   },
 
   background: {
-    primary: '#0F1612',
-    secondary: '#15251C',
-    tertiary: '#1C3226',
-    card: '#15251C',
-    overlay: 'rgba(0, 0, 0, 0.82)',
+    primary: '#0E0D1A',
+    secondary: '#1A1828',
+    tertiary: '#23213A',
+    card: '#1A1828',
+    overlay: 'rgba(0, 0, 0, 0.78)',
   },
 
   text: {
-    primary: '#F7FAF4',
-    secondary: '#A8C4B4',
-    tertiary: '#6E8A7A',
-    inverse: '#0F1612',
+    primary: '#F2F2F2',
+    secondary: '#B8B8C8',
+    tertiary: '#8B8B98',
+    inverse: '#0E0D1A',
     onPrimary: '#FFFFFF',
-    placeholder: '#6E8A7A',
-    disabled: '#4A6356',
+    placeholder: '#5E5E70',
+    disabled: '#42424F',
   },
 
   border: {
-    primary: '#243D30',
-    secondary: '#1C3226',
-    focus: '#F08A72',
+    primary: 'rgba(255, 255, 255, 0.10)',
+    secondary: 'rgba(255, 255, 255, 0.06)',
+    focus: '#7468F5',
     error: '#7F1D1D',
   },
 
   shadow: {
     primary: '#000000',
     card: '#000000',
-    button: '#D9624A',
+    button: '#5545E5',
   },
 
   gradient: {
-    primary: ['#F08A72', '#D9624A'],
-    secondary: ['#0F1612', '#15251C'],
-    card: ['transparent', 'rgba(0,0,0,0.55)'],
+    primary: ['#7468F5', '#5545E5'],
+    secondary: ['#0E0D1A', '#1A1828'],
+    card: ['transparent', 'rgba(0, 0, 0, 0.55)'],
   },
 
   interactive: {
-    hover: '#1C3226',
-    pressed: '#243D30',
-    disabled: '#4A6356',
+    hover: '#23213A',
+    pressed: '#2C2A45',
+    disabled: '#34324A',
   },
 
   typography: {
@@ -187,7 +188,7 @@ export const DarkGreenTheme = {
       elevation: 8,
     },
     button: {
-      shadowColor: '#D9624A',
+      shadowColor: '#5545E5',
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.42,
       shadowRadius: 8,

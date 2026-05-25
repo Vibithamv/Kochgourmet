@@ -2,7 +2,13 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Stack, useRouter, type Router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Alert, AppState, LogBox, Platform } from 'react-native';
-import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
+import { useFonts } from '@expo-google-fonts/inter';
+import {
+  InterTight_400Regular,
+  InterTight_500Medium,
+  InterTight_600SemiBold,
+  InterTight_700Bold,
+} from '@expo-google-fonts/inter-tight';
 import {
   PlayfairDisplay_500Medium,
   PlayfairDisplay_700Bold,
@@ -270,10 +276,12 @@ export default function RootLayout() {
   const router = useRouter();
   const appStateRef = useRef(AppState.currentState);
   const [fontsLoaded, fontError] = useFonts({
-    'Inter-Regular': Inter_400Regular,
-    'Inter-Medium': Inter_500Medium,
-    'Inter-SemiBold': Inter_600SemiBold,
-    'Inter-Bold': Inter_700Bold,
+    // Inter Tight is registered under the legacy `Inter-*` keys so the entire
+    // codebase keeps working with `fontFamily: 'Inter-Regular'` etc.
+    'Inter-Regular': InterTight_400Regular,
+    'Inter-Medium': InterTight_500Medium,
+    'Inter-SemiBold': InterTight_600SemiBold,
+    'Inter-Bold': InterTight_700Bold,
     PlayfairDisplay_500Medium,
     PlayfairDisplay_700Bold,
   });

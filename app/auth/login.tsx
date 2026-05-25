@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  Image,
   Keyboard,
 } from 'react-native';
 import { Link, router, useLocalSearchParams } from 'expo-router';
@@ -19,6 +18,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { getColors } from '@/constants/theme';
 import { useTranslation } from 'react-i18next';
 import LanguageSelector from '@/components/LanguageSelector';
+import AsseteraLogo from '@/components/AsseteraLogo';
 import { useGlobalAlert } from '@/contexts/AlertContext';
 import {
   loadStoredPlatformSignInOptions,
@@ -480,12 +480,9 @@ export default function LoginScreen() {
       >
         {/* Hero section */}
         <View style={styles.hero}>
-          {/* Decorative accent circle behind logo */}
-          <Image
-            source={require('../../assets/images/kochgourmet-logo.png')}
-            style={styles.logo}
-            resizeMode="contain"
-          />
+          <View style={styles.logo}>
+            <AsseteraLogo width="100%" height="100%" />
+          </View>
 
           {/* <Text style={[styles.appName, { color: colors.text.primary }]}>
             {tenantID || t('common.defaultTenantName')}
@@ -722,8 +719,7 @@ const styles = StyleSheet.create({
   logo: {
     width: '88%',
     maxWidth: 300,
-    height: undefined,
-    aspectRatio: 527 / 77,
+    aspectRatio: 243 / 46,
     alignSelf: 'center',
   },
   appName: {

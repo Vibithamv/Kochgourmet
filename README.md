@@ -1,6 +1,6 @@
-# Kochgourmet
+# Assetera
 
-White-labeled real-estate / asset-tokenization investing app on the Floris / SimplyTokenized platform. Built with Expo + React Native.
+Real-estate / asset-tokenization investing app on the Floris / SimplyTokenized white-label platform. Built with Expo + React Native.
 
 See [CLAUDE.md](./CLAUDE.md) for architecture, bootstrap flow, theme system, and engineering conventions.
 

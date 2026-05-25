@@ -4,13 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this app is
 
-Kochgourmet is a white-labeled real-estate / asset-tokenization investing app built on the **Floris / SimplyTokenized** multi-tenant platform. The same codebase powers other brands (e.g. OwnItNow); brand selection happens at runtime via `platformValidation()` against API keys in [config/apiHeaderConfig.tsx](config/apiHeaderConfig.tsx). Bundle ID `com.kochgourmet.app`, scheme `kochgourmet`, backend `stage.go.floris3.com/portal` (see [config/environment.tsx](config/environment.tsx)).
+Assetera is a real-estate / asset-tokenization investing app built on the **Floris / SimplyTokenized** white-label multi-tenant platform. The same codebase has historically powered other brands (e.g. OwnItNow, Kochgourmet); brand selection happens at runtime via `platformValidation()` against API keys in [config/apiHeaderConfig.tsx](config/apiHeaderConfig.tsx). Internally the native bundle ID is still `com.kochgourmet.app` and scheme `kochgourmet://` — pending a future native rebrand. Backend: `stage.go.floris3.com/portal` (see [config/environment.tsx](config/environment.tsx)).
 
 ## Stack
 
 - **Framework**: Expo SDK 54, Expo Router v6 (file-based routing), React Native 0.81.4, React 19, New Arch enabled, Hermes
 - **Language**: TypeScript strict
-- **UI**: `react-native-paper`, `lucide-react-native`, Inter family + Playfair Display
+- **UI**: `react-native-paper`, `lucide-react-native`, **Inter Tight** (registered under the legacy `Inter-*` font-family keys — see [app/_layout.tsx](app/_layout.tsx)) + Playfair Display
 - **i18n**: `react-i18next` — locales in [i18n/locales/](i18n/locales/) (`de`, `en`, `es`). Always use `t('key')`, never hardcode UI strings.
 - **Navigation**: `expo-router` (`router.push/replace/back()`) + `useFocusEffect` from `@react-navigation/native`
 - **Wallets / Web3**: Thirdweb v5, Coinbase Mobile SDK, WalletConnect, ethers v5
@@ -103,22 +103,28 @@ const isDark = theme === 'dark' || theme === 'darkGreen';
 
 ### Color tokens (always use these — never hardcode hex)
 
+The palette derives from [assetera.com](https://www.assetera.com/). Indigo primary, butter-yellow secondary accent, near-black text on white in light mode / #151421 base in dark mode.
+
 | Token | Light | Dark |
 |---|---|---|
-| `colors.primary` | `#8DC640` | `#98D147` |
-| `colors.background.primary` | `#FFFFFF` | `#14181F` |
-| `colors.background.secondary` | `#F5F6F8` | `#1E2229` |
-| `colors.background.card` | `#FFFFFF` | `#1E2229` |
-| `colors.background.overlay` | `rgba(20,24,31,0.5)` | `rgba(0,0,0,0.8)` |
-| `colors.text.primary` | `#14181F` | `#F2F2F2` |
-| `colors.text.secondary` | `#4A5568` | `#8F96A3` |
-| `colors.text.tertiary` | `#8F96A3` | `#636B78` |
-| `colors.text.inverse` | `#FFFFFF` | `#14181F` |
-| `colors.border.primary` | `#DDE1E8` | `#32363E` |
-| `colors.interactive.hover` | `#F0F2F5` | `#2E3138` |
-| `colors.success` | `#8DC640` | `#98D147` |
-| `colors.error` | `#EF4444` | `#EF4444` |
-| `colors.warning` | `#F59E0B` | `#F59E0B` |
+| `colors.primary` | `#5545E5` | `#6F61F2` |
+| `colors.secondary` | `#E5CE45` | `#E5CE45` |
+| `colors.background.primary` | `#FFFFFF` | `#151421` |
+| `colors.background.secondary` | `#F3F2F7` | `#21202B` |
+| `colors.background.tertiary` | `#F0EDFF` | `#2A2935` |
+| `colors.background.card` | `#FFFFFF` | `#21202B` |
+| `colors.background.overlay` | `rgba(21,20,33,0.5)` | `rgba(0,0,0,0.7)` |
+| `colors.text.primary` | `#151421` | `#F2F2F2` |
+| `colors.text.secondary` | `#3D3D55` | `#C0C0C8` |
+| `colors.text.tertiary` | `#737373` | `#989898` |
+| `colors.text.inverse` | `#FFFFFF` | `#151421` |
+| `colors.border.primary` | `#E1DFE8` | `rgba(255,255,255,0.10)` |
+| `colors.interactive.hover` | `#F0EDFF` | `#2A2935` |
+| `colors.success` | `#10B981` | `#34D399` |
+| `colors.error` | `#DC2626` | `#F87171` |
+| `colors.warning` | `#F59E0B` | `#FBBF24` |
+
+There's also a `darkGreen` theme — historically named, now an "indigo midnight" variant (`#0E0D1A` bg, `#7468F5` primary). Same Assetera DNA, deeper surfaces.
 
 ### Theme rules (each one has bitten us before)
 
@@ -127,15 +133,21 @@ const isDark = theme === 'dark' || theme === 'darkGreen';
 - **Never** use `StyleSheet.create({...})` with `colors.*` values — styles become stale when the theme changes. Use inline styles or `React.useMemo(() => StyleSheet.create({...}), [colors])`.
 - **Never** hardcode `'grey'` / `'white'` / `'black'` or raw `rgba(0,0,0,0.x)` overlays — use color tokens and `colors.background.overlay`.
 
-### Logo (single asset — *not* theme-paired)
+### Logo
 
-Kochgourmet uses one logo file regardless of theme:
+The Assetera wordmark is an inline SVG component at [components/AsseteraLogo.tsx](components/AsseteraLogo.tsx). Its color is **theme-aware** — indigo (`#5545E5`) on light backgrounds, brand yellow (`#E5CE45`) on dark — so just give it dimensions:
 
 ```tsx
-<Image source={require('../assets/images/kochgourmet-logo.png')} />
+import AsseteraLogo from '@/components/AsseteraLogo';
+
+<AsseteraLogo width={130} height={25} />                              // tab header (compact)
+<View style={styles.heroLogo}>                                        // splash / auth screens
+  <AsseteraLogo width="100%" height="100%" />
+</View>
+// where heroLogo: { width: '88%', maxWidth: 300, aspectRatio: 243 / 46 }
 ```
 
-(Some shared boilerplate may still reference `ownitnow.png` / `ownitnow-light.png` from sibling brands — replace those with `kochgourmet-logo.png` when touched.)
+Pass `color="..."` only when you need to override (e.g. forced color on a dark gradient over a light theme). The wordmark viewBox is `0 0 243 46` (aspect ratio 5.28:1). Never use a fixed `40x40` slot — it's a wordmark, not a square mark.
 
 ## Standard header patterns
 
@@ -143,13 +155,13 @@ Tab header:
 ```tsx
 <View style={[styles.header, { paddingTop: Math.max(insets.top, 50), backgroundColor: colors.background.primary, borderBottomColor: colors.border.primary }]}>
   <View style={styles.headerInner}>
-    <Image source={require('../../assets/images/kochgourmet-logo.png')} style={styles.headerLogo} resizeMode="contain" />
+    <AsseteraLogo width={130} height={25} />
     <Text style={[styles.headerTitle, { color: colors.text.primary }]}>{t('tab.title')}</Text>
   </View>
 </View>
 // header: { paddingHorizontal: 24, paddingBottom: 16, borderBottomWidth: 1 }
 // headerInner: { flexDirection: 'row', alignItems: 'center' }
-// headerLogo: { width: 40, height: 40, marginRight: 12 }
+// headerLogoWrap: { height: 28, marginRight: 16, justifyContent: 'center' }
 // headerTitle: { fontSize: 20, fontFamily: 'Inter-Bold', letterSpacing: -0.3 }
 ```
 

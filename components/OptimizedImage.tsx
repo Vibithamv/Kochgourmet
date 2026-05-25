@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Image, View, StyleSheet, Animated, Platform } from 'react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getColors } from '@/constants/theme';
+import AsseteraLogo from '@/components/AsseteraLogo';
 
 const LOAD_TIMEOUT_MS = 2500;
 const isIos = Platform.OS === 'ios';
@@ -54,14 +55,14 @@ function LogoShimmer({ style }: Readonly<{ style?: any }>) {
 
   return (
     <View style={[styles.shimmerContainer, { backgroundColor: colors.background.secondary }, style]}>
-      <Animated.Image
-        source={require('../assets/images/kochgourmet-logo.png')}
+      <Animated.View
         style={[
           styles.shimmerLogo,
           { transform: [{ scale: scaleAnim }], opacity: opacityAnim },
         ]}
-        resizeMode="contain"
-      />
+      >
+        <AsseteraLogo width="100%" height="100%" />
+      </Animated.View>
     </View>
   );
 }
@@ -163,8 +164,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   shimmerLogo: {
-    width: 56,
-    height: 56,
+    width: 100,
+    aspectRatio: 243 / 46,
   },
   errorContainer: {
     backgroundColor: '#1E2229',

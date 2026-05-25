@@ -11,7 +11,6 @@ import {
   Modal,
   ScrollView,
   RefreshControl,
-  Image,
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
@@ -62,6 +61,7 @@ import {
   PortfolioTransactionRowShimmer,
   useShimmerAnim,
 } from '@/components/Shimmer';
+import AsseteraLogo from '@/components/AsseteraLogo';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -859,11 +859,7 @@ const PortfolioScreen = React.memo(() => {
       >
         <View style={styles.headerInner}>
           <View style={styles.headerLogoWrap}>
-            <Image
-              source={require('../../assets/images/kochgourmet-logo.png')}
-              style={styles.headerLogo}
-              resizeMode="contain"
-            />
+            <AsseteraLogo width={130} height={25} />
           </View>
           <View style={styles.headerContent}>
             <Text
@@ -1401,17 +1397,9 @@ const createStyles = (colors: any) =>
       alignItems: 'center',
     },
     headerLogoWrap: {
-      width: 48,
-      height: 48,
-      marginRight: 25,
+      height: 28,
+      marginRight: 16,
       justifyContent: 'center',
-      alignItems: 'center',
-      overflow: 'visible',
-    },
-    headerLogo: {
-      position: 'absolute',
-      width: 76,
-      height: 76,
     },
     headerContent: {
       flex: 1,

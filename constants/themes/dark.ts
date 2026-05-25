@@ -1,10 +1,10 @@
-// KOCHGOURMET — dark mode (warm charcoal base, coral primary)
+// Assetera — dark theme (#151421 base, lifted indigo primary, yellow accent for active state)
 export const DarkTheme = {
-  primary: '#F08A72',
-  primaryDark: '#EE7B5F',
-  secondary: '#C47A6E',
-  accent: '#6BA888',
-  success: '#7BC99A',
+  primary: '#6F61F2',
+  primaryDark: '#412EE5',
+  secondary: '#E5CE45',
+  accent: '#E5CE45',
+  success: '#34D399',
   warning: '#FBBF24',
   error: '#F87171',
   info: '#60A5FA',
@@ -12,53 +12,53 @@ export const DarkTheme = {
   status: {
     privateSale: '#A78BFA',
     preSale: '#FBBF24',
-    whitelist: '#9A928A',
-    public: '#F08A72',
+    whitelist: '#989898',
+    public: '#6F61F2',
     announcement: '#60A5FA',
-    finished: '#9A928A',
+    finished: '#989898',
   },
 
   background: {
-    primary: '#171311',
-    secondary: '#1F1A18',
-    tertiary: '#2A2420',
-    card: '#221E1C',
-    overlay: 'rgba(0, 0, 0, 0.78)',
+    primary: '#151421',
+    secondary: '#21202B',
+    tertiary: '#2A2935',
+    card: '#21202B',
+    overlay: 'rgba(0, 0, 0, 0.7)',
   },
 
   text: {
-    primary: '#FFF9F0',
-    secondary: '#C9BEB5',
-    tertiary: '#8A8278',
-    inverse: '#171311',
+    primary: '#F2F2F2',
+    secondary: '#C0C0C8',
+    tertiary: '#989898',
+    inverse: '#151421',
     onPrimary: '#FFFFFF',
-    placeholder: '#8A8278',
-    disabled: '#5C5550',
+    placeholder: '#6B6B7A',
+    disabled: '#4D4D5C',
   },
 
   border: {
-    primary: '#3A322D',
-    secondary: '#2E2824',
-    focus: '#F08A72',
+    primary: 'rgba(255, 255, 255, 0.10)',
+    secondary: 'rgba(255, 255, 255, 0.06)',
+    focus: '#6F61F2',
     error: '#7F1D1D',
   },
 
   shadow: {
     primary: '#000000',
     card: '#000000',
-    button: '#EE7B5F',
+    button: '#412EE5',
   },
 
   gradient: {
-    primary: ['#F08A72', '#D9624A'],
-    secondary: ['#171311', '#1F1A18'],
-    card: ['transparent', 'rgba(0,0,0,0.55)'],
+    primary: ['#6F61F2', '#412EE5'],
+    secondary: ['#151421', '#21202B'],
+    card: ['transparent', 'rgba(0, 0, 0, 0.55)'],
   },
 
   interactive: {
-    hover: '#2A2420',
-    pressed: '#322B26',
-    disabled: '#4A423C',
+    hover: '#2A2935',
+    pressed: '#322F42',
+    disabled: '#3A3849',
   },
 
   typography: {
@@ -187,7 +187,7 @@ export const DarkTheme = {
       elevation: 8,
     },
     button: {
-      shadowColor: '#EE7B5F',
+      shadowColor: '#412EE5',
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.35,
       shadowRadius: 8,

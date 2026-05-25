@@ -48,7 +48,7 @@ export default function ConfirmationCodeInput({
         {Array.from({ length: CONFIRMATION_CODE_LENGTH }, (_, index) => {
           const digit = value[index] ?? '';
           const isActive = focused && index === Math.min(value.length, CONFIRMATION_CODE_LENGTH - 1);
-          let borderColor = colors.border.primary;
+          let borderColor: string = colors.border.primary;
           if (hasError) borderColor = colors.error;
           else if (isActive) borderColor = colors.primary;
           else if (digit.length > 0 && focused) borderColor = colors.border.focus;

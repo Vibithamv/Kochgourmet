@@ -1,5 +1,5 @@
 {
-  "name": "kochgourmet",
+  "name": "assetera",
   "main": "./index.js",
   "version": "1.0.0",
   "private": true,
@@ -22,6 +22,7 @@
     "@aws-sdk/credential-providers": "^3.936.0",
     "@coinbase/wallet-mobile-sdk": "^1.1.2",
     "@expo-google-fonts/inter": "^0.4.1",
+    "@expo-google-fonts/inter-tight": "^0.4.2",
     "@expo-google-fonts/playfair-display": "^0.4.2",
     "@expo/vector-icons": "^15.0.2",
     "@lucide/lab": "^0.1.2",
@@ -112,6 +113,7 @@
     "@babel/core": "^7.25.2",
     "@react-native-community/cli": "^20.0.2",
     "@react-native/metro-config": "^0.81.4",
+    "@resvg/resvg-js": "^2.6.2",
     "@types/react": "~19.1.10",
     "babel-plugin-module-resolver": "^5.0.2",
     "metro-resolver": "^0.83.3",

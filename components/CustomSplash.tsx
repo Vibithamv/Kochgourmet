@@ -1,8 +1,9 @@
 import React from 'react';
-import { Image, Modal, StyleSheet, Text, View } from 'react-native';
+import { Modal, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getColors } from '@/constants/theme';
+import AsseteraLogo from '@/components/AsseteraLogo';
 
 type CustomSplashProps = Readonly<{
   visible: boolean;
@@ -16,11 +17,9 @@ export default function CustomSplash({ visible }: CustomSplashProps) {
   return (
     <Modal animationType="none" transparent={false} visible={visible}>
       <View style={[styles.root, { backgroundColor: colors.background.primary }]}>
-        <Image
-          source={require('../assets/images/kochgourmet-logo.png')}
-          style={styles.logo}
-          resizeMode="contain"
-        />
+        <View style={styles.logo}>
+          <AsseteraLogo width="100%" height="100%" />
+        </View>
         <Text style={[styles.caption, { color: colors.text.secondary, fontFamily: 'Inter-Medium' }]}>
           {t('common.loading')}
         </Text>
@@ -39,8 +38,7 @@ const styles = StyleSheet.create({
   logo: {
     width: '88%',
     maxWidth: 300,
-    height: undefined,
-    aspectRatio: 527 / 77,
+    aspectRatio: 243 / 46,
     alignSelf: 'center',
     marginBottom: 16,
   },

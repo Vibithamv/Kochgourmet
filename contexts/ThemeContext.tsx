@@ -23,7 +23,7 @@ type ThemeProviderProps = Readonly<{
 }>;
 
 export function ThemeProvider({ children }: ThemeProviderProps) {
-  const [theme, setTheme] = useState<ThemeMode>('light');
+  const [theme, setTheme] = useState<ThemeMode>('dark');
 
   const applyTheme = useCallback(async (newTheme: ThemeMode) => {
     setTheme(newTheme);

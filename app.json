@@ -1,37 +1,27 @@
 {
   "expo": {
-    "name": "KOCHGOURMET",
+    "name": "ASSETERA",
     "slug": "bolt-expo-nativewind",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/kochgourmet-app-icon.png",
+    "icon": "./assets/images/assetera-app-icon.png",
     "scheme": "kochgourmet",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/images/kochgourmet-logo.png",
+      "image": "./assets/images/assetera-logo.png",
       "resizeMode": "contain",
-      "backgroundColor": "#FFFFFF",
-      "dark": {
-        "image": "./assets/images/kochgourmet-logo.png",
-        "resizeMode": "contain",
-        "backgroundColor": "#0D1117"
-      }
+      "backgroundColor": "#151421"
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/kochgourmet-app-icon.png",
-        "backgroundColor": "#FFFFFF"
+        "foregroundImage": "./assets/images/assetera-app-icon.png",
+        "backgroundColor": "#151421"
       },
       "splash": {
-        "image": "./assets/images/kochgourmet-logo.png",
+        "image": "./assets/images/assetera-logo.png",
         "resizeMode": "contain",
-        "backgroundColor": "#FFFFFF",
-        "dark": {
-          "image": "./assets/images/kochgourmet-logo.png",
-          "resizeMode": "contain",
-          "backgroundColor": "#0D1117"
-        }
+        "backgroundColor": "#151421"
       },
       "package": "com.kochgourmet.app",
       "jsEngine": "hermes",
@@ -54,14 +44,9 @@
     "ios": {
       "supportsTablet": true,
       "splash": {
-        "image": "./assets/images/kochgourmet-logo.png",
+        "image": "./assets/images/assetera-logo.png",
         "resizeMode": "contain",
-        "backgroundColor": "#FFFFFF",
-        "dark": {
-          "image": "./assets/images/kochgourmet-logo.png",
-          "resizeMode": "contain",
-          "backgroundColor": "#0D1117"
-        }
+        "backgroundColor": "#151421"
       },
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "Allow access to your photos to update your profile picture.",
@@ -89,14 +74,9 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/kochgourmet-logo.png",
+          "image": "./assets/images/assetera-logo.png",
           "resizeMode": "contain",
-          "backgroundColor": "#FFFFFF",
-          "dark": {
-            "image": "./assets/images/kochgourmet-logo.png",
-            "resizeMode": "contain",
-            "backgroundColor": "#0D1117"
-          }
+          "backgroundColor": "#151421"
         }
       ],
       "expo-web-browser",
@@ -109,7 +89,7 @@
       [
         "expo-notifications",
         {
-          "color": "#EE7B5F"
+          "color": "#5545E5"
         }
       ],
       "@react-native-firebase/messaging",

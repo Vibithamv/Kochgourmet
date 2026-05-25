@@ -7,7 +7,6 @@ import {
   StyleSheet,
   Keyboard,
   ActivityIndicator,
-  Image,
 } from 'react-native';
 import { router } from 'expo-router';
 import { replaceLoginClearingAuthStack } from '@/utils/authNavigation';
@@ -19,6 +18,7 @@ import { getColors } from '@/constants/theme';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import LanguageSelector from '@/components/LanguageSelector';
+import AsseteraLogo from '@/components/AsseteraLogo';
 import { userForgotPassword } from '@/hooks/userForgotPassword';
 import { useGlobalAlert } from '@/contexts/AlertContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -324,11 +324,9 @@ export default function ForgotPassword() {
       >
         {/* Hero */}
         <View style={styles.hero}>
-          <Image
-            source={require('../../assets/images/kochgourmet-logo.png')}
-            style={styles.logo}
-            resizeMode="contain"
-          />
+          <View style={styles.logo}>
+            <AsseteraLogo width="100%" height="100%" />
+          </View>
           {/* <Text style={[styles.appName, { color: colors.text.primary }]}>{tenantID || 'OwnItNow'}</Text> */}
           <Text style={[styles.tagline, { color: colors.text.tertiary }]}>{t('auth.forgotPassword.resetPassword')}</Text>
         </View>
@@ -408,8 +406,7 @@ const styles = StyleSheet.create({
   logo: {
     width: '88%',
     maxWidth: 200,
-    height: undefined,
-    aspectRatio: 527 / 77,
+    aspectRatio: 243 / 46,
     alignSelf: 'center',
     marginBottom: 0,
   },

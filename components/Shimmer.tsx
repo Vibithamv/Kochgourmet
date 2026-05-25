@@ -4,13 +4,13 @@ import {
   Animated,
   Easing,
   ScrollView,
-  Image,
   StyleSheet,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getColors } from '@/constants/theme';
+import AsseteraLogo from '@/components/AsseteraLogo';
 
 // ---------------------------------------------------------------------------
 // Hook
@@ -172,19 +172,12 @@ export function DashboardShimmer() {
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <View
             style={{
-              width: 48,
-              height: 48,
-              marginRight: 25,
+              height: 28,
+              marginRight: 16,
               justifyContent: 'center',
-              alignItems: 'center',
-              overflow: 'visible',
             }}
           >
-            <Image
-              source={require('../assets/images/kochgourmet-logo.png')}
-              style={{ position: 'absolute', width: 76, height: 76 }}
-              resizeMode="contain"
-            />
+            <AsseteraLogo width={130} height={25} />
           </View>
           <View style={{ flex: 1, gap: 6 }}>
             <ShimmerBlock anim={anim} width="35%" height={10} borderRadius={4} />
