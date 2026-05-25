@@ -59,6 +59,9 @@ import {
 const screenWidth = Dimensions.get('window').width;
 
 const PORTFOLIO_PERFORMANCE_CHART_SEGMENTS = 4;
+/** Default Y-axis max when all performance values are equal (e.g. all zero). */
+const PORTFOLIO_PERFORMANCE_CHART_EMPTY_Y_MAX = 5;
+const PORTFOLIO_PERFORMANCE_CHART_EMPTY_SEGMENTS = 5;
 
 /**
  * react-native-chart-kit Y labels use (range/segments)*i + min then toFixed(decimalPlaces).
@@ -548,9 +551,17 @@ const PortfolioScreen = React.memo(() => {
           withHorizontalLabels={true}
           withVerticalLines={false}
           withHorizontalLines={true}
+          segments={
+            performanceChartFlat
+              ? PORTFOLIO_PERFORMANCE_CHART_EMPTY_SEGMENTS
+              : PORTFOLIO_PERFORMANCE_CHART_SEGMENTS
+          }
           {...(performanceChartFlat
-            ? {}
-            : { segments: PORTFOLIO_PERFORMANCE_CHART_SEGMENTS })}
+            ? {
+                fromZero: true,
+                fromNumber: PORTFOLIO_PERFORMANCE_CHART_EMPTY_Y_MAX,
+              }
+            : {})}
           formatYLabel={(label) => {
             const n = Number.parseFloat(label);
             if (!Number.isFinite(n)) return label;
