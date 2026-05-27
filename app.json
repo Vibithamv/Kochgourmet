@@ -33,7 +33,7 @@
           "backgroundColor": "#0D1117"
         }
       },
-      "package": "com.kochgourmet.app",
+      "package": "com.Kochgourmet.stapp",
       "jsEngine": "hermes",
       "enableProguardInReleaseBuilds": false,
       "enableShrinkResourcesInReleaseBuilds": false,
@@ -76,7 +76,7 @@
           "remote-notification"
         ]
       },
-      "bundleIdentifier": "com.kochgourmet.app"
+      "bundleIdentifier": "com.Kochgourmet.stapp"
     },
     "web": {
       "bundler": "metro",

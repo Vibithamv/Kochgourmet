@@ -1,4 +1,4 @@
-package com.kochgourmet.app
+package com.Kochgourmet.stapp
 
 import android.app.Application
 import android.content.res.Configuration

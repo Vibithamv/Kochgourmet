@@ -1,4 +1,4 @@
-package com.kochgourmet.app
+package com.Kochgourmet.stapp
 import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build

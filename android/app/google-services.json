@@ -1,21 +1,21 @@
 {
   "project_info": {
-    "project_number": "605660163352",
-    "project_id": "st-mobile-ownitnow",
-    "storage_bucket": "st-mobile-ownitnow.firebasestorage.app"
+    "project_number": "858852001288",
+    "project_id": "st-kochgourmet",
+    "storage_bucket": "st-kochgourmet.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:605660163352:android:354b7ce0a95a521878426d",
+        "mobilesdk_app_id": "1:858852001288:android:1274869515a6f69acbb3bd",
         "android_client_info": {
-          "package_name": "com.kochgourmet.app"
+          "package_name": "com.Kochgourmet.stapp"
         }
       },
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyACOsi7Lb0Ncnx9Dcu3LIHgdXIAnPyCxvM"
+          "current_key": "AIzaSyC0hk2NLzBYwR03oZFcgwUypB2vg__dUcA"
         }
       ],
       "services": {
