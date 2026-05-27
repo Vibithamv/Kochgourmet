@@ -2,7 +2,7 @@
 export const OAUTH_UI_PROVIDER_PENDING_KEY = 'oauthUiProviderPending';
 
 /**
- * Parses OAuth redirect URLs (e.g. myapp://auth/callback?code=...).
+ * Parses OAuth redirect URLs (e.g. com.assetra.stapp://auth/callback?code=...).
  * Uses query string parsing so custom-scheme URLs behave consistently on iOS/Android.
  */
 export type OAuthCallbackParse =

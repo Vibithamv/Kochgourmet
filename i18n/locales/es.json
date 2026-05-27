@@ -287,7 +287,7 @@
     "accountDetails": "Detalles de la cuenta",
     "accountDetailsDesc": "Gestionar dirección, información profesional y perfil de inversión",
     "securityVerification": "Seguridad y verificación",
-    "paymentWallets": "Pagos",
+    "paymentWallets": "Pagos y billeteras",
     "walletsConnected_one": "{{count}} billetera conectada",
     "walletsConnected_other": "{{count}} billeteras conectadas",
     "accountSubtitle": "Administra los detalles de tu cuenta",
@@ -358,6 +358,8 @@
     "walletConnect": "WalletConnect",
     "fireblocks": "Fireblocks",
     "myWallets": "Mis Billeteras",
+    "noWalletsEmptyTitle": "No hay billeteras conectadas",
+    "noWalletsEmptySubtitle": "Conecta tu primera billetera para empezar a gestionar tus tokens",
     "addWallet": "Agregar Billetera",
     "chooseWalletType": "Elegir tipo de billetera",
     "removeWallet": "Eliminar Billetera",
@@ -727,6 +729,11 @@
       "title": "Soporte por Correo",
       "description": "Envíanos un mensaje detallado",
       "unavailable": "No se pudo abrir la aplicación de correo. Escríbanos a {{email}}."
+    },
+    "address": {
+      "title": "Dirección",
+      "companyLine": "Assetera GmbH – licenciada MiFID II",
+      "streetLine": "Ungargasse 37, 1030 Wien, Austria"
     },
     "phoneSupport": {
       "title": "Soporte Telefónico",

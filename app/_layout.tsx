@@ -40,6 +40,10 @@ import { whitelistManagement } from '@/hooks/whitelistManagement';
 import { FcmNotificationBridge } from '@/components/FcmNotificationBridge';
 import CustomSplash from '@/components/CustomSplash';
 import { persistPlatformSignInOptionsFromValidateResponse } from '@/constants/platformSignInOptions';
+import {
+  loadIsPlatformKycMandatory,
+  persistPlatformKeyProviderFromValidateResponse,
+} from '@/constants/platformKeyProvider';
 
 void SplashScreen.preventAutoHideAsync();
 
@@ -142,6 +146,12 @@ async function navigateFromUserPayload(
   router: Router,
   request: WhitelistRequestClient
 ) {
+  const kycMandatory = await loadIsPlatformKycMandatory();
+  if (!kycMandatory) {
+    await navigateAfterConfirmedKycForSplash(visibilityStatus, router, request);
+    return;
+  }
+
   const kyc = payload.data.data.activeAccount.kyc_status;
   if (kyc === 'CONFIRMED') {
     await navigateAfterConfirmedKycForSplash(visibilityStatus, router, request);
@@ -245,6 +255,7 @@ async function runAuthRouting(
     }
     await persistOfferingAndTenantFromPlatform(result.data);
     await persistPlatformSignInOptionsFromValidateResponse(result.data);
+    await persistPlatformKeyProviderFromValidateResponse(result.data);
     const visibilityStatus = result.data.data.data.visibilityStatus;
     if (!(fontsLoaded || fontError)) return;
     try {

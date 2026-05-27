@@ -56,6 +56,7 @@ export default function KycWaitingScreen() {
           {/* Subtitle */}
           <Text style={[styles.subtitle, { color: colors.text.secondary }]}>
             Now you need to request to whitelist your account to start transactions.
+            Meantime you can add your wallet
           </Text>
 
           {/* Buttons */}
@@ -69,6 +70,18 @@ export default function KycWaitingScreen() {
           >
             <Text style={[styles.buttonText, { color: colors.text.inverse }]}>
               Request Access
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.buttonSecondary,
+              { borderColor: colors.border.primary },
+            ]}
+            onPress={() => router.push('/account/wallets')}
+          >
+            <Text style={[styles.buttonText, { color: colors.text.primary }]}>
+              Add Wallet
             </Text>
           </TouchableOpacity>
 
@@ -139,8 +152,16 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.md,
     paddingVertical: Spacing.lg,
     alignItems: "center",
-    marginBottom: Spacing["4xl"],
+    marginBottom: Spacing.lg,
     ...Shadows.button,
+  },
+  buttonSecondary: {
+    width: "100%",
+    borderRadius: BorderRadius.md,
+    paddingVertical: Spacing.lg,
+    alignItems: "center",
+    borderWidth: 1,
+    marginBottom: Spacing["4xl"],
   },
   buttonText: {
     fontSize: Typography.fontSize.lg,

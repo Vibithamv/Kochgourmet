@@ -317,7 +317,7 @@
     "accountDetails": "Kontodetails",
     "accountDetailsDesc": "Adresse, berufliche Infos und Anlageprofil verwalten",
     "securityVerification": "Sicherheit & Verifizierung",
-    "paymentWallets": "Zahlungen",
+    "paymentWallets": "Zahlungen & Wallets",
     "walletsConnected_one": "{{count}} Wallet verbunden",
     "walletsConnected_other": "{{count}} Wallets verbunden",
     "accountSubtitle": "Verwalten Sie Ihre Kontodetails",
@@ -388,6 +388,8 @@
     "walletConnect": "WalletConnect",
     "fireblocks": "Fireblocks",
     "myWallets": "Meine Wallets",
+    "noWalletsEmptyTitle": "Keine Wallets verbunden",
+    "noWalletsEmptySubtitle": "Verbinden Sie Ihre erste Wallet, um Ihre Token zu verwalten",
     "addWallet": "Wallet hinzufügen",
     "chooseWalletType": "Wallet-Typ wählen",
     "removeWallet": "Wallet entfernen",
@@ -526,7 +528,7 @@
   },
   "whitelistRequest": {
     "title": "Whitelist-Antrag",
-    "subtitle": "Sie müssen nun die Aufnahme Ihres Kontos in die Whitelist beantragen, um Transaktionen starten zu können.",
+    "subtitle": "Sie müssen nun die Aufnahme Ihres Kontos in die Whitelist beantragen, um Transaktionen starten zu können. In der Zwischenzeit können Sie Ihre Wallet hinzufügen.",
     "requestAccess": "Zugang beantragen",
     "addWallet": "Wallet hinzufügen",
     "showWallets": "Wallets anzeigen",
@@ -731,6 +733,11 @@
       "title": "E-Mail-Support",
       "description": "Senden Sie uns eine detaillierte Nachricht",
       "unavailable": "E-Mail-App konnte nicht geöffnet werden. Bitte schreiben Sie uns an {{email}}."
+    },
+    "address": {
+      "title": "Adresse",
+      "companyLine": "Assetera GmbH – MiFID II lizenziert",
+      "streetLine": "Ungargasse 37, 1030 Wien, Österreich"
     },
     "phoneSupport": {
       "title": "Telefon-Support",

@@ -1258,13 +1258,13 @@ export default function WalletsScreen() {
       available: true,
       description: 'Browser extension wallet',
     },
-    {
-      type: EMBEDDED_WALLET_PROVIDER,
-      label: t('transfer.embeddedWallet'),
-      available: true,
-      description: t('transfer.embeddedWalletDescription'),
-    },
-    // { type: 'fireblocks', label: t('transfer.fireblocks'), available: false },
+    // {
+    //   type: EMBEDDED_WALLET_PROVIDER,
+    //   label: t('transfer.embeddedWallet'),
+    //   available: true,
+    //   description: t('transfer.embeddedWalletDescription'),
+    // },
+    // // { type: 'fireblocks', label: t('transfer.fireblocks'), available: false },
   ];
 
   return (
@@ -1327,9 +1327,11 @@ export default function WalletsScreen() {
           showEmptyState ? (
             <View style={styles.emptyState}>
               <Wallet size={48} color={colors.text.tertiary} />
-              <Text style={styles.emptyTitle}>No Wallets Connected</Text>
+              <Text style={styles.emptyTitle}>
+                {t('transfer.noWalletsEmptyTitle')}
+              </Text>
               <Text style={styles.emptySubtitle}>
-                Connect your first wallet to start managing your tokens
+                {t('transfer.noWalletsEmptySubtitle')}
               </Text>
               <TouchableOpacity
                 style={styles.emptyButton}

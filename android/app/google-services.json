@@ -1,21 +1,21 @@
 {
   "project_info": {
-    "project_number": "605660163352",
-    "project_id": "st-mobile-ownitnow",
-    "storage_bucket": "st-mobile-ownitnow.firebasestorage.app"
+    "project_number": "598931857356",
+    "project_id": "st-mobile-assetra",
+    "storage_bucket": "st-mobile-assetra.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:605660163352:android:354b7ce0a95a521878426d",
+        "mobilesdk_app_id": "1:598931857356:android:0166788bff00fdd1330769",
         "android_client_info": {
-          "package_name": "com.kochgourmet.app"
+          "package_name": "com.assetra.stapp"
         }
       },
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyACOsi7Lb0Ncnx9Dcu3LIHgdXIAnPyCxvM"
+          "current_key": "AIzaSyDzZPDEAcT-ZMR1c-BAg9VbcLAkYFgImak"
         }
       ],
       "services": {

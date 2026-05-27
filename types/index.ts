@@ -62,7 +62,8 @@ export interface PortfolioActivity {
   offeringId?: string;
   transactionType: string;
   amount: number;
-  amountInCurrency: number;
+  /** Null when the API omits fiat value — UI falls back to `amount`. */
+  amountInCurrency: number | null;
   currency: string;
   status: string;
   transactionDate: string;
@@ -79,7 +80,7 @@ export interface Transaction {
   id: string;
   type: 'Send' | 'Receive' | 'Order' | 'Payment';
   amount: number;
-  amountInCurrency: number;
+  amountInCurrency: number | null;
   symbol: string;
   status: string;
   created_at: string;

@@ -28,6 +28,7 @@ import {
 import { useTheme } from '@/contexts/ThemeContext';
 import { useGlobalAlert } from '@/contexts/AlertContext';
 import { offeringDetails } from '@/hooks/offering_details';
+import WalletAddressDropdown from '@/components/walletAddressDropdown';
 import PaymentProviderDropdown from '@/components/paymentProviderDropdown';
 import { userManagement } from '@/hooks/userManagement';
 import { createPaymentOrder } from '@/hooks/createPayment';
@@ -144,7 +145,9 @@ export default function InvestmentScreen() {
   let paymentMethodData: PaymentMethod[] = [];
   let documents: LegalDocs[] = [];
   const user = userManagement();
+  const [wallets, setWallets] = React.useState([]);
   const [walletID, setWalletID] = React.useState('');
+  const [walletAddress, setWalletAddress] = React.useState('');
   const [paymentTypeID, setPaymentTypeID] = React.useState('');
   const [paymentType, setPaymentType] = React.useState('');
   const [docs, setDocs] = useState<LegalDocs[]>([]);
@@ -262,13 +265,10 @@ export default function InvestmentScreen() {
           .filter((wallet: any) => wallet.status === 'ACTIVE')
           .map((wallet: any) => ({
             id: wallet.id,
+            address: wallet.public_address,
           }));
-        const first = metawallets[0];
-        if (first) {
-          setWalletID(first.id);
-        } else {
-          setWalletID('');
-        }
+        setWallets([]);
+        setWallets(metawallets);
         setAddress1(data.data.data.activeAccount.address.country || '');
         setAddress2(data.data.data.activeAccount.address.city || '');
         await AsyncStorage.setItem("AccountID", data.data.data.activeAccount.id);
@@ -665,6 +665,23 @@ export default function InvestmentScreen() {
       </View>
 
       <View style={styles.formSection}>
+
+        <View style={styles.inputContainer}>
+          <Text style={[styles.inputLabel, { color: colors.text.primary }]}>
+            {t('investment.selectWallet')} <Text style={{ color: 'red' }}>*</Text>
+          </Text>
+          <WalletAddressDropdown
+            wallets={wallets}
+            onEmptyWalletList={() =>
+              showAlert(t('common.alert'), t('investment.noWalletsConnected'))
+            }
+            onChange={(address, id) => {
+              setWalletID(id);
+              setWalletAddress(address);
+            }}
+          />
+        </View>
+
         <View style={styles.inputContainer}>
           <Text style={[styles.inputLabel, { color: colors.text.primary }]}>
             {t('investment.paymentProvider')} <Text style={{ color: 'red' }}>*</Text>
@@ -845,6 +862,13 @@ export default function InvestmentScreen() {
           </Text>
           <Text style={styles.investorValue}>{address}</Text>
         </View> */}
+
+        <View style={styles.investorDetail}>
+          <Text style={[styles.investorLabel, { color: colors.text.primary }]}>
+            {t('investment.walletAddress')} *
+          </Text>
+          <Text style={[styles.investorValue, { color: colors.text.primary }]}>{walletAddress}</Text>
+        </View>
 
         <View style={styles.investorDetail}>
           <Text style={[styles.investorLabel, { color: colors.text.primary }]}>

@@ -6,6 +6,7 @@ import { userManagement } from '@/hooks/userManagement';
 import { useGlobalAlert } from '@/contexts/AlertContext';
 import { platformValidation } from '@/hooks/platformValidation';
 import { whitelistManagement } from '@/hooks/whitelistManagement';
+import { loadIsPlatformKycMandatory } from '@/constants/platformKeyProvider';
 
 /** Whitelist / visibility follow-up when KYC is already CONFIRMED. */
 export async function navigateAfterConfirmedKyc(
@@ -108,6 +109,17 @@ export function useKycPostVerificationFlow() {
 
     const { kyc_status: kycStatus, id: activeAccountId } =
       data.data.data.activeAccount;
+
+    const kycMandatory = await loadIsPlatformKycMandatory();
+    if (!kycMandatory) {
+      await navigateAfterConfirmedKyc(
+        activeAccountId,
+        checkVisibilityStatus,
+        checkStatus
+      );
+      return;
+    }
+
     if (kycStatus === 'CONFIRMED') {
       await navigateAfterConfirmedKyc(
         activeAccountId,

@@ -87,9 +87,9 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace 'com.kochgourmet.app'
+    namespace 'com.assetra.stapp'
     defaultConfig {
-        applicationId 'com.kochgourmet.app'
+        applicationId 'com.assetra.stapp'
         minSdkVersion 26
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

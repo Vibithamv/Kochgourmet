@@ -16,6 +16,8 @@ import {
   isOrderedTransactionStatus,
   type CustomIbanBankDetails,
 } from '@/utils/customIbanBankDetails';
+import { resolvePortfolioActivityFiatAmount } from '@/utils/portfolioActivityAmount';
+import { resolvePortfolioActivityDisplayStatus } from '@/utils/portfolioActivityStatus';
 import { ShimmerBlock, useShimmerAnim } from '@/components/Shimmer';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -290,7 +292,7 @@ export default function TransactionDetailsModal({
       {
         key: 'status',
         label: t('portfolio.transactionDetailStatus'),
-        value: formatStatusLabel(activity.status),
+        value: formatStatusLabel(resolvePortfolioActivityDisplayStatus(activity)),
       },
       {
         key: 'date',
@@ -310,7 +312,10 @@ export default function TransactionDetailsModal({
       {
         key: 'amount',
         label: t('portfolio.transactionDetailAmount'),
-        value: formatCurrency(activity.amountInCurrency, fiatCurrency),
+        value: formatCurrency(
+          resolvePortfolioActivityFiatAmount(activity),
+          fiatCurrency
+        ),
       },
       {
         key: 'numberOfTokens',

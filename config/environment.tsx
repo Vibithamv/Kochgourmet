@@ -21,8 +21,8 @@ export interface EnvironmentConfig {
 export const CURRENT_ENVIRONMENT: EnvironmentName = __DEV__ ? 'dev' : 'prod';
 
 const ASSETERA_TENANT: TenantKeys = {
-  apiKey: '747ea1cf4806d024a53b',
-  investKey: '6ec73de16fa5f63ca99e',
+  apiKey: '5851e4a8889b322b87b6',
+  investKey: 'a0e8d96676b857623655',
   iframePage: 'localhost:5174',
 };
 

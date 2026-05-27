@@ -21,6 +21,7 @@ import {
   Smartphone,
   Check,
   Plus,
+  Wallet,
   Building,
 } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
@@ -61,6 +62,7 @@ export default function AccountScreen() {
   const [userName, setUserName] = useState('');
   const [email, setEmail] = useState('');
   const [profilePictureUrl, setProfilePictureUrl] = useState<string | null>(null);
+  const [walletCount, setWalletCount] = useState(0);
   const userAccount = userManagement();
   const [accounts, setAccounts] = useState<Accounts[]>([]);
   const { showAlert } = useGlobalAlert();
@@ -80,6 +82,11 @@ export default function AccountScreen() {
       userAccount.getUser().then((data) => {
         if (data.success && data.data) {
           if (JSON.stringify(data.data.data.activeAccount) !== '{}') {
+            setWalletCount(
+              data.data.data.activeAccount.blockchainWallets.filter(
+                (wallet: { status?: string }) => wallet.status === 'ACTIVE'
+              ).length
+            );
             setCurrentAccount(data.data.data.activeAccount.id);
             setKycStatus(data.data.data.activeAccount.kyc_status);
           }
@@ -188,6 +195,10 @@ export default function AccountScreen() {
   const handleLogout = async () => {
     await signOut(); // or the correct logout method you have
     router.replace('/auth/login');
+  };
+
+  const handleWalletManagement = () => {
+    router.push('/account/wallets');
   };
 
   const getKYCStatusColor = (status: string) => {
@@ -525,6 +536,28 @@ export default function AccountScreen() {
           fontSize: Typography.fontSize.base,
           fontFamily: Typography.fontFamily.regular,
         },
+        walletPreview: {
+          flexDirection: 'row',
+          alignItems: 'center',
+        },
+        walletPreviewItem: {
+          width: 24,
+          height: 24,
+          borderRadius: 12,
+          backgroundColor: colors.primary,
+          alignItems: 'center',
+          justifyContent: 'center',
+          borderWidth: 2,
+          borderColor: colors.background.card,
+        },
+        walletPreviewMore: {
+          backgroundColor: colors.text.secondary,
+        },
+        walletPreviewText: {
+          fontSize: Typography.fontSize.xs,
+          fontFamily: Typography.fontFamily.bold,
+          color: colors.text.inverse,
+        },
         alertModalOverlay: {
           flex: 1,
           backgroundColor: 'rgba(0,0,0,0.5)',
@@ -836,6 +869,31 @@ export default function AccountScreen() {
               style={[styles.menuSubtext, { color: colors.text.secondary }]}
             >
               {t('account.manageCards')}
+            </Text>
+          </View>
+          <ChevronRight size={20} color={colors.text.tertiary} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.menuItem, { backgroundColor: colors.background.card }]}
+          onPress={handleWalletManagement}
+        >
+          <View
+            style={[
+              styles.menuIcon,
+              { backgroundColor: colors.interactive.hover },
+            ]}
+          >
+            <Wallet size={20} color={colors.text.secondary} />
+          </View>
+          <View style={styles.menuContent}>
+            <Text style={[styles.menuText, { color: colors.text.primary }]}>
+              {t('transfer.myWallets')}
+            </Text>
+            <Text
+              style={[styles.menuSubtext, { color: colors.text.secondary }]}
+            >
+              {t('account.walletsConnected', { count: walletCount })}
             </Text>
           </View>
           <ChevronRight size={20} color={colors.text.tertiary} />

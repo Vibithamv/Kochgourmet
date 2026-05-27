@@ -10,6 +10,7 @@ import { useTranslation } from 'react-i18next';
 import { Globe, Check, X } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getColors, Typography } from '@/constants/theme';
+import { persistUserLanguage } from '@/i18n/index';
 
 interface Language {
   code: string;
@@ -29,8 +30,9 @@ export default function LanguageSelector() {
   const colors = getColors(theme);
   const [modalVisible, setModalVisible] = useState(false);
 
-  const changeLanguage = (languageCode: string) => {
-    i18n.changeLanguage(languageCode);
+  const changeLanguage = async (languageCode: string) => {
+    await persistUserLanguage(languageCode);
+    await i18n.changeLanguage(languageCode);
     setModalVisible(false);
   };
 

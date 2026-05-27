@@ -2,10 +2,14 @@ import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Import translation files
 import en from './locales/en.json';
 import de from './locales/de.json';
 import es from './locales/es.json';
+
+export const USER_LANGUAGE_STORAGE_KEY = 'user-language';
+
+const SUPPORTED_LANGUAGES = ['en', 'de', 'es'] as const;
+const DEFAULT_LANGUAGE = 'de';
 
 const resources = {
   en: { translation: en },
@@ -13,61 +17,70 @@ const resources = {
   es: { translation: es },
 };
 
-// Custom language detector for React Native
+function normalizeLanguageCode(lng: string | null | undefined): string | null {
+  if (!lng) return null;
+  const base = lng.split('-')[0]?.toLowerCase();
+  if (base && (SUPPORTED_LANGUAGES as readonly string[]).includes(base)) {
+    return base;
+  }
+  return null;
+}
+
+export async function getStoredUserLanguage(): Promise<string | null> {
+  try {
+    const saved = await AsyncStorage.getItem(USER_LANGUAGE_STORAGE_KEY);
+    return normalizeLanguageCode(saved);
+  } catch (error) {
+    console.log('Error reading saved language:', error);
+    return null;
+  }
+}
+
+export async function persistUserLanguage(lng: string): Promise<void> {
+  const normalized = normalizeLanguageCode(lng) ?? DEFAULT_LANGUAGE;
+  try {
+    await AsyncStorage.setItem(USER_LANGUAGE_STORAGE_KEY, normalized);
+  } catch (error) {
+    console.log('Error saving language:', error);
+  }
+}
+
 const languageDetector = {
   type: 'languageDetector' as const,
   async: true,
   detect: async (callback: (lng: string) => void) => {
     try {
-      // Only use AsyncStorage in client-side environment
-      if (globalThis.window !== undefined) {
-        // Try to get saved language from AsyncStorage
-        const savedLanguage = await AsyncStorage.getItem('user-language');
-        if (savedLanguage) {
-          callback(savedLanguage);
-          return;
-        }
+      const savedLanguage = await getStoredUserLanguage();
+      if (savedLanguage) {
+        callback(savedLanguage);
+        return;
       }
-      
-      // Fallback when no saved preference (system locale detection can be added later)
-      const systemLanguage = 'de';
-      callback(systemLanguage);
+      callback(DEFAULT_LANGUAGE);
     } catch (error) {
       console.log('Error detecting language:', error);
-      callback('de');
+      callback(DEFAULT_LANGUAGE);
     }
   },
   init: () => {},
   cacheUserLanguage: async (lng: string) => {
-    try {
-      // Only use AsyncStorage in client-side environment
-      if (globalThis.window !== undefined) {
-        await AsyncStorage.setItem('user-language', lng);
-      }
-    } catch (error) {
-      console.log('Error saving language:', error);
-    }
+    await persistUserLanguage(lng);
   },
 };
 
-i18n
+void i18n
   .use(languageDetector)
   .use(initReactI18next)
   .init({
     resources,
-    lng: 'de',
-    fallbackLng: ['de', 'en'],
+    fallbackLng: DEFAULT_LANGUAGE,
+    supportedLngs: [...SUPPORTED_LANGUAGES],
     debug: __DEV__,
-    
     interpolation: {
-      escapeValue: false, // React already escapes values
+      escapeValue: false,
     },
-    
     react: {
-      useSuspense: false, // Important for React Native
+      useSuspense: false,
     },
-    
-    // Namespace configuration
     defaultNS: 'translation',
     ns: ['translation'],
   });

@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
+import { loadIsPlatformKycMandatory } from '@/constants/platformKeyProvider';
 
 export type LoginSuccessPayload = {
   activeAccount: { kyc_status: string; id: string };
@@ -34,6 +35,13 @@ export async function navigateAfterLoginSuccess(
   if (JSON.stringify(data.activeAccount) !== '{}') {
     await AsyncStorage.setItem('AccountID', data.activeAccount.id)
   }
+
+  const kycMandatory = await loadIsPlatformKycMandatory();
+  if (!kycMandatory) {
+    await navigateTabsOrWhitelist(checkVisibilityStatus, checkStatus);
+    return;
+  }
+
   const kycStatus = data.activeAccount.kyc_status;
   if (kycStatus === 'CONFIRMED') {
     await navigateTabsOrWhitelist(checkVisibilityStatus, checkStatus);

@@ -6,6 +6,7 @@ export const kycRequest = () => {
 
   const request = async (id: string, applicantType: string) => {
     try {
+      console.log('kyc request called with', id, applicantType);
 
       const response = await NetworkService.post(
         '/kyc-request',

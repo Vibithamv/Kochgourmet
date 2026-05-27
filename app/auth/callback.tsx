@@ -37,7 +37,7 @@ async function mergeCodeFromInitialUrl(
 }
 
 /**
- * Google (and the backend) redirect here after social auth, e.g. myapp://auth/callback?code=...
+ * Google (and the backend) redirect here after social auth, e.g. com.assetra.stapp://auth/callback?code=...
  * This route must exist or Expo Router shows +not-found.
  */
 export default function AuthOAuthCallbackScreen() {

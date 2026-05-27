@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
+  Image,
   FlatList,
   StyleSheet,
   TouchableOpacity,
@@ -22,13 +23,16 @@ import {
   ChartBar as BarChart3,
   Activity,
   Wallet,
+  Send,
   Download,
   ChevronDown,
   Check,
+  QrCode,
   FileText,
   X,
   CheckCheck,
 } from 'lucide-react-native';
+import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/contexts/ThemeContext';
 import {
@@ -39,7 +43,8 @@ import {
   BorderRadius,
   Shadows,
 } from '@/constants/theme';
-import type { PortfolioActivity, Transaction } from '@/types';
+import type { Investment, PortfolioActivity, Transaction } from '@/types';
+import OptimizedImage from '@/components/OptimizedImage';
 import TransactionDetailsModal from '@/components/TransactionDetailsModal';
 import { offeringDetails } from '@/hooks/offering_details';
 import {
@@ -47,16 +52,29 @@ import {
   isOrderedTransactionStatus,
   type CustomIbanBankDetails,
 } from '@/utils/customIbanBankDetails';
+import {
+  pickActivityAmountInCurrencyFromRecord,
+  parseActivityAmount,
+  resolvePortfolioActivityFiatAmount,
+} from '@/utils/portfolioActivityAmount';
+import {
+  pickActivityStatusFromRecord,
+  resolvePortfolioActivityDisplayStatus,
+} from '@/utils/portfolioActivityStatus';
 import { portfolio } from '@/hooks/portfolio';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import { useGlobalAlert } from '@/contexts/AlertContext';
+import QRCode from 'react-native-qrcode-svg';
+import { userManagement } from '@/hooks/userManagement';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { downloadReports } from '@/hooks/downloadReports';
 import { useOfferingCheck } from '@/hooks/useOfferingCheck';
+import Clipboard from '@react-native-clipboard/clipboard';
 import {
   PortfolioChartShimmer,
+  PortfolioInvestmentRowShimmer,
   PortfolioOverviewShimmer,
   PortfolioTransactionRowShimmer,
   useShimmerAnim,
@@ -69,6 +87,26 @@ const PORTFOLIO_PERFORMANCE_CHART_SEGMENTS = 4;
 /** Default Y-axis max when all performance values are equal (e.g. all zero). */
 const PORTFOLIO_PERFORMANCE_CHART_EMPTY_Y_MAX = 5;
 const PORTFOLIO_PERFORMANCE_CHART_EMPTY_SEGMENTS = 5;
+
+const EVM_EXTERNAL_WALLET_PROVIDERS = new Set([
+  'metamask',
+  'walletconnect',
+  'wallet_connect',
+  'fireblocks',
+]);
+
+const EMBEDDED_WALLET_PROVIDERS = new Set(['thirdweb']);
+
+function receiveModalAddressForWalletTab(
+  walletId: string,
+  evmAddress: string,
+  embeddedAddress: string,
+  concordiumAddress: string,
+): string {
+  if (walletId === 'metamask') return evmAddress;
+  if (walletId === 'embedded') return embeddedAddress;
+  return concordiumAddress;
+}
 
 function pickActivityString(source: Record<string, unknown>, keys: string[]): string {
   for (const key of keys) {
@@ -85,13 +123,13 @@ function toPortfolioActivity(p: Record<string, unknown>, index: number): Portfol
     id: `${String(p.id ?? index)}-${index}`,
     offeringId: p.offeringId != null ? String(p.offeringId) : undefined,
     transactionType,
-    amount: Number(p.amount) || 0,
-    amountInCurrency: Number(p.amountInCurrency) || 0,
+    amount: parseActivityAmount(p.amount),
+    amountInCurrency: pickActivityAmountInCurrencyFromRecord(p),
     currency:
       transactionType === 'Order'
         ? String(p.currency ?? '')
         : String(offering.currency ?? p.currency ?? ''),
-    status: String(p.status ?? ''),
+    status: pickActivityStatusFromRecord(p),
     transactionDate: String(p.transactionDate ?? ''),
     offeringName: String(p.offeringName ?? ''),
     offering: {
@@ -117,10 +155,7 @@ function toTransaction(activity: PortfolioActivity): Transaction {
     amount: activity.amount,
     amountInCurrency: activity.amountInCurrency,
     symbol: activity.offering.symbol,
-    status:
-      activity.transactionType === 'Send' || activity.transactionType === 'Receive'
-        ? 'completed'
-        : activity.status,
+    status: resolvePortfolioActivityDisplayStatus(activity),
     created_at: activity.transactionDate,
     description: activity.offeringName,
     currency: activity.currency,
@@ -173,11 +208,44 @@ function createStyledListSeparator(
   return StyledListSeparator;
 }
 
+function InvestmentsFlatListSeparator() {
+  return <View style={{ height: Spacing.md }} />;
+}
+
+type PortfolioColors = ReturnType<typeof getColors>;
+
+function PortfolioListEmptyComponent({
+  loading,
+  colors,
+}: Readonly<{
+  loading: boolean;
+  colors: PortfolioColors;
+}>) {
+  const { t } = useTranslation();
+  const shimmerAnim = useShimmerAnim();
+  if (loading) {
+    return (
+      <View style={{ padding: Spacing.xl, gap: 12 }}>
+        <PortfolioInvestmentRowShimmer anim={shimmerAnim} />
+        <PortfolioInvestmentRowShimmer anim={shimmerAnim} />
+        <PortfolioInvestmentRowShimmer anim={shimmerAnim} />
+      </View>
+    );
+  }
+  return (
+    <View style={{ padding: Spacing.xl, alignItems: 'center' }}>
+      <Text style={{ color: colors.text.primary }}>{t('portfolio.noDataAvailable')}</Text>
+    </View>
+  );
+}
+
 const PortfolioScreen = React.memo(() => {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
   const shimmerAnim = useShimmerAnim();
+  const flatListRef = React.useRef<FlatList>(null);
+  const [investments, setInvestments] = useState<Investment[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [selectedTransaction, setSelectedTransaction] = useState<PortfolioActivity | null>(null);
   const [transactionDetailVisible, setTransactionDetailVisible] = useState(false);
@@ -192,7 +260,9 @@ const PortfolioScreen = React.memo(() => {
     '6m'
   );
   const [periodDropdownVisible, setPeriodDropdownVisible] = useState(false);
+  const [qrModalVisible, setQrModalVisible] = useState(false);
   const [reportsModalVisible, setReportsModalVisible] = useState(false);
+  const [selectedWallet, setSelectedWallet] = useState<string>('fireblocks');
   const { showAlert } = useGlobalAlert();
 
   const showNoDownloadDataAlert = () => {
@@ -211,8 +281,16 @@ const PortfolioScreen = React.memo(() => {
       ]),
     [styles.separator, colors.border.secondary]
   );
+  const [walletAddress, setWalletAddress] = useState('');
+  const [embeddedWalletAddress, setEmbeddedWalletAddress] = useState('');
+  const [concordiumWalletAddress, setConcordiumWalletAddress] = useState('');
+  const [walletPopupVisible, setWalletPopupVisible] = React.useState(false);
   const [totalInvestment, setTotalInvestment] = useState('');
   const [currency, setCurrency] = useState('');
+  const [wallets, setWallets] = React.useState<{ address: string }[]>([]);
+  const [embeddedWallets, setEmbeddedWallets] = React.useState<{ address: string }[]>([]);
+  const [concordiumWallets, setConcordiumWallets] = React.useState([]);
+  const user = userManagement();
   const [months, setMonths] = React.useState<string[]>([]);
   const [performance, setPerformance] = React.useState<number[]>([]);
   const [loading, setLoading] = useState(true);
@@ -234,6 +312,7 @@ const PortfolioScreen = React.memo(() => {
     return performance;
   };
 
+  let portfolioInvestment: Investment[] = [];
   let portfolioTransaction: Transaction[] = [];
 
   useFocusEffect(
@@ -250,7 +329,11 @@ const PortfolioScreen = React.memo(() => {
       await performOfferingCheck();
       const period = (await AsyncStorage.getItem("period")) || "6m";
 
-      await Promise.all([loadTransaction(), loadInvestment(period)]);
+      await Promise.all([
+        getUser(),
+        loadTransaction(),
+        loadInvestment(period),
+      ]);
     } catch (error) {
       console.error("Load data error:", error);
     }
@@ -271,6 +354,52 @@ const PortfolioScreen = React.memo(() => {
     await AsyncStorage.setItem('period', '6m');
   };
 
+  const getUser = async () => {
+    user.getUser().then((data) => {
+      if (data.success && data.data) {
+        const activeWallets = data.data.data.activeAccount.blockchainWallets.filter(
+          (wallet: any) => wallet.status === 'ACTIVE'
+        );
+        const metawallets = activeWallets
+          .filter((wallet: any) =>
+            EVM_EXTERNAL_WALLET_PROVIDERS.has(
+              String(wallet.blockchain_provider ?? '').toLowerCase()
+            )
+          )
+          .map((wallet: any) => ({
+            address: wallet.public_address,
+          }));
+        const embeddedList = activeWallets
+          .filter((wallet: any) =>
+            EMBEDDED_WALLET_PROVIDERS.has(
+              String(wallet.blockchain_provider ?? '').toLowerCase()
+            )
+          )
+          .map((wallet: any) => ({
+            address: wallet.public_address,
+          }));
+        setWallets([]);
+        setWallets(metawallets);
+        setEmbeddedWallets([]);
+        setEmbeddedWallets(embeddedList);
+        const concordiumWallets = data.data.data.activeAccount.blockchainWallets
+          .filter(
+            (wallet: any) =>
+              wallet.status === 'ACTIVE' &&
+              wallet.blockchain_provider.toLowerCase() === 'concordium'
+          )
+          .map((wallet: any) => ({
+            address: wallet.public_address,
+          }));
+        setConcordiumWallets([]);
+        setConcordiumWallets(concordiumWallets);
+      } else if (data.status === 401) {
+        showAlert(t('profile.sessionExpired'), t('profile.loginAgain'));
+        router.replace("/auth/login");
+      }
+    });
+  };
+
   const loadInvestment = async (pg: string) => {
     portfolioDatas
       .getPortfolio(await AsyncStorage.getItem('AccountID'), 'ALL', pg)
@@ -280,6 +409,25 @@ const PortfolioScreen = React.memo(() => {
         if (res.success && res.data) {
           setTotalInvestment(res.data.data.totalInvested);
           setCurrency(res.data.data.tenantCurrency);
+          if (res.data.data.portfolio.length > 0) {
+            portfolioInvestment = res.data.data.portfolio.map(
+              (p: any, index: number) => ({
+                id: p.id,
+                offering_id: p.offering_id,
+                name: p.offering_name,
+                image: p.hero_image === null ? '' : p.hero_image,
+                invested: p.amount,
+                tokenBalance: p.token_balance,
+                decimal: p.decimals,
+                transaction_date: p.transaction_date,
+                walletAddress: p.blockchain_wallet_address,
+                publicAddress: p.public_address,
+                symbol: p.offering_symbol,
+                invested_amount: p.invested_amount,
+              })
+            );
+            setInvestments(portfolioInvestment);
+          }
           const months = Object.keys(res.data.data.performance_data.data);
           const values = Object.values(
             res.data.data.performance_data.data
@@ -701,6 +849,236 @@ const PortfolioScreen = React.memo(() => {
     }
   };
 
+  const renderReceiveQrGraphic = () => {
+    if (embeddedWalletAddress) {
+      return (
+        <QRCode
+          value={embeddedWalletAddress}
+          size={160}
+          color={colors.shadow.primary}
+          backgroundColor="#fff"
+        />
+      );
+    }
+    if (walletAddress) {
+      return (
+        <QRCode
+          value={walletAddress}
+          size={160}
+          color={colors.shadow.primary}
+          backgroundColor="#fff"
+        />
+      );
+    }
+    if (concordiumWalletAddress) {
+      return (
+        <QRCode
+          value={concordiumWalletAddress}
+          size={160}
+          color={colors.shadow.primary}
+          backgroundColor="#fff"
+        />
+      );
+    }
+    return <QrCode size={120} color={colors.text.tertiary} />;
+  };
+
+  const renderReceiveAddressSection = () => {
+    const addressContainerStyle = [
+      styles.addressContainer,
+      {
+        backgroundColor: colors.background.secondary,
+        borderColor: colors.border.primary,
+      },
+    ];
+    if (embeddedWalletAddress) {
+      return (
+        <View style={addressContainerStyle}>
+          <Text
+            style={[styles.addressLabel, { color: colors.text.secondary }]}
+          >
+            {t('portfolio.walletAddress')}
+          </Text>
+          <Text style={[styles.addressText, { color: colors.text.primary }]}>
+            {embeddedWalletAddress}
+          </Text>
+          <TouchableOpacity
+            style={[
+              styles.copyAddressButton,
+              { backgroundColor: colors.primary },
+            ]}
+            onPress={() => copyAddress(embeddedWalletAddress)}
+          >
+            <Text
+              style={[
+                styles.copyAddressText,
+                { color: colors.text.inverse },
+              ]}
+            >
+              {t('portfolio.copyAddress')}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+    if (walletAddress) {
+      return (
+        <View style={addressContainerStyle}>
+          <Text
+            style={[styles.addressLabel, { color: colors.text.secondary }]}
+          >
+            {t('portfolio.walletAddress')}
+          </Text>
+          <Text style={[styles.addressText, { color: colors.text.primary }]}>
+            {walletAddress}
+          </Text>
+          <TouchableOpacity
+            style={[
+              styles.copyAddressButton,
+              { backgroundColor: colors.primary },
+            ]}
+            onPress={() => copyAddress(walletAddress)}
+          >
+            <Text
+              style={[
+                styles.copyAddressText,
+                { color: colors.text.inverse },
+              ]}
+            >
+              {t('portfolio.copyAddress')}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+    if (concordiumWalletAddress) {
+      return (
+        <View style={addressContainerStyle}>
+          <Text
+            style={[styles.addressLabel, { color: colors.text.secondary }]}
+          >
+            {t('portfolio.walletAddress')}
+          </Text>
+          <Text style={[styles.addressText, { color: colors.text.primary }]}>
+            {concordiumWalletAddress}
+          </Text>
+          <TouchableOpacity
+            style={[
+              styles.copyAddressButton,
+              { backgroundColor: colors.primary },
+            ]}
+            onPress={() => copyAddress(concordiumWalletAddress)}
+          >
+            <Text
+              style={[
+                styles.copyAddressText,
+                { color: colors.text.inverse },
+              ]}
+            >
+              {t('portfolio.copyAddress')}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+    return null;
+  };
+
+  const renderWalletPickerScrollContent = () => {
+    const emptyWalletsTextStyle = [
+      {
+        fontSize: 15,
+        fontFamily: Typography.fontFamily.semiBold,
+        marginTop: 10,
+        marginBottom: 15,
+        textAlign: 'center' as const,
+      },
+      { color: colors.error },
+    ];
+
+    if (selectedWallet === 'metamask') {
+      if (wallets.length === 0) {
+        return (
+          <Text style={emptyWalletsTextStyle}>
+            {t('portfolio.noWalletsConnected')}
+          </Text>
+        );
+      }
+      return wallets.map((item, index: number) => (
+        <TouchableOpacity
+          key={`${item.address}-${index}`}
+          style={styles.addressRow}
+          onPress={() => {
+            setWalletAddress(item.address);
+            setEmbeddedWalletAddress('');
+            setConcordiumWalletAddress('');
+            setWalletPopupVisible(false);
+          }}
+        >
+          <Text
+            style={[styles.copyAddressText, { color: colors.text.primary }]}
+          >
+            {item.address}
+          </Text>
+        </TouchableOpacity>
+      ));
+    }
+
+    if (selectedWallet === 'embedded') {
+      if (embeddedWallets.length === 0) {
+        return (
+          <Text style={emptyWalletsTextStyle}>
+            {t('portfolio.noEmbeddedWalletsConnected')}
+          </Text>
+        );
+      }
+      return embeddedWallets.map((item, index: number) => (
+        <TouchableOpacity
+          key={`embedded-${item.address}-${index}`}
+          style={styles.addressRow}
+          onPress={() => {
+            setEmbeddedWalletAddress(item.address);
+            setWalletAddress('');
+            setConcordiumWalletAddress('');
+            setWalletPopupVisible(false);
+          }}
+        >
+          <Text
+            style={[styles.copyAddressText, { color: colors.text.primary }]}
+          >
+            {item.address}
+          </Text>
+        </TouchableOpacity>
+      ));
+    }
+
+    if (concordiumWallets.length === 0) {
+      return (
+        <Text style={emptyWalletsTextStyle}>
+          {t('portfolio.noWalletsConnected')}
+        </Text>
+      );
+    }
+    return concordiumWallets.map((item: any, index: number) => (
+      <TouchableOpacity
+        key={`${item.address}-${index}`}
+        style={styles.addressRow}
+        onPress={() => {
+          setConcordiumWalletAddress(item.address);
+          setWalletAddress('');
+          setEmbeddedWalletAddress('');
+          setWalletPopupVisible(false);
+        }}
+      >
+        <Text
+          style={[styles.copyAddressText, { color: colors.text.primary }]}
+        >
+          {item.address}
+        </Text>
+      </TouchableOpacity>
+    ));
+  };
+
   const formatCurrency = (amount: number, currency: string) => {
     const symbols: Record<string, string> = {
       BTC: '₿',
@@ -723,6 +1101,143 @@ const PortfolioScreen = React.memo(() => {
       minimumFractionDigits: 0,
     }).format(amount);
   };
+
+  const getDuration = (date: string) => {
+    const transactionDate = new Date(date);
+    const now = new Date();
+
+    const diffMs = now.getTime() - transactionDate.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 1) return t('portfolio.today');
+    if (diffDays === 1) return t('portfolio.dayAgo');
+    if (diffDays < 30) return t('portfolio.daysAgo', { count: diffDays });
+
+    const diffMonths = Math.floor(diffDays / 30);
+    if (diffMonths === 1) return t('portfolio.monthAgo');
+    return t('portfolio.monthsAgo', { count: diffMonths });
+  };
+  const renderInvestment: ListRenderItem<Investment> = React.useCallback(
+    ({ item: investment, index }) => (
+      <TouchableOpacity
+        style={[
+          styles.investmentCard,
+          {
+            backgroundColor: colors.background.card,
+            borderColor: colors.border.primary,
+          },
+        ]}
+        onPress={() => router.push(`/project/${investment.offering_id}`)}
+        activeOpacity={0.7}
+      >
+        <View style={styles.investmentHeader}>
+          <View style={styles.investmentImageContainer}>
+            {investment.image ? (
+              <OptimizedImage
+                source={{ uri: investment.image }}
+                style={styles.investmentImage}
+                resizeMode="cover"
+              />
+            ) : <OptimizedImage
+              source={{ uri: 'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800' }}
+              style={styles.investmentImage}
+              resizeMode="cover"
+            />}
+          </View>
+          <View style={styles.investmentInfo}>
+            <Text
+              style={[styles.investmentTitle, { color: colors.text.primary }]}
+              numberOfLines={1}
+            >
+              {investment.name}
+            </Text>
+            {/* <Text style={[styles.investmentLocation, { color: colors.text.secondary }]} numberOfLines={1}>
+            {investment.project?.location}
+          </Text> */}
+            <View style={styles.investmentMetrics}>
+              {/* <Text style={[styles.investmentReturn, { color: colors.success }]}>
+              +{investment.project?.expected_return}%
+            </Text> */}
+              <Text
+                style={[
+                  styles.investmentDuration,
+                  { color: colors.text.tertiary },
+                ]}
+              >
+                {/* {investment.project?.duration_months}m */}
+                {getDuration(investment.transaction_date)}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        <View
+          style={[
+            styles.investmentFooter,
+            { borderTopColor: colors.border.secondary },
+          ]}
+        >
+          <View style={styles.investmentAmounts}>
+            <View style={styles.amountItem}>
+              <Text
+                style={[styles.amountLabel, { color: colors.text.secondary }]}
+              >
+                {t('portfolio.invested')}
+              </Text>
+              <Text
+                style={[styles.amountValue, { color: colors.text.primary }]}
+              >
+                {formatCurrency(Number(investment.invested_amount), currency)}
+              </Text>
+            </View>
+            <View style={styles.amountItem}>
+              <Text
+                style={[styles.amountLabel, { color: colors.text.secondary }]}
+              >
+                {t('portfolio.tokensOwned')}
+              </Text>
+              <Text
+                style={[styles.amountValue, { color: colors.text.primary }]}
+              >
+                {' '}
+                {(
+                  Number(investment.tokenBalance) /
+                  10 ** Number(investment.decimal)
+                ).toFixed(2)}{' '}
+                {investment.symbol}
+              </Text>
+            </View>
+          </View>
+          <TouchableOpacity
+            style={[
+              styles.actionButton,
+              {
+                backgroundColor: colors.interactive.hover,
+                borderColor: colors.border.primary,
+              },
+            ]}
+            onPress={() =>
+              router.push({
+                pathname: '/portfolio/transfer',
+                params: {
+                  transferFromAddress: investment.walletAddress,
+                  publicAddress: investment.publicAddress,
+                  tokenBalance: (
+                    Number(investment.tokenBalance) /
+                    10 ** Number(investment.decimal)
+                  ).toFixed(2),
+                  symbol: investment.symbol,
+                },
+              })
+            }
+          >
+            <Send size={16} color={colors.primary} />
+          </TouchableOpacity>
+        </View>
+      </TouchableOpacity>
+    ),
+    [formatCurrency, colors, theme]
+  );
 
   const getTransactionRowVisuals = (type: Transaction['type']) => {
     if (type === 'Receive') {
@@ -749,7 +1264,7 @@ const PortfolioScreen = React.memo(() => {
   const renderTransaction: ListRenderItem<Transaction> = React.useCallback(
     ({ item: transaction, index }) => {
       const rowVisuals = getTransactionRowVisuals(transaction.type);
-      const fiatRaw = Number(transaction.amountInCurrency);
+      const fiatRaw = resolvePortfolioActivityFiatAmount(transaction.activity);
       const curr = (transaction.currency || currency || 'USD').trim();
       const showFiatRow = Number.isFinite(fiatRaw) && curr.length > 0;
       let signedFiat = fiatRaw;
@@ -832,10 +1347,60 @@ const PortfolioScreen = React.memo(() => {
     [formatCurrency, colors, currency]
   );
 
+  const keyExtractorInvestment = React.useCallback(
+    (item: Investment) => item.id,
+    []
+  );
   const keyExtractorTransaction = React.useCallback(
     (item: Transaction, index: any) => item.id,
     []
   );
+
+  const copyAddress = (address: string) => {
+    Clipboard.setString(address);
+    showAlert(t('transfer.copied'), t('transfer.addressCopied'));
+  };
+
+  type WalletOption = {
+    id: string;
+    name: string;
+    address: string;
+    image: WalletImageKey; // <-- important!
+  };
+
+  const walletOptions: WalletOption[] = [
+    // {
+    //   id: 'concordium',
+    //   name: 'Concordium',
+    //   address: '0x742d35Cc6641C8532936f1234567890abcdef123',
+    //   image: 'concordium',
+    // },
+    {
+      id: 'metamask',
+      name: t('transfer.metaMask'),
+      address: '0x8ba1f109551bD432803012345678901234567890',
+      image: 'metamask',
+    },
+    // {
+    //   id: 'embedded',
+    //   name: t('transfer.embeddedWallet'),
+    //   address: '',
+    //   image: 'embedded',
+    // },
+    // {
+    //   id: 'walletconnect',
+    //   name: 'WalletConnect',
+    //   address: '0x1a2b3c4d5e6f7890abcdef1234567890abcdef12',
+    // },
+  ];
+
+  type WalletImageKey = 'metamask' | 'concordium' | 'embedded';
+
+  const walletIcons: Record<WalletImageKey, any> = {
+    metamask: require('../../assets/images/metamask_icon.png'),
+    concordium: require('../../assets/images/concordium_icon.jpeg'),
+    embedded: require('../../assets/images/embedded-wallet.jpeg'),
+  };
 
   const getCurrentPeriodLabel = () => {
     return (
@@ -884,7 +1449,8 @@ const PortfolioScreen = React.memo(() => {
           </View>
         </View>
       </View>
-    <ScrollView
+    <FlatList
+      ref={flatListRef}
       style={[
         styles.listBody,
         { backgroundColor: colors.background.secondary },
@@ -899,7 +1465,12 @@ const PortfolioScreen = React.memo(() => {
       }
       contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
       showsVerticalScrollIndicator={false}
-    >
+      ListEmptyComponent={
+        <PortfolioListEmptyComponent loading={loading} colors={colors} />
+      }
+      ListHeaderComponent={
+        <>
+          {/* Portfolio Overview Cards */}
           <View style={styles.overviewSection}>
             <View style={styles.overviewGrid}>
               {loading ? (
@@ -974,46 +1545,80 @@ const PortfolioScreen = React.memo(() => {
                     {t('portfolio.performance')}
                   </Text>
                 </View>
-                <View style={styles.performanceHeaderActions}>
-                  <TouchableOpacity
+                <TouchableOpacity
+                  style={[
+                    styles.periodDropdown,
+                    {
+                      backgroundColor: colors.background.secondary,
+                      borderColor: colors.border.primary,
+                    },
+                  ]}
+                  onPress={() => setPeriodDropdownVisible(true)}
+                >
+                  <Text
                     style={[
-                      styles.actionButton,
-                      {
-                        backgroundColor: colors.interactive.hover,
-                        borderColor: colors.border.primary,
-                      },
+                      styles.periodDropdownText,
+                      { color: colors.text.primary },
                     ]}
-                    onPress={() => setReportsModalVisible(true)}
-                    accessibilityLabel={t('portfolio.downloadReports')}
                   >
-                    <BarChart3 size={16} color={colors.primary} />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[
-                      styles.periodDropdown,
-                      {
-                        backgroundColor: colors.background.secondary,
-                        borderColor: colors.border.primary,
-                      },
-                    ]}
-                    onPress={() => setPeriodDropdownVisible(true)}
-                  >
-                    <Text
-                      style={[
-                        styles.periodDropdownText,
-                        { color: colors.text.primary },
-                      ]}
-                    >
-                      {getCurrentPeriodLabel()}
-                    </Text>
-                    <ChevronDown size={16} color={colors.text.secondary} />
-                  </TouchableOpacity>
-                </View>
+                    {getCurrentPeriodLabel()}
+                  </Text>
+                  <ChevronDown size={16} color={colors.text.secondary} />
+                </TouchableOpacity>
               </View>
               {renderPerformanceChartContent()}
             </View>
           </View>
 
+          {/* Investments Section Header */}
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionTitleContainer}>
+              <Text
+                style={[styles.sectionTitle, { color: colors.text.primary }]}
+              >
+                {t('portfolio.myWallet')}
+              </Text>
+              <Text
+                style={[
+                  styles.sectionSubtitle,
+                  { color: colors.text.secondary },
+                ]}
+              >
+                {investments.length} {t('portfolio.activePositions')}
+              </Text>
+            </View>
+            <View style={styles.walletActions}>
+              <TouchableOpacity
+                style={[
+                  styles.actionButton,
+                  {
+                    backgroundColor: colors.interactive.hover,
+                    borderColor: colors.border.primary,
+                  },
+                ]}
+                onPress={() => setReportsModalVisible(true)}
+              >
+                <BarChart3 size={16} color={colors.primary} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.actionButton,
+                  {
+                    backgroundColor: colors.interactive.hover,
+                    borderColor: colors.border.primary,
+                  },
+                ]}
+                onPress={() => setQrModalVisible(true)}
+              >
+                <QrCode size={16} color={colors.primary} />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </>
+      }
+      ListFooterComponent={
+        <>
+          {/* Recent Transactions */}
           <View style={styles.transactionsSection}>
             <View style={styles.sectionHeader}>
               <View style={styles.sectionTitleContainer}>
@@ -1079,10 +1684,18 @@ const PortfolioScreen = React.memo(() => {
               />
             </View>
           </View>
-    </ScrollView>
+
+        </>
+      }
+      data={investments}
+      renderItem={renderInvestment}
+      keyExtractor={keyExtractorInvestment}
+      ItemSeparatorComponent={InvestmentsFlatListSeparator}
+    />
     </View>
 
-      {/* Period Selection Modal */}
+      {/* Modals at screen root (iOS: Modal inside VirtualizedList header is unreliable) */}
+    {/* Period Selection Modal */}
     <Modal
       animationType="slide"
       transparent={true}
@@ -1151,6 +1764,266 @@ const PortfolioScreen = React.memo(() => {
             )}
           />
         </View>
+      </View>
+    </Modal>
+
+    {/* QR Code Modal */}
+    <Modal
+      animationType="slide"
+      transparent={true}
+      visible={qrModalVisible}
+      presentationStyle="overFullScreen"
+      onRequestClose={() => {
+        setWalletPopupVisible(false);
+        setQrModalVisible(false);
+      }}
+    >
+      <View style={styles.modalOverlay}>
+        <View
+          style={[
+            styles.qrModalContent,
+            { backgroundColor: colors.background.primary },
+          ]}
+        >
+          <View style={styles.modalHeader}>
+            <Text
+              style={[styles.modalTitle, { color: colors.text.primary }]}
+            >
+              {t('portfolio.receiveTokens')}
+            </Text>
+            <TouchableOpacity
+              style={[
+                styles.closeButton,
+                { backgroundColor: colors.background.secondary },
+              ]}
+              onPress={() => {
+                setWalletPopupVisible(false);
+                setQrModalVisible(false);
+              }}
+            >
+              <X size={24} color={colors.text.secondary} />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView
+            style={styles.qrContent}
+            showsVerticalScrollIndicator={false}
+            scrollEnabled={!walletPopupVisible}
+          >
+            {/* Wallet Selection */}
+            <View style={styles.selectionSection}>
+              <Text
+                style={[
+                  styles.selectionTitle,
+                  { color: colors.text.primary },
+                ]}
+              >
+                {t('portfolio.selectWallet')}
+              </Text>
+              <View style={styles.optionsList}>
+                {walletOptions.map((wallet) => {
+                  const address = receiveModalAddressForWalletTab(
+                    wallet.id,
+                    walletAddress,
+                    embeddedWalletAddress,
+                    concordiumWalletAddress
+                  );
+
+                  const formattedAddress = address
+                    ? address.substring(0, 6) +
+                    '...' +
+                    address.substring(address.length - 4)
+                    : '';
+                  const isSelected = Boolean(address);
+                  return (
+                    <TouchableOpacity
+                      key={wallet.id}
+                      style={[
+                        styles.optionItem,
+                        {
+                          backgroundColor: isSelected
+                            ? colors.interactive.hover
+                            : colors.background.secondary,
+                          borderColor: isSelected ? colors.primary : colors.border.primary,
+                        },
+                      ]}
+                      onPress={() => {
+                        setSelectedWallet(wallet.id);
+                        setWalletPopupVisible(true);
+                      }}
+                    >
+                      <View
+                        style={[
+                          styles.optionIcon,
+                          { backgroundColor: `${colors.primary}20` },
+                        ]}
+                      >
+                        <Image
+                          source={walletIcons[wallet.image]}
+                          style={{ width: 15, height: 15 }} // adjust as needed
+                          resizeMode="contain"
+                        />
+                      </View>
+                      <View style={styles.optionInfo}>
+                        <Text
+                          style={[
+                            styles.optionName,
+                            { color: colors.text.primary },
+                          ]}
+                        >
+                          {wallet.name}
+                        </Text>
+
+                        {!!address && (
+                          <Text
+                            style={[
+                              styles.optionAddress,
+                              { color: colors.text.secondary },
+                            ]}
+                          >
+                            {formattedAddress}
+                          </Text>
+                        )}
+                      </View>
+                      {isSelected && <Check size={20} color={colors.primary} />}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+
+            {/* Blockchain Selection */}
+            {/* <View style={styles.selectionSection}>
+              <Text
+                style={[
+                  styles.selectionTitle,
+                  { color: colors.text.primary },
+                ]}
+              >
+                {t('portfolio.selectNetwork')}
+              </Text>
+              <View style={styles.optionsList}>
+                {blockchainOptions.map((blockchain) => (
+                  <TouchableOpacity
+                    key={blockchain.id}
+                    style={[
+                      styles.optionItem,
+                      {
+                        backgroundColor:
+                          selectedBlockchain === blockchain.id
+                            ? colors.interactive.hover
+                            : colors.background.secondary,
+                        borderColor:
+                          selectedBlockchain === blockchain.id
+                            ? colors.primary
+                            : colors.border.primary,
+                      },
+                    ]}
+                    onPress={() => setSelectedBlockchain(blockchain.id)}
+                  >
+                    <View
+                      style={[
+                        styles.optionIcon,
+                        { backgroundColor: `${blockchain.color}20` },
+                      ]}
+                    >
+                      <View
+                        style={[
+                          styles.blockchainDot,
+                          { backgroundColor: blockchain.color },
+                        ]}
+                      />
+                    </View>
+                    <View style={styles.optionInfo}>
+                      <Text
+                        style={[
+                          styles.optionName,
+                          { color: colors.text.primary },
+                        ]}
+                      >
+                        {blockchain.name}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.optionAddress,
+                          { color: colors.text.secondary },
+                        ]}
+                      >
+                        {blockchain.symbol}
+                      </Text>
+                    </View>
+                    {selectedBlockchain === blockchain.id && (
+                      <Check size={20} color={colors.primary} />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View> */}
+
+            <View style={styles.qrCodeContainer}>
+              <View
+                style={[
+                  styles.qrCodePlaceholder,
+                  {
+                    backgroundColor: colors.background.secondary,
+                    borderColor: colors.border.primary,
+                  },
+                ]}
+              >
+                {renderReceiveQrGraphic()}
+                <Text
+                  style={[
+                    styles.qrCodeText,
+                    { color: colors.text.secondary },
+                  ]}
+                >
+                  {t('portfolio.qrCode')}
+                </Text>
+              </View>
+            </View>
+            {renderReceiveAddressSection()}
+          </ScrollView>
+        </View>
+        {walletPopupVisible ? (
+          <View style={styles.walletPickerOverlay} pointerEvents="box-none">
+            <TouchableOpacity
+              style={StyleSheet.absoluteFillObject}
+              activeOpacity={1}
+              onPress={() => setWalletPopupVisible(false)}
+              accessibilityRole="button"
+              accessibilityLabel={t('common.cancel')}
+            />
+            <View
+              style={[
+                styles.popupContainer,
+                {
+                  backgroundColor: colors.background.card,
+                  zIndex: 1,
+                  elevation: 12,
+                },
+              ]}
+            >
+              <Text
+                style={[styles.popupTitle, { color: colors.text.primary }]}
+              >
+                {t('portfolio.selectWalletAddress')}
+              </Text>
+              <ScrollView
+                style={{ maxHeight: 220 }}
+                keyboardShouldPersistTaps="handled"
+                nestedScrollEnabled
+              >
+                {renderWalletPickerScrollContent()}
+              </ScrollView>
+              <TouchableOpacity
+                style={[styles.popupClose]}
+                onPress={() => setWalletPopupVisible(false)}
+              >
+                <X size={20} color={colors.text.primary} />
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : null}
       </View>
     </Modal>
 
@@ -1467,10 +2340,8 @@ const createStyles = (colors: any) =>
       marginBottom: Spacing.lg,
     },
     performanceTitle: {
-      flex: 1,
       flexDirection: 'row',
       alignItems: 'center',
-      minWidth: 0,
     },
     performanceLabel: {
       fontSize: Typography.fontSize.lg,
@@ -1494,12 +2365,6 @@ const createStyles = (colors: any) =>
       fontFamily: Typography.fontFamily.semiBold,
       marginRight: Spacing.xs,
       letterSpacing: -0.1,
-    },
-    performanceHeaderActions: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: Spacing.sm,
-      flexShrink: 0,
     },
 
     // Modal styles
@@ -1550,6 +2415,111 @@ const createStyles = (colors: any) =>
       fontSize: Typography.fontSize.lg,
       fontFamily: Typography.fontFamily.semiBold,
       letterSpacing: -0.1,
+    },
+
+    // QR Modal Styles
+    qrModalContent: {
+      borderTopLeftRadius: BorderRadius.xl,
+      borderTopRightRadius: BorderRadius.xl,
+      paddingTop: Spacing.xl,
+      minHeight: '90%',
+    },
+    qrContent: {
+      paddingHorizontal: Spacing.xl,
+    },
+    selectionSection: {
+      marginBottom: Spacing.xl,
+      marginTop: Spacing.sm,
+    },
+    selectionTitle: {
+      fontSize: Typography.fontSize.lg,
+      fontFamily: Typography.fontFamily.semiBold,
+      marginBottom: Spacing.md,
+    },
+    optionsList: {
+      gap: Spacing.sm,
+    },
+    optionItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: Spacing.md,
+      borderRadius: BorderRadius.md,
+      borderWidth: 1,
+    },
+    optionIcon: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: Spacing.md,
+    },
+    optionInfo: {
+      flex: 1,
+      justifyContent: 'center',
+    },
+    optionName: {
+      fontSize: Typography.fontSize.base,
+      fontFamily: Typography.fontFamily.semiBold,
+      // marginBottom: 2,
+    },
+    optionAddress: {
+      fontSize: Typography.fontSize.sm,
+      fontFamily: Typography.fontFamily.regular,
+    },
+    blockchainDot: {
+      width: 12,
+      height: 12,
+      borderRadius: 6,
+    },
+    qrCodeContainer: {
+      alignItems: 'center',
+      paddingVertical: Spacing['3xl'],
+    },
+    qrCodePlaceholder: {
+      width: 200,
+      height: 200,
+      borderRadius: BorderRadius.lg,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 2,
+      borderStyle: 'dashed',
+      marginBottom: Spacing.lg,
+      paddingTop: 10,
+    },
+    qrCodeText: {
+      fontSize: Typography.fontSize.base,
+      fontFamily: Typography.fontFamily.medium,
+      marginTop: Spacing.sm,
+    },
+    addressContainer: {
+      borderRadius: BorderRadius.lg,
+      padding: Spacing.xl,
+      borderWidth: 1,
+      marginBottom: Spacing.xl,
+    },
+    addressLabel: {
+      fontSize: Typography.fontSize.sm,
+      fontFamily: Typography.fontFamily.medium,
+      marginBottom: Spacing.sm,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
+    addressText: {
+      fontSize: Typography.fontSize.base,
+      fontFamily: Typography.fontFamily.regular,
+      marginBottom: Spacing.lg,
+      lineHeight: 20,
+    },
+    copyAddressButton: {
+      borderRadius: BorderRadius.md,
+      paddingVertical: Spacing.md,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    copyAddressText: {
+      fontSize: Typography.fontSize.base,
+      fontFamily: Typography.fontFamily.semiBold,
     },
 
     // Reports Modal Styles
@@ -1633,6 +2603,104 @@ const createStyles = (colors: any) =>
       justifyContent: 'center',
       borderWidth: 1,
     },
+    walletActions: {
+      flexDirection: 'row',
+      gap: Spacing.sm,
+    },
+
+    // Finance App Style Investment Cards
+    investmentCard: {
+      marginHorizontal: Spacing.xl,
+      borderRadius: BorderRadius.lg,
+      borderWidth: 1,
+      overflow: 'hidden',
+      ...Shadows.sm,
+    },
+    investmentHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: Spacing.lg,
+    },
+    investmentImageContainer: {
+      width: 48,
+      height: 48,
+      borderRadius: BorderRadius.md,
+      overflow: 'hidden',
+      marginRight: Spacing.md,
+    },
+    investmentImage: {
+      width: '100%',
+      height: '100%',
+    },
+    investmentInfo: {
+      flex: 1,
+    },
+    investmentTitle: {
+      fontSize: Typography.fontSize.base,
+      fontFamily: Typography.fontFamily.semiBold,
+      letterSpacing: -0.1,
+      marginBottom: 2,
+    },
+    investmentLocation: {
+      fontSize: Typography.fontSize.sm,
+      fontFamily: Typography.fontFamily.regular,
+      marginBottom: Spacing.xs,
+    },
+    investmentMetrics: {
+      flexDirection: 'row',
+      gap: Spacing.md,
+    },
+    investmentReturn: {
+      fontSize: Typography.fontSize.sm,
+      fontFamily: Typography.fontFamily.semiBold,
+    },
+    investmentDuration: {
+      fontSize: Typography.fontSize.sm,
+      fontFamily: Typography.fontFamily.regular,
+    },
+    moreButton: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    investmentFooter: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: Spacing.lg,
+      paddingVertical: Spacing.md,
+      borderTopWidth: 1,
+    },
+    investmentAmounts: {
+      flexDirection: 'row',
+      flex: 1,
+      gap: Spacing.xl,
+    },
+    amountItem: {
+      flex: 1,
+    },
+    amountLabel: {
+      fontSize: Typography.fontSize.xs,
+      fontFamily: Typography.fontFamily.medium,
+      marginBottom: 2,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
+    amountValue: {
+      fontSize: Typography.fontSize.base,
+      fontFamily: Typography.fontFamily.semiBold,
+      letterSpacing: -0.1,
+    },
+    transferButton: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+    },
 
     // Transactions Section
     transactionsSection: {
@@ -1696,5 +2764,46 @@ const createStyles = (colors: any) =>
     separator: {
       height: 1,
       marginHorizontal: Spacing.lg,
+    },
+    walletPickerOverlay: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: 'rgba(0,0,0,0.45)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 1000,
+    },
+    popupOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.4)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+
+    popupContainer: {
+      width: '85%',
+      borderRadius: 20,
+      padding: 20,
+    },
+
+    popupTitle: {
+      fontSize: 18,
+      fontFamily: Typography.fontFamily.semiBold,
+      marginBottom: 15,
+      textAlign: 'left',
+    },
+
+    addressRow: {
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: 'rgba(0,0,0,0.1)',
+      flexDirection: 'row',
+    },
+    popupClose: {
+      position: 'absolute',
+      top: 12,
+      right: 12,
+      padding: 10,
+      zIndex: 999,
+      borderRadius: 15,
     },
   });

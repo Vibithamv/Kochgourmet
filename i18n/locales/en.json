@@ -317,7 +317,7 @@
     "accountDetails": "Account Details",
     "accountDetailsDesc": "Manage address, professional info and investment profile",
     "securityVerification": "Security & Verification",
-    "paymentWallets": "Payments",
+    "paymentWallets": "Payment & Wallets",
     "walletsConnected_one": "{{count}} wallet connected",
     "walletsConnected_other": "{{count}} wallets connected",
     "accountSubtitle": "Manage your account details",
@@ -388,6 +388,8 @@
     "walletConnect": "WalletConnect",
     "fireblocks": "Fireblocks",
     "myWallets": "My Wallets",
+    "noWalletsEmptyTitle": "No Wallets Connected",
+    "noWalletsEmptySubtitle": "Connect your first wallet to start managing your tokens",
     "addWallet": "Add Wallet",
     "chooseWalletType": "Choose wallet type",
     "removeWallet": "Remove Wallet",
@@ -522,7 +524,7 @@
   },
   "whitelistRequest": {
     "title": "Request for Whitelist",
-    "subtitle": "Now you need to request to whitelist your account to start transactions.",
+    "subtitle": "Now you need to request to whitelist your account to start transactions. Meantime you can add your wallet",
     "requestAccess": "Request Access",
     "addWallet": "Add Wallet",
     "showWallets": "Show Wallets",
@@ -727,6 +729,11 @@
       "title": "Email Support",
       "description": "Send us a detailed message",
       "unavailable": "Could not open your email app. Please email us at {{email}}."
+    },
+    "address": {
+      "title": "Address",
+      "companyLine": "Assetera GmbH – MiFID II licensed",
+      "streetLine": "Ungargasse 37, 1030 Wien, Austria"
     },
     "phoneSupport": {
       "title": "Phone Support",

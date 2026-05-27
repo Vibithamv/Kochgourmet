@@ -5,7 +5,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/assetera-app-icon.png",
-    "scheme": "kochgourmet",
+    "scheme": "com.assetra.stapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
@@ -23,7 +23,7 @@
         "resizeMode": "contain",
         "backgroundColor": "#151421"
       },
-      "package": "com.kochgourmet.app",
+      "package": "com.assetra.stapp",
       "jsEngine": "hermes",
       "enableProguardInReleaseBuilds": false,
       "enableShrinkResourcesInReleaseBuilds": false,
@@ -61,7 +61,7 @@
           "remote-notification"
         ]
       },
-      "bundleIdentifier": "com.kochgourmet.app"
+      "bundleIdentifier": "com.assetra.stapp"
     },
     "web": {
       "bundler": "metro",

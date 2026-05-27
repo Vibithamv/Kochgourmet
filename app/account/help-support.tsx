@@ -11,7 +11,7 @@ import {
   Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ArrowLeft, MessageCircle, Mail, Phone, ExternalLink, Send, X, CircleHelp as HelpCircle, Book, Video, Users, Clock, CircleCheck as CheckCircle } from 'lucide-react-native';
+import { ArrowLeft, MessageCircle, Mail, Phone, ExternalLink, Send, X, CircleHelp as HelpCircle, Book, Video, Users, Clock, CircleCheck as CheckCircle, MapPin } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -19,7 +19,7 @@ import { getColors, Typography, Spacing, BorderRadius, Shadows } from '@/constan
 import { useGlobalAlert } from '@/contexts/AlertContext';
 
 /** Support inbox — must be a full address (`user@domain`) for mailto: to populate the To field. */
-const SUPPORT_EMAIL = 'support@assetera.com';
+const SUPPORT_EMAIL = 'office-if@assetera.com';
 const OFFICIAL_FAQS_URL = 'https://www.assetera.com/faqs';
 
 interface FAQItem {
@@ -259,6 +259,29 @@ export default function HelpSupportScreen() {
               );
             })}
           </View>
+
+          <View
+            style={[
+              styles.addressCard,
+              {
+                backgroundColor: colors.background.card,
+                borderColor: colors.border.primary,
+              },
+            ]}
+          >
+            <View style={styles.addressHeader}>
+              <MapPin size={20} color={colors.primary} />
+              <Text style={[styles.addressTitle, { color: colors.text.primary }]}>
+                {t('helpSupport.address.title')}
+              </Text>
+            </View>
+            <Text style={[styles.addressLine, { color: colors.text.secondary }]}>
+              {t('helpSupport.address.companyLine')}
+            </Text>
+            <Text style={[styles.addressLine, { color: colors.text.secondary }]}>
+              {t('helpSupport.address.streetLine')}
+            </Text>
+          </View>
         </View>
 
         {/* Business Hours */}
@@ -286,10 +309,10 @@ export default function HelpSupportScreen() {
         </View> */}
 
         {/* FAQ Section */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>{t('helpSupport.faq.title')}</Text>
+        {/* <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>{t('helpSupport.faq.title')}</Text> */}
 
-          <View
+          {/* <View
             style={[
               styles.faqCard,
               {
@@ -313,7 +336,7 @@ export default function HelpSupportScreen() {
               </Text>
               <ExternalLink size={16} color={colors.primary} />
             </TouchableOpacity>
-          </View>
+          </View> */}
 
           {/* <View style={styles.faqList}>
             {faqItems.map((faq) => (
@@ -332,7 +355,7 @@ export default function HelpSupportScreen() {
               </TouchableOpacity>
             ))}
           </View> */}
-        </View>
+        {/* </View> */}
 
         {/* Resources */}
         {/* <View style={styles.section}>
@@ -570,6 +593,28 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize.xs,
     fontFamily: Typography.fontFamily.medium,
     marginLeft: 2,
+  },
+  addressCard: {
+    marginTop: Spacing.lg,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.xl,
+    borderWidth: 1,
+  },
+  addressHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
+  addressTitle: {
+    fontSize: Typography.fontSize.lg,
+    fontFamily: Typography.fontFamily.semiBold,
+    marginLeft: Spacing.sm,
+  },
+  addressLine: {
+    fontSize: Typography.fontSize.base,
+    fontFamily: Typography.fontFamily.regular,
+    lineHeight: 22,
+    marginBottom: Spacing.xs,
   },
   businessHoursCard: {
     borderRadius: BorderRadius.lg,

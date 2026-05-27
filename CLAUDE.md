@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this app is
 
-Assetera is a real-estate / asset-tokenization investing app built on the **Floris / SimplyTokenized** white-label multi-tenant platform. The same codebase has historically powered other brands (e.g. OwnItNow, Kochgourmet); brand selection happens at runtime via `platformValidation()` against API keys in [config/apiHeaderConfig.tsx](config/apiHeaderConfig.tsx). Internally the native bundle ID is still `com.kochgourmet.app` and scheme `kochgourmet://` — pending a future native rebrand. Backend: `stage.go.floris3.com/portal` (see [config/environment.tsx](config/environment.tsx)).
+Assetera is a real-estate / asset-tokenization investing app built on the **Floris / SimplyTokenized** white-label multi-tenant platform. The same codebase has historically powered other brands (e.g. OwnItNow, Kochgourmet); brand selection happens at runtime via `platformValidation()` against API keys in [config/apiHeaderConfig.tsx](config/apiHeaderConfig.tsx). Native bundle ID / package: `com.assetra.stapp`; deep-link scheme: `myapp://` (see `app.json`). Backend: `stage.go.floris3.com/portal` (see [config/environment.tsx](config/environment.tsx)).
 
 ## Stack
 
