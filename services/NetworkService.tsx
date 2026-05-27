@@ -1,7 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, AxiosError, InternalAxiosRequestConfig, AxiosHeaders } from "axios";
 import { CURRENT_ENVIRONMENT, ENVIRONMENT_CONFIG, EnvironmentName } from "../config/environment";
-import { updateAuthTokensFromHeaders } from "../utils/authUtils";
+import { isApiAuthSessionError, updateAuthTokensFromHeaders } from "../utils/authUtils";
 
 
 type ApiResponse<T = any> = {
@@ -63,7 +63,11 @@ class NetworkService {
         if (error.response?.headers) {
           await updateAuthTokensFromHeaders(error.response.headers);
         }
-        console.error("API Error:", error.response?.data || error.message);
+        const status = error.response?.status;
+        const payload = error.response?.data ?? error.message;
+        if (!isApiAuthSessionError(status, payload)) {
+          console.error("API Error:", payload);
+        }
         throw error;
       }
     );

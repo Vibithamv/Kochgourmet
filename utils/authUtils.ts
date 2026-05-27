@@ -1,6 +1,46 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AxiosResponseHeaders, RawAxiosResponseHeaders } from 'axios';
 
+const AUTH_TOKEN_KEYS = [
+  'AccessToken',
+  'RefreshToken',
+  'IDToken',
+  'Session',
+  'AccountID',
+] as const;
+
+function isNotAuthorizedPayload(value: unknown): boolean {
+  if (value == null) return false;
+  if (typeof value === 'string') {
+    const lower = value.toLowerCase();
+    return (
+      lower.includes('notauthorizedexception') ||
+      lower.includes('not authorized')
+    );
+  }
+  if (typeof value !== 'object') return false;
+  const o = value as Record<string, unknown>;
+  if (o.__type === 'NotAuthorizedException' || o.name === 'NotAuthorizedException') {
+    return true;
+  }
+  if (o.message != null) return isNotAuthorizedPayload(o.message);
+  return false;
+}
+
+/** Cognito often returns HTTP 400 + NotAuthorizedException when tokens are cleared or invalid. */
+export function isApiAuthSessionError(
+  status?: number,
+  error?: unknown
+): boolean {
+  if (status === 401) return true;
+  if (status === 400 && isNotAuthorizedPayload(error)) return true;
+  return isNotAuthorizedPayload(error);
+}
+
+export async function clearStoredAuthTokens(): Promise<void> {
+  await Promise.all(AUTH_TOKEN_KEYS.map((key) => AsyncStorage.removeItem(key)));
+}
+
 export const updateAuthTokensFromHeaders = async (
   headers: AxiosResponseHeaders | RawAxiosResponseHeaders | undefined,
 ) => {

@@ -51,6 +51,7 @@ import {
   filterBlockchainWalletsForDisplayedList,
   loadStoredMagicEmbeddedWalletMode,
 } from '@/constants/platformSignInOptions';
+import { isApiAuthSessionError } from '@/utils/authUtils';
 
 export default function AccountScreen() {
   const { t } = useTranslation();
@@ -74,13 +75,33 @@ export default function AccountScreen() {
   const [userID, setUserID] = useState('');
   const request = kycRequest();
   const { performOfferingCheck } = useOfferingCheck();
+  const loadRequestIdRef = React.useRef(0);
+  const isLoggingOutRef = React.useRef(false);
 
   const loadData = useCallback(async () => {
+    const requestId = ++loadRequestIdRef.current;
+
     try {
+      const idToken = await AsyncStorage.getItem('IDToken');
+      const refreshToken = await AsyncStorage.getItem('RefreshToken');
+      if (!idToken || !refreshToken || isLoggingOutRef.current) return;
+
       await performOfferingCheck();
+      if (requestId !== loadRequestIdRef.current || isLoggingOutRef.current) {
+        return;
+      }
+
       await refreshPlatformValidateConfigFromRemote();
+      if (requestId !== loadRequestIdRef.current || isLoggingOutRef.current) {
+        return;
+      }
+
       const mode = await loadStoredMagicEmbeddedWalletMode();
       const data = await userAccount.getUser();
+      if (requestId !== loadRequestIdRef.current || isLoggingOutRef.current) {
+        return;
+      }
+
       if (data.success && data.data) {
         if (JSON.stringify(data.data.data.activeAccount) !== '{}') {
           const displayedWallets = filterBlockchainWalletsForDisplayedList(
@@ -113,22 +134,25 @@ export default function AccountScreen() {
           }));
           setAccounts(mappedAccounts);
         }
-      } else {
-        console.log('Failed to fetch account details:', data.error);
-        if (data.status === 401) {
+      } else if (isApiAuthSessionError(data.status, data.error)) {
+        if (!isLoggingOutRef.current) {
           showAlert(t('profile.sessionExpired'), t('profile.loginAgain'));
           router.replace('/auth/login');
-        } else {
-          showAlert(t('common.error'), t('common.errorMessage'));
         }
+      } else {
+        console.log('Failed to fetch account details:', data.error);
+        showAlert(t('common.error'), t('common.errorMessage'));
       }
     } catch (error) {
-      console.error('Error loading user data:', error);
+      if (!isLoggingOutRef.current) {
+        console.error('Error loading user data:', error);
+      }
     }
   }, [performOfferingCheck, showAlert, t, userAccount]);
 
   useFocusEffect(
     useCallback(() => {
+      isLoggingOutRef.current = false;
       void loadData();
     }, [loadData])
   );
@@ -202,7 +226,9 @@ export default function AccountScreen() {
   };
 
   const handleLogout = async () => {
-    await signOut(); // or the correct logout method you have
+    isLoggingOutRef.current = true;
+    loadRequestIdRef.current += 1;
+    await signOut();
     router.replace('/auth/login');
   };
 

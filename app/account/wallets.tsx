@@ -17,8 +17,8 @@ import {
   Image,
   Platform,
   TextInput,
-  KeyboardAvoidingView,
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   ArrowLeft,
@@ -1621,11 +1621,24 @@ export default function WalletsScreen() {
         onRequestClose={closeMagicLinkModal}
       >
         <View style={styles.modalOverlay}>
-          <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            style={{ flex: 1, justifyContent: 'flex-end' }}
+          <KeyboardAwareScrollView
+            style={{ flex: 1 }}
+            contentContainerStyle={{ flexGrow: 1, justifyContent: 'flex-end' }}
+            enableOnAndroid
+            enableAutomaticScroll
+            keyboardShouldPersistTaps="handled"
+            extraScrollHeight={Platform.OS === 'ios' ? 40 : 100}
+            keyboardOpeningTime={0}
           >
-            <View style={styles.modalContent}>
+            <View
+              style={[
+                styles.modalContent,
+                {
+                  maxHeight: '92%',
+                  paddingBottom: Math.max(insets.bottom, Spacing.xl) + Spacing.lg,
+                },
+              ]}
+            >
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>
                   {t('transfer.embeddedWallet')}
@@ -1711,6 +1724,7 @@ export default function WalletsScreen() {
                     placeholderTextColor={colors.text.placeholder}
                     keyboardType="number-pad"
                     editable={!magicConnecting && !magicSendingCode}
+                    autoFocus
                     style={{
                       borderWidth: 1,
                       borderColor: colors.border.primary,
@@ -1752,7 +1766,7 @@ export default function WalletsScreen() {
                 )}
               </TouchableOpacity>
             </View>
-          </KeyboardAvoidingView>
+          </KeyboardAwareScrollView>
         </View>
       </Modal>
     </View>

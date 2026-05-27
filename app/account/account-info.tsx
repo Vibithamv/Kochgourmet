@@ -19,6 +19,29 @@ import { AccountInfoShimmer } from '@/components/Shimmer';
 import { useGlobalAlert } from '@/contexts/AlertContext';
 import { userManagement } from '@/hooks/userManagement';
 
+function formatAccountAddress(addr: unknown): string {
+  if (!addr || typeof addr !== 'object') return '';
+  const a = addr as Record<string, string | null | undefined>;
+  return [a.street, a.city, a.state, a.postalCode, a.country]
+    .filter((part) => typeof part === 'string' && part.trim().length > 0)
+    .join(', ');
+}
+
+function formatAccountDateOfBirth(activeAccount: {
+  account_type?: string;
+  individual?: { dateOfBirth?: string | null };
+  company?: { dateOfBirth?: string | null };
+}): string {
+  const raw =
+    activeAccount.account_type === 'INDIVIDUAL'
+      ? activeAccount.individual?.dateOfBirth
+      : activeAccount.company?.dateOfBirth;
+  if (typeof raw !== 'string' || !raw.trim()) return '';
+  const [year, month, day] = raw.split('-');
+  if (!year || !month || !day) return '';
+  return `${day}-${month}-${year}`;
+}
+
 export default function AccountInfoScreen() {
   const { t } = useTranslation();
   const { user } = useAuth();
@@ -58,20 +81,11 @@ export default function AccountInfoScreen() {
         if (data.success && data.data) {
           setLoading(false)
           if (JSON.stringify(data.data.data.activeAccount) !== '{}') {
-            setFullName(data.data.data.activeAccount.name)
-            setAddress(data.data.data.activeAccount.address.city + ' ' + data.data.data.activeAccount.address.country + ' ' +
-              data.data.data.activeAccount.address.postalCode + ' ' + data.data.data.activeAccount.address.state + ' ' +
-              data.data.data.activeAccount.address.street
-            )
-            setKycStatus(data.data.data.activeAccount.kyc_status)
-            if (data.data.data.activeAccount.account_type === 'INDIVIDUAL') {
-              const [year, month, day] = data.data.data.activeAccount.individual.dateOfBirth.split("-");
-              setDOB(`${day}-${month}-${year}`);
-            }
-            else {
-              const [year, month, day] = data.data.data.activeAccount.company.dateOfBirth.split("-");
-              setDOB(`${day}-${month}-${year}`);
-            }
+            const activeAccount = data.data.data.activeAccount;
+            setFullName(activeAccount.name ?? '');
+            setAddress(formatAccountAddress(activeAccount.address));
+            setKycStatus(activeAccount.kyc_status);
+            setDOB(formatAccountDateOfBirth(activeAccount));
           }
 
         }
@@ -187,24 +201,28 @@ export default function AccountInfoScreen() {
             onChangeText={(text) => setAccountInfo(prev => ({ ...prev, companyName: text }))}
           /> */}
 
-          <AccountInfoField
-            editMode={editMode}
-            colors={colors}
-            icon={MapPin}
-            label={t('account.addressLabel')}
-            value={address}
-            onChangeText={(text) => setAccountInfo(prev => ({ ...prev, address: text }))}
-            multiline={true}
-          />
+          {address.trim().length > 0 ? (
+            <AccountInfoField
+              editMode={editMode}
+              colors={colors}
+              icon={MapPin}
+              label={t('account.addressLabel')}
+              value={address}
+              onChangeText={(text) => setAccountInfo(prev => ({ ...prev, address: text }))}
+              multiline={true}
+            />
+          ) : null}
 
-          <AccountInfoField
-            editMode={editMode}
-            colors={colors}
-            icon={Calendar}
-            label={t('account.dobLabel')}
-            value={dob}
-            editable={false}
-          />
+          {dob.trim().length > 0 ? (
+            <AccountInfoField
+              editMode={editMode}
+              colors={colors}
+              icon={Calendar}
+              label={t('account.dobLabel')}
+              value={dob}
+              editable={false}
+            />
+          ) : null}
         </View>
 
         {/* Professional Information */}

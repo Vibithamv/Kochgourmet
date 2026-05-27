@@ -22,6 +22,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import {
   getColors,
+  getShadows,
   Typography,
   Shadows,
 } from '@/constants/theme';
@@ -138,6 +139,9 @@ export default function InvestmentScreen() {
   const { showAlert } = useGlobalAlert();
   const [totalAmount, setTotalAmount] = useState(1);
   const colors = getColors(theme);
+  const shadows = getShadows(theme);
+  const isDark = theme === 'dark' || theme === 'darkGreen';
+  const primaryBtnTextColor = isDark ? '#0D1117' : '#FFFFFF';
   const offering = offeringDetails();
   const { performOfferingCheck } = useOfferingCheck();
   let projectData: ExtendedProject;
@@ -485,11 +489,15 @@ export default function InvestmentScreen() {
     if (currentStep === 1) {
       return (
         <TouchableOpacity
-          style={[styles.nextButton, { backgroundColor: colors.primary }]}
+          style={[
+            styles.nextButton,
+            { backgroundColor: colors.primary },
+            shadows.button,
+          ]}
           onPress={handleNextStep}
         >
           <Text
-            style={[styles.nextButtonText, { color: colors.text.inverse }]}
+            style={[styles.nextButtonText, { color: primaryBtnTextColor }]}
           >
             {hasSignableDocs ? t('investment.signDocument') : paymentConfirmCtaLabel}
           </Text>
@@ -501,7 +509,12 @@ export default function InvestmentScreen() {
         <TouchableOpacity
           style={[
             styles.finalizeButton,
-            { backgroundColor: confirmSubscription ? colors.primary : colors.border.primary },
+            {
+              backgroundColor: confirmSubscription
+                ? colors.primary
+                : colors.interactive.disabled,
+            },
+            confirmSubscription ? shadows.button : null,
           ]}
           onPress={handleInvestment}
           disabled={!confirmSubscription}
@@ -510,7 +523,9 @@ export default function InvestmentScreen() {
             style={[
               styles.finalizeButtonText,
               {
-                color: confirmSubscription ? colors.text.inverse : colors.text.tertiary,
+                color: confirmSubscription
+                  ? primaryBtnTextColor
+                  : colors.text.tertiary,
               },
             ]}
           >
@@ -762,10 +777,11 @@ export default function InvestmentScreen() {
         style={[
           styles.nextButton,
           {
-            backgroundColor: isSigned ? colors.primary : colors.border.primary,
+            backgroundColor: isSigned ? colors.primary : colors.interactive.disabled,
             marginBottom: 10,
             marginHorizontal: 20,
           },
+          isSigned ? shadows.button : null,
         ]}
         disabled={!isSigned}
         onPress={() => {
@@ -776,7 +792,14 @@ export default function InvestmentScreen() {
           setIsSigned(false); // Reset for next document
         }}
       >
-        <Text style={[styles.nextButtonText, { color: isSigned ? colors.text.inverse : colors.text.tertiary }]}>
+        <Text
+          style={[
+            styles.nextButtonText,
+            {
+              color: isSigned ? primaryBtnTextColor : colors.text.tertiary,
+            },
+          ]}
+        >
           {`(${urlArrayIndex + 1}/${signingUrl.length}) ${
             isSigned ? t('projectDetail.next') : 'Processing.....'
           }`}
@@ -797,7 +820,13 @@ export default function InvestmentScreen() {
       );
 
     return (
-    <ScrollView style={styles.stepContent} showsVerticalScrollIndicator={false}>
+    <ScrollView
+      style={styles.stepContent}
+      contentContainerStyle={{
+        paddingBottom: Math.max(insets.bottom, 20) + 24,
+      }}
+      showsVerticalScrollIndicator={false}
+    >
       <View style={[styles.summarySection, { backgroundColor: colors.background.primary, borderColor: colors.border.primary }]}>
         <Text style={[styles.summaryTitle, { color: colors.text.primary }]}>
           {project?.offeringType === OFFERING_ACCESS_TRADITIONAL
@@ -1027,7 +1056,9 @@ export default function InvestmentScreen() {
             { borderColor: colors.primary },
             confirmSubscription && { backgroundColor: colors.primary }
           ]}>
-            {confirmSubscription && <Check size={14} color={colors.text.inverse} />}
+            {confirmSubscription && (
+              <Check size={14} color={primaryBtnTextColor} />
+            )}
           </View>
           <Text style={[styles.confirmationText, { color: colors.text.primary }]}>
             {confirmSubscriptionText}
@@ -1565,27 +1596,29 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
   },
   nextButton: {
+    width: '100%',
     borderRadius: 12,
-    padding: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
     alignItems: 'center',
-    ...Shadows.button,
+    justifyContent: 'center',
   },
   nextButtonText: {
     fontSize: 16,
     fontFamily: Typography.fontFamily.semiBold,
   },
   finalizeButton: {
-    flexDirection: 'row',
+    width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 12,
-    padding: 16,
-    ...Shadows.button,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
   },
   finalizeButtonText: {
     fontSize: 16,
     fontFamily: Typography.fontFamily.semiBold,
-    marginLeft: 8,
+    textAlign: 'center',
   },
   dropdown: {
     borderWidth: 1,

@@ -244,6 +244,7 @@ export default function TransferScreen() {
   }, [embeddedReauthVisible, isEmbeddedSigner, loadSessionEmailForEmbedded]);
 
   useEffect(() => {
+    console.log('txResult', publicAddress);
     if (txResult) {
       showAlert(t('common.success'), t('transfer.transferSuccess'));
     }

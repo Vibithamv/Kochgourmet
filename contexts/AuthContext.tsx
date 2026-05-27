@@ -3,7 +3,7 @@ import type { User } from '../types';
 import NetworkService from '@/services/NetworkService';
 import { API_HEADER_CONFIG } from '@/config/apiHeaderConfig';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { updateAuthTokensFromResponse } from '@/utils/authUtils';
+import { clearStoredAuthTokens, updateAuthTokensFromResponse } from '@/utils/authUtils';
 import { unregisterPushTokenOnSignOut } from '@/utils/unregisterPushTokenOnSignOut';
 
 interface AuthContextType {
@@ -149,10 +149,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const signOut = useCallback(async () => {
     try {
       await unregisterPushTokenOnSignOut();
-      await AsyncStorage.removeItem("AccessToken");
-      await AsyncStorage.removeItem("RefreshToken");
-      await AsyncStorage.removeItem("IDToken");
-      await AsyncStorage.removeItem("AccountID");
+      await clearStoredAuthTokens();
       setUser(null);
     } catch (err) {
       console.error("Logout failed", err);
