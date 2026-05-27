@@ -124,6 +124,19 @@
       "passwordTooShort": "Password must be at least 6 characters",
       "loginFailed": "Login Failed",
       "registrationFailed": "Registration Failed"
+    },
+    "embeddedWalletGate": {
+      "tagline": "Secure embedded wallet for your investments",
+      "title": "Create your embedded wallet",
+      "subtitle": "An embedded wallet is required to use this platform. We will send a one-time code to your account email.",
+      "cta": "Continue with email",
+      "sendCode": "Send verification code",
+      "sendingCode": "Sending code…",
+      "codeLabel": "Verification code",
+      "codePlaceholder": "Enter 6-digit code",
+      "verify": "Verify and create wallet",
+      "verifying": "Verifying…",
+      "missingEmail": "No email on your account. Contact support or update your profile."
     }
   },
   "dashboard": {
@@ -385,6 +398,21 @@
     "magicLinkVerifyConnect": "Verify and connect",
     "magicLinkCodeSent": "Check your email for the verification code.",
     "magicLinkFillBoth": "Enter your email and the code from your email.",
+    "magicLinkEmailRequired": "Enter your email address.",
+    "magicLinkCodeRequired": "Enter the verification code from your email.",
+    "magicInvalidOtp": "Invalid verification code. Please try again.",
+    "magicNotConfigured": "Embedded wallet is not available for this platform.",
+    "embeddedWalletCreateSubtitle": "We will email you a one-time code to create your embedded wallet.",
+    "magicSendOtpTimeout": "Sending the code took too long. Check your connection and try again.",
+    "magicVerifyOtpTimeout": "Verification timed out. Please try again.",
+    "magicRelayerNotReady": "Wallet service is still starting. Wait a moment and try again.",
+    "magicDeviceVerification": "Check your email to approve this device, then tap Send code again.",
+    "magicLoginThrottled": "Too many attempts. Please wait a few minutes and try again.",
+    "magicOtpExpired": "This code has expired. Send a new code and try again.",
+    "magicOtpNotStarted": "Tap Send code first, then enter the verification code.",
+    "embeddedWalletNoAccountEmail": "No email on your account. Add an email to your profile first.",
+    "embeddedWalletNotAvailable": "Embedded wallet is not available for this platform.",
+    "magicOtpCanceledRetry": "Send a new code and try again.",
     "walletConnect": "WalletConnect",
     "fireblocks": "Fireblocks",
     "myWallets": "My Wallets",
@@ -416,7 +444,15 @@
     "tokenTransferredSuccessfully": "Token transferred successfully",
     "transactionFailed": "Transaction failed. Please try again.",
     "transferFailed": "Transfer failed. Please try again.",
-    "details": "details"
+    "details": "details",
+    "magicTransferCancelled": "Transfer was cancelled.",
+    "magicSendTimedOut": "Sending the transaction timed out. Try again.",
+    "magicReceiptTimedOut": "The network did not confirm your transaction in time. Check your wallet history.",
+    "magicSendNetworkError": "Network error while sending. Check your connection and try again.",
+    "embeddedReauthForTransferSubtitle": "Sign in with your account email to authorize this transfer.",
+    "embeddedReauthSessionMismatchSubtitle": "Sign in with the email linked to this embedded wallet to continue.",
+    "embeddedReauthSignInAndSend": "Verify and send transfer",
+    "missingTransferFromWallet": "Could not determine which wallet to send from. Go back and try again."
   },
   "investment": {
     "investmentAmount": "Investment Amount",

@@ -26,6 +26,7 @@ import {
   type PlatformSignInOptions,
 } from '@/constants/platformSignInOptions';
 import { persistPlatformKeyProviderFromValidateResponse } from '@/constants/platformKeyProvider';
+import { persistPlatformMagicFromValidateResponse } from '@/constants/platformSignInOptions';
 import { platformValidation } from '@/hooks/platformValidation';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
@@ -188,6 +189,7 @@ export default function LoginScreen() {
         if (result.success && result.data) {
           await persistPlatformSignInOptionsFromValidateResponse(result.data);
           await persistPlatformKeyProviderFromValidateResponse(result.data);
+          await persistPlatformMagicFromValidateResponse(result.data);
           const opts = result.data.data?.data?.sign_in_options;
           applySignInOptions(opts);
           return;

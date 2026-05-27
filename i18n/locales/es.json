@@ -124,6 +124,19 @@
       "passwordTooShort": "La contraseña debe tener al menos 6 caracteres",
       "loginFailed": "Error de inicio de sesión",
       "registrationFailed": "Error de registro"
+    },
+    "embeddedWalletGate": {
+      "tagline": "Billetera integrada segura para sus inversiones",
+      "title": "Cree su billetera integrada",
+      "subtitle": "Se requiere una billetera integrada para usar esta plataforma. Enviaremos un código de un solo uso a su correo.",
+      "cta": "Continuar con correo",
+      "sendCode": "Enviar código de verificación",
+      "sendingCode": "Enviando código…",
+      "codeLabel": "Código de verificación",
+      "codePlaceholder": "Ingrese el código de 6 dígitos",
+      "verify": "Verificar y crear billetera",
+      "verifying": "Verificando…",
+      "missingEmail": "No hay correo en su cuenta. Contacte soporte o actualice su perfil."
     }
   },
   "dashboard": {
@@ -355,6 +368,21 @@
     "magicLinkVerifyConnect": "Verificar y conectar",
     "magicLinkCodeSent": "Revisa tu correo para el código de verificación.",
     "magicLinkFillBoth": "Introduce tu correo y el código que recibiste.",
+    "magicLinkEmailRequired": "Introduce tu dirección de correo.",
+    "magicLinkCodeRequired": "Introduce el código de verificación de tu correo.",
+    "magicInvalidOtp": "Código de verificación no válido. Inténtalo de nuevo.",
+    "magicNotConfigured": "La billetera integrada no está disponible para esta plataforma.",
+    "embeddedWalletCreateSubtitle": "Te enviaremos un código de un solo uso por correo para crear tu billetera integrada.",
+    "magicSendOtpTimeout": "Enviar el código tardó demasiado. Comprueba la conexión e inténtalo de nuevo.",
+    "magicVerifyOtpTimeout": "La verificación tardó demasiado. Inténtalo de nuevo.",
+    "magicRelayerNotReady": "El servicio de billetera aún se está iniciando. Espera un momento e inténtalo de nuevo.",
+    "magicDeviceVerification": "Revisa tu correo para aprobar este dispositivo y pulsa Enviar código de nuevo.",
+    "magicLoginThrottled": "Demasiados intentos. Espera unos minutos e inténtalo de nuevo.",
+    "magicOtpExpired": "Este código ha caducado. Envía uno nuevo e inténtalo de nuevo.",
+    "magicOtpNotStarted": "Pulsa primero Enviar código y luego introduce el código de verificación.",
+    "embeddedWalletNoAccountEmail": "No hay correo en tu cuenta. Añade un correo en tu perfil primero.",
+    "embeddedWalletNotAvailable": "La billetera integrada no está disponible para esta plataforma.",
+    "magicOtpCanceledRetry": "Envía un código nuevo e inténtalo de nuevo.",
     "walletConnect": "WalletConnect",
     "fireblocks": "Fireblocks",
     "myWallets": "Mis Billeteras",
@@ -386,7 +414,15 @@
     "tokenTransferredSuccessfully": "Token transferido exitosamente",
     "transactionFailed": "La transacción falló. Por favor, inténtelo de nuevo.",
     "transferFailed": "La transferencia falló. Por favor, inténtelo de nuevo.",
-    "details": "detalles"
+    "details": "detalles",
+    "magicTransferCancelled": "La transferencia fue cancelada.",
+    "magicSendTimedOut": "El envío de la transacción expiró. Inténtelo de nuevo.",
+    "magicReceiptTimedOut": "La red no confirmó la transacción a tiempo. Revise el historial de su billetera.",
+    "magicSendNetworkError": "Error de red al enviar. Compruebe su conexión e inténtelo de nuevo.",
+    "embeddedReauthForTransferSubtitle": "Inicie sesión con el correo de su cuenta para autorizar esta transferencia.",
+    "embeddedReauthSessionMismatchSubtitle": "Inicie sesión con el correo vinculado a esta billetera integrada.",
+    "embeddedReauthSignInAndSend": "Verificar y enviar transferencia",
+    "missingTransferFromWallet": "No se pudo determinar la billetera de origen. Vuelva atrás e inténtelo de nuevo."
   },
   "profile": {
     "currentPassword": "Contraseña actual",

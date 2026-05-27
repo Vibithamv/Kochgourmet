@@ -74,14 +74,14 @@ export default function PlatformErrorScreen() {
                     </TouchableOpacity>
 
                     {/* Footer */}
-                    <View style={styles.footer}>
+                    {/* <View style={styles.footer}>
                         <Text style={[styles.footerText, { color: colors.text.secondary }]}>
                             Powered by{" "}
                         </Text>
                         <Text style={[styles.brandText, { color: colors.primary }]}>
                             SimplyTokenized
                         </Text>
-                    </View>
+                    </View> */}
                 </View>
             </ScrollView>
         </LinearGradient>

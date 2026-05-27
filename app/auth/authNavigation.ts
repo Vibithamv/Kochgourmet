@@ -1,11 +1,48 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import { loadIsPlatformKycMandatory } from '@/constants/platformKeyProvider';
+import {
+  isMagicEmbeddedWalletAutomaticMode,
+  loadStoredMagicEmbeddedWalletMode,
+  loadStoredMagicLinkPublicKey,
+} from '@/constants/platformSignInOptions';
+import { hasMagicLinkWalletInResponse } from '@/utils/hasActiveEmbeddedWallet';
 
 export type LoginSuccessPayload = {
-  activeAccount: { kyc_status: string; id: string };
-  user: { first_name: string; last_name: string; id: string };
+  activeAccount: {
+    kyc_status: string;
+    id: string;
+    name?: string;
+    blockchainWallets?: Array<{
+      blockchain_provider?: string | null;
+      status?: string | null;
+    }>;
+  };
+  user: {
+    first_name: string;
+    last_name: string;
+    id: string;
+    email?: string;
+  };
 };
+
+type NavigateAfterLoginOptions = {
+  /** Skip automatic embedded-wallet gate (used when leaving the gate screen). */
+  skipEmbeddedGate?: boolean;
+};
+
+export async function shouldRequireEmbeddedWalletGate(
+  data: LoginSuccessPayload
+): Promise<boolean> {
+  const [mode, publicKey] = await Promise.all([
+    loadStoredMagicEmbeddedWalletMode(),
+    loadStoredMagicLinkPublicKey(),
+  ]);
+  if (!isMagicEmbeddedWalletAutomaticMode(mode) || !publicKey) {
+    return false;
+  }
+  return !hasMagicLinkWalletInResponse(data);
+}
 
 export async function navigateTabsOrWhitelist(
   checkVisibilityStatus: () => Promise<boolean | undefined>,
@@ -30,10 +67,16 @@ export async function navigateTabsOrWhitelist(
 export async function navigateAfterLoginSuccess(
   data: LoginSuccessPayload,
   checkVisibilityStatus: () => Promise<boolean | undefined>,
-  checkStatus: () => Promise<string | undefined>
+  checkStatus: () => Promise<string | undefined>,
+  options: NavigateAfterLoginOptions = {}
 ): Promise<void> {
   if (JSON.stringify(data.activeAccount) !== '{}') {
-    await AsyncStorage.setItem('AccountID', data.activeAccount.id)
+    await AsyncStorage.setItem('AccountID', data.activeAccount.id);
+  }
+
+  if (!options.skipEmbeddedGate && (await shouldRequireEmbeddedWalletGate(data))) {
+    router.replace('/auth/embeddedWalletRequired');
+    return;
   }
 
   const kycMandatory = await loadIsPlatformKycMandatory();

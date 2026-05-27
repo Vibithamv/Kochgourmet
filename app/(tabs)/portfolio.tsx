@@ -80,6 +80,10 @@ import {
   useShimmerAnim,
 } from '@/components/Shimmer';
 import AsseteraLogo from '@/components/AsseteraLogo';
+import {
+  filterBlockchainWalletsForDisplayedList,
+  loadStoredMagicEmbeddedWalletMode,
+} from '@/constants/platformSignInOptions';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -95,7 +99,7 @@ const EVM_EXTERNAL_WALLET_PROVIDERS = new Set([
   'fireblocks',
 ]);
 
-const EMBEDDED_WALLET_PROVIDERS = new Set(['thirdweb']);
+const EMBEDDED_WALLET_PROVIDERS = new Set(['thirdweb', 'magic_link']);
 
 function receiveModalAddressForWalletTab(
   walletId: string,
@@ -355,10 +359,15 @@ const PortfolioScreen = React.memo(() => {
   };
 
   const getUser = async () => {
+    const mode = await loadStoredMagicEmbeddedWalletMode();
     user.getUser().then((data) => {
       if (data.success && data.data) {
-        const activeWallets = data.data.data.activeAccount.blockchainWallets.filter(
-          (wallet: any) => wallet.status === 'ACTIVE'
+        const filteredWallets = filterBlockchainWalletsForDisplayedList(
+          data.data.data.activeAccount.blockchainWallets ?? [],
+          mode
+        );
+        const activeWallets = filteredWallets.filter(
+          (wallet: { status?: string }) => wallet.status === 'ACTIVE'
         );
         const metawallets = activeWallets
           .filter((wallet: any) =>
@@ -1216,27 +1225,32 @@ const PortfolioScreen = React.memo(() => {
                 borderColor: colors.border.primary,
               },
             ]}
-            onPress={() =>
+            onPress={() => {
+              const fromAddress = investment.walletAddress ?? '';
+              const isEmbeddedTransfer = embeddedWallets.some(
+                (w) => w.address.toLowerCase() === fromAddress.toLowerCase()
+              );
               router.push({
                 pathname: '/portfolio/transfer',
                 params: {
-                  transferFromAddress: investment.walletAddress,
+                  transferFromAddress: fromAddress,
                   publicAddress: investment.publicAddress,
                   tokenBalance: (
                     Number(investment.tokenBalance) /
                     10 ** Number(investment.decimal)
                   ).toFixed(2),
                   symbol: investment.symbol,
+                  transferSigner: isEmbeddedTransfer ? 'embedded' : 'metamask',
                 },
-              })
-            }
+              });
+            }}
           >
             <Send size={16} color={colors.primary} />
           </TouchableOpacity>
         </View>
       </TouchableOpacity>
     ),
-    [formatCurrency, colors, theme]
+    [formatCurrency, colors, theme, embeddedWallets]
   );
 
   const getTransactionRowVisuals = (type: Transaction['type']) => {
@@ -1368,31 +1382,25 @@ const PortfolioScreen = React.memo(() => {
     image: WalletImageKey; // <-- important!
   };
 
-  const walletOptions: WalletOption[] = [
-    // {
-    //   id: 'concordium',
-    //   name: 'Concordium',
-    //   address: '0x742d35Cc6641C8532936f1234567890abcdef123',
-    //   image: 'concordium',
-    // },
-    {
-      id: 'metamask',
-      name: t('transfer.metaMask'),
-      address: '0x8ba1f109551bD432803012345678901234567890',
-      image: 'metamask',
-    },
-    // {
-    //   id: 'embedded',
-    //   name: t('transfer.embeddedWallet'),
-    //   address: '',
-    //   image: 'embedded',
-    // },
-    // {
-    //   id: 'walletconnect',
-    //   name: 'WalletConnect',
-    //   address: '0x1a2b3c4d5e6f7890abcdef1234567890abcdef12',
-    // },
-  ];
+  const walletOptions: WalletOption[] = React.useMemo(() => {
+    const base: WalletOption[] = [
+      {
+        id: 'metamask',
+        name: t('transfer.metaMask'),
+        address: '0x8ba1f109551bD432803012345678901234567890',
+        image: 'metamask',
+      },
+    ];
+    if (embeddedWallets.length > 0) {
+      base.push({
+        id: 'embedded',
+        name: t('transfer.embeddedWallet'),
+        address: '',
+        image: 'embedded',
+      });
+    }
+    return base;
+  }, [embeddedWallets.length, t]);
 
   type WalletImageKey = 'metamask' | 'concordium' | 'embedded';
 

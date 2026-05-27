@@ -124,6 +124,19 @@
       "passwordTooShort": "Passwort muss mindestens 6 Zeichen lang sein",
       "loginFailed": "Anmeldung fehlgeschlagen",
       "registrationFailed": "Registrierung fehlgeschlagen"
+    },
+    "embeddedWalletGate": {
+      "tagline": "Sichere eingebettete Wallet für Ihre Investments",
+      "title": "Embedded Wallet erstellen",
+      "subtitle": "Für diese Plattform ist eine eingebettete Wallet erforderlich. Wir senden einen Einmalcode an Ihre Konto-E-Mail.",
+      "cta": "Mit E-Mail fortfahren",
+      "sendCode": "Bestätigungscode senden",
+      "sendingCode": "Code wird gesendet…",
+      "codeLabel": "Bestätigungscode",
+      "codePlaceholder": "6-stelligen Code eingeben",
+      "verify": "Verifizieren und Wallet erstellen",
+      "verifying": "Wird verifiziert…",
+      "missingEmail": "Keine E-Mail im Konto. Support kontaktieren oder Profil aktualisieren."
     }
   },
   "dashboard": {
@@ -385,6 +398,21 @@
     "magicLinkVerifyConnect": "Bestätigen und verbinden",
     "magicLinkCodeSent": "Prüfen Sie Ihre E-Mail auf den Bestätigungscode.",
     "magicLinkFillBoth": "Bitte E-Mail und Code aus der E-Mail eingeben.",
+    "magicLinkEmailRequired": "Bitte geben Sie Ihre E-Mail-Adresse ein.",
+    "magicLinkCodeRequired": "Bitte geben Sie den Bestätigungscode aus der E-Mail ein.",
+    "magicInvalidOtp": "Ungültiger Bestätigungscode. Bitte erneut versuchen.",
+    "magicNotConfigured": "Embedded Wallet ist für diese Plattform nicht verfügbar.",
+    "embeddedWalletCreateSubtitle": "Wir senden Ihnen einen Einmalcode per E-Mail, um Ihr Embedded Wallet zu erstellen.",
+    "magicSendOtpTimeout": "Das Senden des Codes hat zu lange gedauert. Verbindung prüfen und erneut versuchen.",
+    "magicVerifyOtpTimeout": "Die Bestätigung hat zu lange gedauert. Bitte erneut versuchen.",
+    "magicRelayerNotReady": "Der Wallet-Dienst startet noch. Kurz warten und erneut versuchen.",
+    "magicDeviceVerification": "Prüfen Sie Ihre E-Mail, um dieses Gerät freizugeben, und tippen Sie erneut auf Code senden.",
+    "magicLoginThrottled": "Zu viele Versuche. Bitte einige Minuten warten und erneut versuchen.",
+    "magicOtpExpired": "Dieser Code ist abgelaufen. Neuen Code senden und erneut versuchen.",
+    "magicOtpNotStarted": "Zuerst Code senden tippen, dann den Bestätigungscode eingeben.",
+    "embeddedWalletNoAccountEmail": "Keine E-Mail im Konto. Bitte zuerst eine E-Mail im Profil hinterlegen.",
+    "embeddedWalletNotAvailable": "Embedded Wallet ist für diese Plattform nicht verfügbar.",
+    "magicOtpCanceledRetry": "Neuen Code senden und erneut versuchen.",
     "walletConnect": "WalletConnect",
     "fireblocks": "Fireblocks",
     "myWallets": "Meine Wallets",
@@ -416,7 +444,15 @@
     "tokenTransferredSuccessfully": "Token erfolgreich übertragen",
     "transactionFailed": "Transaktion fehlgeschlagen. Bitte versuchen Sie es erneut.",
     "transferFailed": "Übertragung fehlgeschlagen. Bitte versuchen Sie es erneut.",
-    "details": "Details"
+    "details": "Details",
+    "magicTransferCancelled": "Übertragung wurde abgebrochen.",
+    "magicSendTimedOut": "Das Senden der Transaktion hat zu lange gedauert. Bitte erneut versuchen.",
+    "magicReceiptTimedOut": "Das Netzwerk hat die Transaktion nicht rechtzeitig bestätigt. Prüfen Sie den Wallet-Verlauf.",
+    "magicSendNetworkError": "Netzwerkfehler beim Senden. Verbindung prüfen und erneut versuchen.",
+    "embeddedReauthForTransferSubtitle": "Melden Sie sich mit Ihrer Konto-E-Mail an, um diese Übertragung zu autorisieren.",
+    "embeddedReauthSessionMismatchSubtitle": "Melden Sie sich mit der E-Mail an, die mit dieser Embedded Wallet verknüpft ist.",
+    "embeddedReauthSignInAndSend": "Verifizieren und senden",
+    "missingTransferFromWallet": "Absender-Wallet konnte nicht ermittelt werden. Gehen Sie zurück und versuchen Sie es erneut."
   },
   "investment": {
     "investmentAmount": "Investment-Betrag",

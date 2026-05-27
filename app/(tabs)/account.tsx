@@ -46,6 +46,11 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useGlobalAlert } from '@/contexts/AlertContext';
 import { kycRequest } from '@/hooks/kycRequest';
 import { useOfferingCheck } from '@/hooks/useOfferingCheck';
+import { refreshPlatformValidateConfigFromRemote } from '@/utils/refreshPlatformValidateConfig';
+import {
+  filterBlockchainWalletsForDisplayedList,
+  loadStoredMagicEmbeddedWalletMode,
+} from '@/constants/platformSignInOptions';
 
 export default function AccountScreen() {
   const { t } = useTranslation();
@@ -70,60 +75,63 @@ export default function AccountScreen() {
   const request = kycRequest();
   const { performOfferingCheck } = useOfferingCheck();
 
-  useFocusEffect(
-    useCallback(() => {
-      loadData();
-    }, [])
-  );
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       await performOfferingCheck();
-      userAccount.getUser().then((data) => {
-        if (data.success && data.data) {
-          if (JSON.stringify(data.data.data.activeAccount) !== '{}') {
-            setWalletCount(
-              data.data.data.activeAccount.blockchainWallets.filter(
-                (wallet: { status?: string }) => wallet.status === 'ACTIVE'
-              ).length
-            );
-            setCurrentAccount(data.data.data.activeAccount.id);
-            setKycStatus(data.data.data.activeAccount.kyc_status);
-          }
-
-          setUserName(
-            data.data.data.activeAccount.name
+      await refreshPlatformValidateConfigFromRemote();
+      const mode = await loadStoredMagicEmbeddedWalletMode();
+      const data = await userAccount.getUser();
+      if (data.success && data.data) {
+        if (JSON.stringify(data.data.data.activeAccount) !== '{}') {
+          const displayedWallets = filterBlockchainWalletsForDisplayedList(
+            data.data.data.activeAccount.blockchainWallets ?? [],
+            mode
           );
-          setEmail(data.data.data.user.email);
-          const picture = data.data.data.user.profile_picture;
-          setProfilePictureUrl(
-            typeof picture === 'string' && picture.trim() ? picture : null,
+          setWalletCount(
+            displayedWallets.filter(
+              (wallet: { status?: string }) => wallet.status === 'ACTIVE'
+            ).length
           );
-          setUserID(data.data.data.user.id);
-          if (data.data.data.accounts.length > 0) {
-            const jsonObject = data.data.data.accounts;
-            const mappedAccounts = jsonObject.map((accounts: any) => ({
-              id: accounts.id,
-              name: accounts.name,
-              email: accounts.email,
-              account_type: accounts.account_type,
-            }));
-            setAccounts(mappedAccounts);
-          }
-        } else {
-          console.log('Failed to fetch account details:', data.error);
-          if (data.status === 401) {
-            showAlert(t('profile.sessionExpired'), t('profile.loginAgain'));
-            router.replace("/auth/login");
-          } else {
-            showAlert(t('common.error'), t('common.errorMessage'));
-          }
+          setCurrentAccount(data.data.data.activeAccount.id);
+          setKycStatus(data.data.data.activeAccount.kyc_status);
         }
-      });
+
+        setUserName(data.data.data.activeAccount.name);
+        setEmail(data.data.data.user.email);
+        const picture = data.data.data.user.profile_picture;
+        setProfilePictureUrl(
+          typeof picture === 'string' && picture.trim() ? picture : null
+        );
+        setUserID(data.data.data.user.id);
+        if (data.data.data.accounts.length > 0) {
+          const jsonObject = data.data.data.accounts;
+          const mappedAccounts = jsonObject.map((accounts: Accounts) => ({
+            id: accounts.id,
+            name: accounts.name,
+            email: accounts.email,
+            account_type: accounts.account_type,
+          }));
+          setAccounts(mappedAccounts);
+        }
+      } else {
+        console.log('Failed to fetch account details:', data.error);
+        if (data.status === 401) {
+          showAlert(t('profile.sessionExpired'), t('profile.loginAgain'));
+          router.replace('/auth/login');
+        } else {
+          showAlert(t('common.error'), t('common.errorMessage'));
+        }
+      }
     } catch (error) {
       console.error('Error loading user data:', error);
     }
-  };
+  }, [performOfferingCheck, showAlert, t, userAccount]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void loadData();
+    }, [loadData])
+  );
 
   const colors = getColors(theme);
 
@@ -144,6 +152,7 @@ export default function AccountScreen() {
               `${t('account.nowUsing')} ${selectedAccount.name}`
             );
             await AsyncStorage.setItem('AccountID', accountId);
+            void loadData();
           }
         });
       }

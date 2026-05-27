@@ -39,11 +39,16 @@ import { userManagement } from '@/hooks/userManagement';
 import { whitelistManagement } from '@/hooks/whitelistManagement';
 import { FcmNotificationBridge } from '@/components/FcmNotificationBridge';
 import CustomSplash from '@/components/CustomSplash';
-import { persistPlatformSignInOptionsFromValidateResponse } from '@/constants/platformSignInOptions';
+import {
+  persistPlatformMagicFromValidateResponse,
+  persistPlatformSignInOptionsFromValidateResponse,
+} from '@/constants/platformSignInOptions';
 import {
   loadIsPlatformKycMandatory,
   persistPlatformKeyProviderFromValidateResponse,
 } from '@/constants/platformKeyProvider';
+import { shouldRequireEmbeddedWalletGate } from '@/app/auth/authNavigation';
+import type { LoginSuccessPayload } from '@/app/auth/authNavigation';
 
 void SplashScreen.preventAutoHideAsync();
 
@@ -136,23 +141,26 @@ async function navigateAfterConfirmedKycForSplash(
 async function navigateFromUserPayload(
   payload: {
     data: {
-      data: {
-        activeAccount: { kyc_status: string };
-        user: { first_name: string; last_name: string; id: string };
-      };
+      data: LoginSuccessPayload;
     };
   },
   visibilityStatus: string,
   router: Router,
   request: WhitelistRequestClient
 ) {
+  const userData = payload.data.data;
+  if (await shouldRequireEmbeddedWalletGate(userData)) {
+    router.replace('/auth/embeddedWalletRequired');
+    return;
+  }
+
   const kycMandatory = await loadIsPlatformKycMandatory();
   if (!kycMandatory) {
     await navigateAfterConfirmedKycForSplash(visibilityStatus, router, request);
     return;
   }
 
-  const kyc = payload.data.data.activeAccount.kyc_status;
+  const kyc = userData.activeAccount.kyc_status;
   if (kyc === 'CONFIRMED') {
     await navigateAfterConfirmedKycForSplash(visibilityStatus, router, request);
     return;
@@ -161,8 +169,8 @@ async function navigateFromUserPayload(
     router.replace({
       pathname: '/auth/kycRequest',
       params: {
-        name: `${payload.data.data.user.first_name || ''} ${payload.data.data.user.last_name || ''}`,
-        id: payload.data.data.user.id,
+        name: `${userData.user.first_name || ''} ${userData.user.last_name || ''}`,
+        id: userData.user.id,
       },
     });
     return;
@@ -207,14 +215,7 @@ async function runSplashAuthenticatedRouting(
     const data = await userAccount.getUser();
     if (data.success && data.data) {
       await navigateFromUserPayload(
-        data as {
-          data: {
-            data: {
-              activeAccount: { kyc_status: string };
-              user: { first_name: string; last_name: string; id: string };
-            };
-          };
-        },
+        data as { data: { data: LoginSuccessPayload } },
         visibilityStatus,
         router,
         request
@@ -256,6 +257,7 @@ async function runAuthRouting(
     await persistOfferingAndTenantFromPlatform(result.data);
     await persistPlatformSignInOptionsFromValidateResponse(result.data);
     await persistPlatformKeyProviderFromValidateResponse(result.data);
+    await persistPlatformMagicFromValidateResponse(result.data);
     const visibilityStatus = result.data.data.data.visibilityStatus;
     if (!(fontsLoaded || fontError)) return;
     try {

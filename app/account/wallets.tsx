@@ -1,6 +1,7 @@
 import React, {
   useState,
   useEffect,
+  useRef,
   type Dispatch,
   type SetStateAction,
 } from 'react';
@@ -26,9 +27,9 @@ import {
   Plus,
   X,
   Shield,
-  Mail,
 } from 'lucide-react-native';
 import { router } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import { WalletsShimmer } from '@/components/Shimmer';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -40,6 +41,22 @@ import {
 } from '@/constants/theme';
 import type { Wallet as WalletType } from '@/types';
 import Clipboard from '@react-native-clipboard/clipboard';
+import {
+  filterBlockchainWalletsForDisplayedList,
+  isMagicEmbeddedWalletAddEnabled,
+  loadStoredMagicEmbeddedWalletMode,
+  loadStoredMagicLinkPublicKey,
+  type MagicEmbeddedWalletMode,
+} from '@/constants/platformSignInOptions';
+import { refreshPlatformValidateConfigFromRemote } from '@/utils/refreshPlatformValidateConfig';
+import {
+  createMagicEmbeddedWallet,
+  getLoggedInMagicEmbeddedAccount,
+  getMagicEmbeddedAccount,
+  requestMagicEmailOtpCode,
+  verifyMagicEmailOtpLogin,
+  type MagicEmailOtpHandle,
+} from '@/utils/magicEmbeddedWallet';
 
 function extractApiErrorMessage(error: unknown): string {
   if (error && typeof error === 'object' && 'message' in error) {
@@ -54,6 +71,7 @@ function extractApiErrorMessage(error: unknown): string {
 const EMBEDDED_WALLET_PROVIDER = 'MAGIC_LINK';
 
 type WalletSigner = {
+  address: string;
   signMessage: (args: { message: string }) => Promise<string>;
 };
 
@@ -540,12 +558,7 @@ const createStyles = (colors: any) =>
 import 'react-native-get-random-values';
 import { createThirdwebClient } from 'thirdweb';
 import { polygon } from 'thirdweb/chains';
-import {
-  Account,
-  createWallet,
-  inAppWallet,
-  preAuthenticate,
-} from 'thirdweb/wallets';
+import { createWallet } from 'thirdweb/wallets';
 import * as Linking from 'expo-linking';
 import { walletManagement } from '@/hooks/walletManagement';
 import { userManagement } from '@/hooks/userManagement';
@@ -556,7 +569,8 @@ export default function WalletsScreen() {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
   const colors = getColors(theme);
-  const primaryBtnTextColor = colors.text.onPrimary;
+  const isDark = theme === 'dark' || theme === 'darkGreen';
+  const primaryBtnTextColor = isDark ? '#0D1117' : '#FFFFFF';
   const styles = React.useMemo(() => createStyles(colors), [colors]);
   const { showAlert } = useGlobalAlert();
   const [wallets, setWallets] = useState<WalletType[]>([
@@ -582,9 +596,9 @@ export default function WalletsScreen() {
   const [addWalletModalVisible, setAddWalletModalVisible] = useState(false);
   const [connectingWallet, setConnectingWallet] = useState<string | null>(null);
   const [verifyingWallet, setVerifyingWallet] = useState(false);
-  const walletService = walletManagement();
+  const walletService = React.useMemo(() => walletManagement(), []);
+  const userApi = React.useMemo(() => userManagement(), []);
   const [loading, setLoading] = useState(true);
-  const user = userManagement();
   const [activeId, setActiveId] = useState('');
   const [showEmptyState, setShowEmptyState] = useState(false);
   const [activeName, setActiveName] = useState('');
@@ -593,14 +607,59 @@ export default function WalletsScreen() {
     clientId: '42ec675f4a00a8f609dcf9cc17f8c1e9', // from https://thirdweb.com/dashboard
   });
   const metamaskWallet = createWallet('io.metamask');
-  const embeddedWallet = React.useMemo(() => inAppWallet(), []);
   const [magicLinkModalVisible, setMagicLinkModalVisible] = useState(false);
-  const [magicEmail, setMagicEmail] = useState('');
+  const [sessionUserEmail, setSessionUserEmail] = useState('');
   const [magicCode, setMagicCode] = useState('');
+  const [magicCodeStepVisible, setMagicCodeStepVisible] = useState(false);
   const [magicSendingCode, setMagicSendingCode] = useState(false);
   const [magicConnecting, setMagicConnecting] = useState(false);
   const [pendingEmbeddedVerifyWalletId, setPendingEmbeddedVerifyWalletId] =
     useState<string | null>(null);
+  const [magicEmbeddedWalletMode, setMagicEmbeddedWalletMode] =
+    useState<MagicEmbeddedWalletMode | null>(null);
+  const [magicLinkPublicKey, setMagicLinkPublicKey] = useState<string | null>(
+    null
+  );
+  const magicOtpHandleRef = useRef<MagicEmailOtpHandle | null>(null);
+  const magicWallet = React.useMemo(
+    () =>
+      magicLinkPublicKey
+        ? createMagicEmbeddedWallet(magicLinkPublicKey, 'polygon')
+        : null,
+    [magicLinkPublicKey]
+  );
+
+  const walletTypes = React.useMemo(() => {
+    const base: Array<{
+      type: string;
+      label: string;
+      available: boolean;
+      description: string;
+    }> = [
+      {
+        type: 'METAMASK',
+        label: t('transfer.metaMask'),
+        available: true,
+        description: 'Browser extension wallet',
+      },
+    ];
+    if (isMagicEmbeddedWalletAddEnabled(magicEmbeddedWalletMode, magicLinkPublicKey)) {
+      base.push({
+        type: EMBEDDED_WALLET_PROVIDER,
+        label: t('transfer.embeddedWallet'),
+        available: true,
+        description: t('transfer.embeddedWalletDescription'),
+      });
+    }
+    return base;
+  }, [t, magicEmbeddedWalletMode, magicLinkPublicKey]);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      void loadStoredMagicEmbeddedWalletMode().then(setMagicEmbeddedWalletMode);
+      void loadStoredMagicLinkPublicKey().then(setMagicLinkPublicKey);
+    }, [])
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -608,11 +667,20 @@ export default function WalletsScreen() {
     const loadWallets = async () => {
       setLoading(true);
       try {
-        const data = await user.getUser();
+        await refreshPlatformValidateConfigFromRemote();
+        const mode = await loadStoredMagicEmbeddedWalletMode();
+        const publicKey = await loadStoredMagicLinkPublicKey();
+        if (!cancelled) {
+          setMagicEmbeddedWalletMode(mode);
+          setMagicLinkPublicKey(publicKey);
+        }
+        const data = await userApi.getUser();
         if (cancelled) return;
         if (data.success && data.data) {
-          const jsonObject =
-            data.data.data.activeAccount.blockchainWallets ?? [];
+          const jsonObject = filterBlockchainWalletsForDisplayedList(
+            data.data.data.activeAccount.blockchainWallets ?? [],
+            mode
+          );
           const mappedWallets: WalletType[] = jsonObject.map((wallet: any) => ({
             id: wallet.id,
             user_id: wallet.account_id,
@@ -626,9 +694,11 @@ export default function WalletsScreen() {
           setWallets(mappedWallets);
           setActiveId(data.data.data.activeAccount.id);
           setActiveName(data.data.data.activeAccount.name);
+          const userEmail = data.data.data.user?.email;
+          setSessionUserEmail(typeof userEmail === 'string' ? userEmail : '');
         } else if (data.status === 401) {
-          showAlert("Session Expired", "Please login again....");
-          router.replace("/auth/login");
+          showAlert(t('profile.sessionExpired'), t('profile.loginAgain'));
+          router.replace('/auth/login');
         }
       } catch (error) {
         if (!cancelled) {
@@ -645,7 +715,7 @@ export default function WalletsScreen() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [showAlert, t, userApi]);
 
   useEffect(() => {
     if (wallets.length === 0) {
@@ -674,6 +744,7 @@ export default function WalletsScreen() {
         return t('transfer.fireblocks');
       case 'metamask':
         return t('transfer.metaMask');
+      case 'magic_link':
       case 'thirdweb':
         return t('transfer.embeddedWallet');
       case 'walletconnect':
@@ -689,6 +760,7 @@ export default function WalletsScreen() {
         return colors.success;
       case 'metamask':
         return colors.warning;
+      case 'magic_link':
       case 'thirdweb':
         return colors.primary;
       case 'walletconnect':
@@ -704,18 +776,43 @@ export default function WalletsScreen() {
   };
 
   const closeMagicLinkModal = () => {
+    magicOtpHandleRef.current?.emit('cancel');
+    magicOtpHandleRef.current = null;
     setMagicLinkModalVisible(false);
     setMagicConnecting(false);
     setMagicSendingCode(false);
     setPendingEmbeddedVerifyWalletId(null);
-    setMagicEmail('');
     setMagicCode('');
+    setMagicCodeStepVisible(false);
+  };
+
+  const resetMagicCodeStep = () => {
+    magicOtpHandleRef.current = null;
+    setMagicCode('');
+    setMagicCodeStepVisible(false);
+  };
+
+  const isMagicCanceledError = (error: unknown): boolean => {
+    if (!error || typeof error !== 'object') return false;
+    const record = error as Record<string, unknown>;
+    const code =
+      typeof record.code === 'string' || typeof record.code === 'number'
+        ? String(record.code).toLowerCase()
+        : '';
+    let messageValue = '';
+    if (typeof record.message === 'string') {
+      messageValue = record.message;
+    } else if (typeof record.rawMessage === 'string') {
+      messageValue = record.rawMessage;
+    }
+    const message = messageValue.toLowerCase();
+    return code.includes('cancel') || message.includes('cancel');
   };
 
   const verifyEmbeddedWalletSignature = async (
     walletId: string,
     pendingWallet: WalletType,
-    account: Account
+    account: WalletSigner
   ) => {
     setUpdatingWalletId(walletId);
     try {
@@ -759,43 +856,87 @@ export default function WalletsScreen() {
   };
 
   const sendMagicLinkCode = async () => {
-    const email = magicEmail.trim();
+   const email = sessionUserEmail.trim();
+    console.log('sendMagicLinkCode', email);
     if (!email) {
-      showAlert(t('common.error'), t('transfer.magicLinkFillBoth'));
+      showAlert(t('common.error'), t('transfer.embeddedWalletNoAccountEmail'));
+      return;
+    }
+    if (!magicWallet) {
+      showAlert(t('common.error'), t('transfer.embeddedWalletNotAvailable'));
       return;
     }
     setMagicSendingCode(true);
     try {
-      await preAuthenticate({
-        client,
-        strategy: 'email',
+      const loggedInAccount = await getLoggedInMagicEmbeddedAccount(
+        magicWallet,
         email,
-      });
+        'polygon'
+      );
+      if (loggedInAccount) {
+        setMagicSendingCode(false);
+        closeMagicLinkModal();
+        const verifyId = pendingEmbeddedVerifyWalletId;
+        if (verifyId) {
+          const pendingWallet = wallets.find((w) => w.id === verifyId);
+          if (pendingWallet) {
+            await verifyEmbeddedWalletSignature(
+              verifyId,
+              pendingWallet,
+              loggedInAccount
+            );
+          }
+          return;
+        }
+        addWalletApi(
+          loggedInAccount.address,
+          EMBEDDED_WALLET_PROVIDER,
+          `${activeName} (${loggedInAccount.address.substring(0, 6)}...${loggedInAccount.address.substring(loggedInAccount.address.length - 6)})`,
+          activeId,
+          loggedInAccount
+        );
+        return;
+      }
+      const { handle } = await requestMagicEmailOtpCode(magicWallet, email);
+      magicOtpHandleRef.current = handle;
+      setMagicCode('');
+      setMagicCodeStepVisible(true);
       showAlert(t('common.success'), t('transfer.magicLinkCodeSent'));
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       showAlert(t('common.error'), msg || t('transfer.connectingWalletFailed'));
+      resetMagicCodeStep();
     } finally {
       setMagicSendingCode(false);
     }
   };
 
   const submitMagicLinkWallet = async () => {
-    const email = magicEmail.trim();
+    const email = sessionUserEmail.trim();
     const code = magicCode.trim();
-    if (!email || !code) {
-      showAlert(t('common.error'), t('transfer.magicLinkFillBoth'));
+    if (!email) {
+      showAlert(t('common.error'), t('transfer.embeddedWalletNoAccountEmail'));
+      return;
+    }
+    if (!code) {
+      showAlert(t('common.error'), t('transfer.magicLinkCodeRequired'));
+      return;
+    }
+    if (!magicWallet) {
+      showAlert(t('common.error'), t('transfer.embeddedWalletNotAvailable'));
       return;
     }
     setMagicConnecting(true);
     try {
-      const account = await embeddedWallet.connect({
-        client,
-        chain: polygon,
-        strategy: 'email',
-        email,
-        verificationCode: code,
-      });
+      const handle = magicOtpHandleRef.current;
+      if (!handle || !magicCodeStepVisible) {
+        showAlert(t('common.error'), t('transfer.magicLinkFillBoth'));
+        return;
+      }
+      magicOtpHandleRef.current = handle;
+      await verifyMagicEmailOtpLogin(handle, code);
+      resetMagicCodeStep();
+      const account = await getMagicEmbeddedAccount(magicWallet, 'polygon');
       const verifyId = pendingEmbeddedVerifyWalletId;
       closeMagicLinkModal();
 
@@ -815,10 +956,15 @@ export default function WalletsScreen() {
         account
       );
     } catch (err: unknown) {
+      if (isMagicCanceledError(err)) {
+        resetMagicCodeStep();
+      }
       const msg = err instanceof Error ? err.message : String(err);
       showAlert(
         t('common.failed'),
-        msg || t('transfer.connectingWalletFailed')
+        msg.includes('User canceled action')
+          ? t('transfer.magicOtpCanceledRetry')
+          : msg || t('transfer.connectingWalletFailed')
       );
     } finally {
       setMagicConnecting(false);
@@ -849,14 +995,14 @@ export default function WalletsScreen() {
     if (wallet.status === 'PENDING') {
       if (wallet.type.toUpperCase() === EMBEDDED_WALLET_PROVIDER) {
         try {
-          const account = await embeddedWallet.autoConnect({
-            client,
-            chain: polygon,
-          });
+          if (!magicWallet) {
+            throw new Error(t('transfer.embeddedWalletNotAvailable'));
+          }
+          const account = await getMagicEmbeddedAccount(magicWallet, 'polygon');
           await verifyEmbeddedWalletSignature(walletId, wallet, account);
         } catch {
-          setMagicEmail('');
           setMagicCode('');
+          setMagicCodeStepVisible(false);
           setPendingEmbeddedVerifyWalletId(walletId);
           setMagicLinkModalVisible(true);
         }
@@ -876,7 +1022,7 @@ export default function WalletsScreen() {
     }
   };
 
-  const addWallet = (type: string) => {
+  const addWallet = async (type: string) => {
     if (type === 'fireblocks') {
       setAddWalletModalVisible(false);
       showAlert(
@@ -890,8 +1036,29 @@ export default function WalletsScreen() {
       setAddWalletModalVisible(false);
       setConnectingWallet(null);
       setPendingEmbeddedVerifyWalletId(null);
-      setMagicEmail('');
       setMagicCode('');
+      setMagicCodeStepVisible(false);
+      if (magicWallet) {
+        try {
+          const loggedInAccount = await getLoggedInMagicEmbeddedAccount(
+            magicWallet,
+            sessionUserEmail,
+            'polygon'
+          );
+          if (loggedInAccount) {
+            addWalletApi(
+              loggedInAccount.address,
+              EMBEDDED_WALLET_PROVIDER,
+              `${activeName} (${loggedInAccount.address.substring(0, 6)}...${loggedInAccount.address.substring(loggedInAccount.address.length - 6)})`,
+              activeId,
+              loggedInAccount
+            );
+            return;
+          }
+        } catch {
+          /* Fall back to OTP modal. */
+        }
+      }
       setMagicLinkModalVisible(true);
       return;
     }
@@ -969,7 +1136,7 @@ export default function WalletsScreen() {
     provider: string,
     name: string,
     accountId: string,
-    wallet: Account
+    wallet: WalletSigner
   ) => {
     setVerifyingWallet(true);
 
@@ -1109,12 +1276,11 @@ export default function WalletsScreen() {
     }
     if (walletType.type === EMBEDDED_WALLET_PROVIDER) {
       return (
-        // <Mail size={22} color={getWalletTypeColor(walletType.type)} />
         <Image
-        source={require('../../assets/images/embedded-wallet.jpeg')}
-        style={{ width: 18, height: 18 }}
-        resizeMode="contain"
-      />
+          source={require('../../assets/images/embedded-wallet.jpeg')}
+          style={{ width: 28, height: 28 }}
+          resizeMode="contain"
+        />
       );
     }
     return (
@@ -1137,13 +1303,14 @@ export default function WalletsScreen() {
         />
       );
     }
-    if (lower === 'thirdweb') {
-      // return <Mail size={22} color={getWalletTypeColor(type)} />;
-      return <Image
-      source={require('../../assets/images/embedded-wallet.jpeg')}
-      style={{ width: 18, height: 18 }}
-      resizeMode="contain"
-    />
+    if (lower === 'thirdweb' || lower === 'magic_link') {
+      return (
+        <Image
+          source={require('../../assets/images/embedded-wallet.jpeg')}
+          style={{ width: 28, height: 28 }}
+          resizeMode="contain"
+        />
+      );
     }
     if (lower === 'concordium') {
       return (
@@ -1245,28 +1412,6 @@ export default function WalletsScreen() {
     );
   };
 
-  const walletTypes = [
-    // {
-    //   type: 'walletconnect',
-    //   label: t('transfer.walletConnect'),
-    //   available: true,
-    //   description: 'Connect any wallet via WalletConnect',
-    // },
-    {
-      type: 'METAMASK',
-      label: t('transfer.metaMask'),
-      available: true,
-      description: 'Browser extension wallet',
-    },
-    // {
-    //   type: EMBEDDED_WALLET_PROVIDER,
-    //   label: t('transfer.embeddedWallet'),
-    //   available: true,
-    //   description: t('transfer.embeddedWalletDescription'),
-    // },
-    // // { type: 'fireblocks', label: t('transfer.fireblocks'), available: false },
-  ];
-
   return (
     <View
       style={[
@@ -1274,6 +1419,9 @@ export default function WalletsScreen() {
         { backgroundColor: colors.background.secondary },
       ]}
     >
+      {magicWallet ? (
+        <magicWallet.Relayer backgroundColor={colors.background.primary} />
+      ) : null}
       {/* Header */}
       <View
         style={[
@@ -1396,7 +1544,7 @@ export default function WalletsScreen() {
                     styles.walletTypeConnecting,
                   ]}
                   onPress={() =>
-                    walletType.available ? addWallet(walletType.type) : null
+                    walletType.available ? void addWallet(walletType.type) : null
                   }
                   disabled={!walletType.available || connectingWallet !== null}
                 >
@@ -1503,14 +1651,13 @@ export default function WalletsScreen() {
                 {t('transfer.magicLinkEmailLabel')}
               </Text>
               <TextInput
-                value={magicEmail}
-                onChangeText={setMagicEmail}
+                value={sessionUserEmail}
                 placeholder={t('profile.emailLabel')}
                 placeholderTextColor={colors.text.placeholder}
                 autoCapitalize="none"
                 autoCorrect={false}
                 keyboardType="email-address"
-                editable={!magicConnecting && !magicSendingCode}
+                editable={false}
                 style={{
                   borderWidth: 1,
                   borderColor: colors.border.primary,
@@ -1544,44 +1691,51 @@ export default function WalletsScreen() {
                   </Text>
                 )}
               </TouchableOpacity>
-              <Text
-                style={[
-                  styles.modalSubtitle,
-                  { marginBottom: Spacing.sm, fontFamily: Typography.fontFamily.semiBold },
-                ]}
-              >
-                {t('transfer.magicLinkCodeLabel')}
-              </Text>
-              <TextInput
-                value={magicCode}
-                onChangeText={setMagicCode}
-                placeholder="••••••"
-                placeholderTextColor={colors.text.placeholder}
-                keyboardType="number-pad"
-                editable={!magicConnecting && !magicSendingCode}
-                style={{
-                  borderWidth: 1,
-                  borderColor: colors.border.primary,
-                  borderRadius: BorderRadius.md,
-                  paddingHorizontal: Spacing.lg,
-                  paddingVertical: Spacing.md,
-                  fontSize: Typography.fontSize.base,
-                  fontFamily: Typography.fontFamily.regular,
-                  color: colors.text.primary,
-                  backgroundColor: colors.background.secondary,
-                  marginBottom: Spacing.xl,
-                }}
-              />
+              {magicCodeStepVisible ? (
+                <>
+                  <Text
+                    style={[
+                      styles.modalSubtitle,
+                      {
+                        marginBottom: Spacing.sm,
+                        fontFamily: Typography.fontFamily.semiBold,
+                      },
+                    ]}
+                  >
+                    {t('transfer.magicLinkCodeLabel')}
+                  </Text>
+                  <TextInput
+                    value={magicCode}
+                    onChangeText={setMagicCode}
+                    placeholder="••••••"
+                    placeholderTextColor={colors.text.placeholder}
+                    keyboardType="number-pad"
+                    editable={!magicConnecting && !magicSendingCode}
+                    style={{
+                      borderWidth: 1,
+                      borderColor: colors.border.primary,
+                      borderRadius: BorderRadius.md,
+                      paddingHorizontal: Spacing.lg,
+                      paddingVertical: Spacing.md,
+                      fontSize: Typography.fontSize.base,
+                      fontFamily: Typography.fontFamily.regular,
+                      color: colors.text.primary,
+                      backgroundColor: colors.background.secondary,
+                      marginBottom: Spacing.xl,
+                    }}
+                  />
+                </>
+              ) : null}
               <TouchableOpacity
                 style={{
                   backgroundColor: colors.primary,
                   paddingVertical: Spacing.lg,
                   borderRadius: BorderRadius.md,
                   alignItems: 'center',
-                  opacity: magicConnecting ? 0.7 : 1,
+                  opacity: magicConnecting || !magicCodeStepVisible ? 0.7 : 1,
                 }}
                 onPress={() => void submitMagicLinkWallet()}
-                disabled={magicConnecting}
+                disabled={magicConnecting || !magicCodeStepVisible}
               >
                 {magicConnecting ? (
                   <ActivityIndicator size="small" color={primaryBtnTextColor} />
