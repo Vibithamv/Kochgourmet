@@ -13,6 +13,8 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { TenantProvider } from '@/contexts/TenantContext';
 import { AlertProvider } from '@/contexts/AlertContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
+import { FavouritesProvider } from '@/contexts/FavouritesContext';
+import { FoldersProvider } from '@/contexts/FoldersContext';
 import { Provider as PaperProvider } from 'react-native-paper';
 import { ThirdwebProvider } from "thirdweb/react";
 
@@ -190,6 +192,11 @@ async function runSplashAuthenticatedRouting(
   try {
     const data = await userAccount.getUser();
     if (data.success && data.data) {
+      if (resetToHomeAfterExit) {
+        await AsyncStorage.removeItem(ASYNC_STORAGE_EXIT_RESET_TO_HOME);
+        router.replace('/(tabs)');
+        return;
+      }
       await navigateFromUserPayload(
         data as {
           data: {
@@ -203,10 +210,6 @@ async function runSplashAuthenticatedRouting(
         router,
         request
       );
-      if (resetToHomeAfterExit) {
-        await AsyncStorage.removeItem(ASYNC_STORAGE_EXIT_RESET_TO_HOME);
-        router.replace('/(tabs)');
-      }
     } else {
       if (resetToHomeAfterExit) {
         await AsyncStorage.removeItem(ASYNC_STORAGE_EXIT_RESET_TO_HOME);
@@ -339,13 +342,20 @@ export default function RootLayout() {
             <FcmNotificationBridge />
             <AlertProvider>
               <AuthProvider>
-                <Stack screenOptions={{ headerShown: false }}>
-                  <Stack.Screen name="auth" />
-                  <Stack.Screen name="(tabs)" />
-                  <Stack.Screen name="+not-found" />
-                </Stack>
-                <StatusBar style="auto" />
-                <CustomSplash visible={showSplash} />
+                <FavouritesProvider>
+                  <FoldersProvider>
+                    <Stack screenOptions={{ headerShown: false }}>
+                      <Stack.Screen name="auth" />
+                      <Stack.Screen name="(tabs)" />
+                      <Stack.Screen name="recipe" />
+                      <Stack.Screen name="magazin" />
+                      <Stack.Screen name="favoriten" />
+                      <Stack.Screen name="+not-found" />
+                    </Stack>
+                    <StatusBar style="auto" />
+                    <CustomSplash visible={showSplash} />
+                  </FoldersProvider>
+                </FavouritesProvider>
               </AuthProvider>
             </AlertProvider>
           </ThemeProvider>

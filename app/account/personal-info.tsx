@@ -1,26 +1,43 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  Alert,
-  Image,
   TextInput,
-  Modal,
+  Image,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ArrowLeft, User, Mail, Phone, MapPin, Calendar, Shield, CreditCard as Edit3, Camera, Check, ExternalLink, Building, CreditCard, Globe } from 'lucide-react-native';
+import {
+  ArrowLeft,
+  User,
+  Mail,
+  Phone,
+  MapPin,
+  Calendar,
+  Shield,
+  Globe,
+  Building,
+  CreditCard,
+  Check,
+  Camera,
+  Edit3,
+} from 'lucide-react-native';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
-import { getColors, Typography, Spacing, BorderRadius, Shadows } from '@/constants/theme';
+import { getColors, Typography, Spacing, BorderRadius } from '@/constants/theme';
 import { useGlobalAlert } from '@/contexts/AlertContext';
+import { userManagement } from '@/hooks/userManagement';
+import { useFocusEffect } from '@react-navigation/native';
+import { replaceLoginClearingAuthStack } from '@/utils/authNavigation';
+import { AccountInfoShimmer } from '@/components/Shimmer';
+import * as ImagePicker from 'expo-image-picker';
+import { prepareProfilePicturePayload } from '@/utils/profilePictureUpload';
+import { messageFromApiError } from '@/utils/apiErrorMessage';
 
-type InfoFieldIcon = React.ComponentType<{ size?: number; color?: string }>;
-type InfoFieldColors = ReturnType<typeof getColors>;
+type FieldColors = ReturnType<typeof getColors>;
 
 function InfoField({
   icon: Icon,
@@ -32,13 +49,13 @@ function InfoField({
   colors,
   editMode,
 }: Readonly<{
-  icon: InfoFieldIcon;
+  icon: React.ComponentType<{ size?: number; color?: string }>;
   label: string;
   value: string;
   onChangeText?: (text: string) => void;
   editable?: boolean;
   multiline?: boolean;
-  colors: InfoFieldColors;
+  colors: FieldColors;
   editMode: boolean;
 }>) {
   return (
@@ -53,11 +70,7 @@ function InfoField({
         <TextInput
           style={[
             styles.fieldInput,
-            {
-              color: colors.text.primary,
-              backgroundColor: colors.background.secondary,
-              borderColor: colors.border.primary,
-            },
+            { color: colors.text.primary, backgroundColor: colors.background.secondary, borderColor: colors.border.primary },
             multiline && styles.fieldInputMultiline,
           ]}
           value={value}
@@ -74,50 +87,137 @@ function InfoField({
 
 export default function PersonalInfoScreen() {
   const { t } = useTranslation();
-  const { user } = useAuth();
   const { theme } = useTheme();
+  const colors = getColors(theme);
   const insets = useSafeAreaInsets();
-  const [editMode, setEditMode] = useState(false);
-  const [sumsubModalVisible, setSumsubModalVisible] = useState(false);
   const { showAlert } = useGlobalAlert();
-  // Mock user data - in real app this would come from user context/API
+  const userAccount = userManagement();
+
+  const [editMode, setEditMode] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [uploadingPicture, setUploadingPicture] = useState(false);
+  const [profilePictureUrl, setProfilePictureUrl] = useState<string | null>(null);
   const [userInfo, setUserInfo] = useState({
-    fullName: user?.firstName + ' ' + user?.lastName || 'Demo User',
-    email: user?.email || 'demo@example.com',
-    phone: '+1 (555) 123-4567',
-    dateOfBirth: '1990-05-15',
-    address: '123 Investment Street, New York, NY 10001',
-    nationality: 'United States',
-    occupation: 'Software Engineer',
-    annualIncome: '$75,000 - $100,000',
-    investmentExperience: 'Intermediate',
-    riskTolerance: 'Moderate',
+    fullName: '',
+    email: '',
+    phone: '',
+    dateOfBirth: '',
+    address: '',
+    nationality: '',
+    occupation: '',
+    annualIncome: '',
+    investmentExperience: '',
+    riskTolerance: '',
   });
 
-  const colors = getColors(theme);
+  useFocusEffect(
+    useCallback(() => {
+      setLoading(true);
+      userAccount.getUser().then(res => {
+        setLoading(false);
+        if (res.success && res.data) {
+          const u = res.data.data.user;
+          const acc = res.data.data.activeAccount ?? {};
+          const pic = u.profile_picture;
+          setProfilePictureUrl(typeof pic === 'string' && pic.trim() ? pic : null);
+          const rawAddress = u.address ?? acc.address;
+          const addressString = (() => {
+            if (!rawAddress) return '';
+            if (typeof rawAddress === 'string') return rawAddress;
+            if (typeof rawAddress === 'object') {
+              const { street, city, state, postalCode, country } = rawAddress as Record<string, string | undefined>;
+              return [street, city, state, postalCode, country].filter(Boolean).join(', ');
+            }
+            return String(rawAddress);
+          })();
 
-  const handleSumsubVerification = () => {
-    setSumsubModalVisible(false);
-    Alert.alert(
-      'KYC Verification',
-      'Redirecting to Sumsub for secure identity verification. This process typically takes 5-10 minutes.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Continue', 
-          onPress: () => {
-            // In a real app, this would open Sumsub SDK or web interface
-            showAlert('Demo Mode', 'In production, this would open the Sumsub verification flow.');
-          }
+          setUserInfo(prev => ({
+            ...prev,
+            fullName: [u.first_name, u.last_name].filter(Boolean).join(' '),
+            email: u.email ?? '',
+            phone: u.phone_number ?? acc.phone_number ?? '',
+            dateOfBirth: u.date_of_birth ?? acc.date_of_birth ?? '',
+            address: addressString,
+            nationality: u.nationality ?? acc.nationality ?? '',
+            occupation: u.occupation ?? acc.occupation ?? '',
+            annualIncome: u.annual_income ?? acc.annual_income ?? '',
+            investmentExperience: u.investment_experience ?? acc.investment_experience ?? '',
+            riskTolerance: u.risk_tolerance ?? acc.risk_tolerance ?? '',
+          }));
+        } else if (res.status === 401) {
+          showAlert(t('profile.sessionExpired'), t('profile.loginAgain'));
+          replaceLoginClearingAuthStack();
+        } else {
+          showAlert(t('common.error'), t('common.errorMessage'));
         }
-      ]
-    );
+      });
+    }, [])
+  );
+
+  const handleSave = () => {
+    setEditMode(false);
+    showAlert(t('common.success'), t('profile.success'));
   };
 
-  const handleSaveChanges = () => {
-    setEditMode(false);
-    showAlert(t('common.success'), 'Your information has been updated successfully.');
-  };
+  const prepareErrorMessage = useCallback((error: string): string => {
+    if (error === 'tooLarge') return t('profile.photoTooLarge');
+    if (error === 'unsupported') return t('profile.photoUnsupportedFormat');
+    return t('profile.photoUpdateFailed');
+  }, [t]);
+
+  const doUploadPhoto = useCallback(async (image: string, contentType: string) => {
+    setUploadingPicture(true);
+    try {
+      const upload = await userAccount.updateProfilePicture(image, contentType);
+      if (upload.success) {
+        const refreshed = await userAccount.getUser();
+        if (refreshed.success && refreshed.data) {
+          const pic = refreshed.data.data.user.profile_picture;
+          setProfilePictureUrl(typeof pic === 'string' && pic.trim() ? pic : null);
+        }
+        showAlert(t('common.success'), t('profile.photoUpdateSuccess'));
+      } else if (upload.status === 401) {
+        showAlert(t('profile.sessionExpired'), t('profile.loginAgain'));
+        replaceLoginClearingAuthStack();
+      } else {
+        showAlert(t('common.failed'), messageFromApiError(upload.error, t('profile.photoUpdateFailed')));
+      }
+    } finally {
+      setUploadingPicture(false);
+    }
+  }, [showAlert, t, userAccount]);
+
+  const handleChangeProfilePhoto = useCallback(async () => {
+    if (uploadingPicture) return;
+    try {
+      const { status, canAskAgain } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        const suffix = canAskAgain ? '' : ' Bitte erlaube den Zugriff in den Einstellungen.';
+        showAlert(t('common.error'), t('profile.photoPermissionDenied') + suffix);
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.85,
+      });
+      if (result.canceled || !result.assets?.[0]?.uri) return;
+      const asset = result.assets[0];
+      const prepared = await prepareProfilePicturePayload(asset.uri, asset.mimeType ?? null, asset.fileSize ?? null);
+      if (!prepared.ok) {
+        showAlert(t('common.failed'), prepareErrorMessage(prepared.error));
+        return;
+      }
+      await doUploadPhoto(prepared.payload.image, prepared.payload.contentType);
+    } catch (err: unknown) {
+      showAlert(t('common.error'), err instanceof Error ? err.message : t('profile.photoUpdateFailed'));
+    }
+  }, [doUploadPhoto, prepareErrorMessage, showAlert, t, uploadingPicture]);
+
+  const notSpecified = t('account.notSpecified');
+
+  if (loading) return <AccountInfoShimmer />;
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background.secondary }]}>
@@ -127,274 +227,158 @@ export default function PersonalInfoScreen() {
           <ArrowLeft size={24} color={colors.text.primary} />
         </TouchableOpacity>
         <View style={styles.headerContent}>
-          <Text style={[styles.headerTitle, { color: colors.text.primary }]}>Personal Information</Text>
-          <Text style={[styles.headerSubtitle, { color: colors.text.secondary }]}>Manage your profile details</Text>
+          <Text style={[styles.headerTitle, { color: colors.text.primary }]}>
+            {t('account.personalInfoTitle')}
+          </Text>
+          <Text style={[styles.headerSubtitle, { color: colors.text.secondary }]}>
+            {t('account.personalInfoSubtitle')}
+          </Text>
         </View>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[styles.editButton, { backgroundColor: editMode ? colors.success : colors.primary }]}
-          onPress={editMode ? handleSaveChanges : () => setEditMode(true)}
+          onPress={editMode ? handleSave : () => setEditMode(true)}
         >
           {editMode ? (
-            <Check size={20} color={colors.text.inverse} />
+            <Check size={20} color="#fff" />
           ) : (
-            <Edit3 size={20} color={colors.text.inverse} />
+            <Edit3 size={20} color="#fff" />
           )}
         </TouchableOpacity>
       </View>
 
-      <ScrollView 
-        style={styles.content}
+      <ScrollView
         contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Profile Photo Section */}
+        {/* Profile photo */}
         <View style={styles.photoSection}>
           <View style={[styles.photoCard, { backgroundColor: colors.background.card, borderColor: colors.border.primary }]}>
             <View style={styles.photoContainer}>
-              <Image 
-                source={{ uri: 'https://images.pexels.com/photos/614810/pexels-photo-614810.jpeg?auto=compress&cs=tinysrgb&w=200&h=200&fit=crop' }}
-                style={styles.profilePhoto}
-              />
-              <TouchableOpacity style={[styles.photoEditButton, { backgroundColor: colors.primary }]}>
-                <Camera size={16} color={colors.text.inverse} />
+              {profilePictureUrl ? (
+                <Image source={{ uri: profilePictureUrl }} style={styles.profilePhoto} />
+              ) : (
+                <View style={[styles.profilePhoto, styles.avatarFallback, { backgroundColor: colors.primary }]}>
+                  <Text style={styles.avatarInitial}>
+                    {userInfo.fullName ? userInfo.fullName[0].toUpperCase() : '?'}
+                  </Text>
+                </View>
+              )}
+              <TouchableOpacity
+                style={[styles.photoEditButton, { backgroundColor: colors.primary, opacity: uploadingPicture ? 0.6 : 1 }]}
+                onPress={handleChangeProfilePhoto}
+                disabled={uploadingPicture}
+              >
+                <Camera size={16} color="#fff" />
               </TouchableOpacity>
             </View>
-            <Text style={[styles.photoLabel, { color: colors.text.primary }]}>Profile Photo</Text>
-            <Text style={[styles.photoSubtext, { color: colors.text.secondary }]}>Update your profile picture</Text>
+            <Text style={[styles.photoLabel, { color: colors.text.primary }]}>{t('account.profilePhoto')}</Text>
+            <Text style={[styles.photoSubtext, { color: colors.text.secondary }]}>{t('account.updatePhoto')}</Text>
           </View>
         </View>
 
-        {/* Basic Information */}
+        {/* Basic information */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>Basic Information</Text>
-          
-          <InfoField
-            colors={colors}
-            editMode={editMode}
-            icon={User}
-            label="Full Name"
-            value={userInfo.fullName}
-            onChangeText={(text) => setUserInfo(prev => ({ ...prev, fullName: text }))}
-          />
+          <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>{t('account.basicInfo')}</Text>
 
-          <InfoField
-            colors={colors}
-            editMode={editMode}
-            icon={Mail}
-            label="Email Address"
-            value={userInfo.email}
-            editable={false}
+          <InfoField colors={colors} editMode={editMode} icon={User}
+            label={t('account.fullNameFieldLabel')}
+            value={userInfo.fullName || notSpecified}
+            onChangeText={v => setUserInfo(p => ({ ...p, fullName: v }))}
           />
-
-          <InfoField
-            colors={colors}
-            editMode={editMode}
-            icon={Phone}
-            label="Phone Number"
-            value={userInfo.phone}
-            onChangeText={(text) => setUserInfo(prev => ({ ...prev, phone: text }))}
+          <InfoField colors={colors} editMode={editMode} icon={Mail} editable={false}
+            label={t('account.emailFieldLabel')}
+            value={userInfo.email || notSpecified}
           />
-
-          <InfoField
-            colors={colors}
-            editMode={editMode}
-            icon={Calendar}
-            label="Date of Birth"
-            value={new Date(userInfo.dateOfBirth).toLocaleDateString()}
-            editable={false}
+          <InfoField colors={colors} editMode={editMode} icon={Phone}
+            label={t('account.phoneFieldLabel')}
+            value={userInfo.phone || notSpecified}
+            onChangeText={v => setUserInfo(p => ({ ...p, phone: v }))}
           />
-
-          <InfoField
-            colors={colors}
-            editMode={editMode}
-            icon={MapPin}
-            label="Address"
-            value={userInfo.address}
-            onChangeText={(text) => setUserInfo(prev => ({ ...prev, address: text }))}
-            multiline={true}
+          <InfoField colors={colors} editMode={editMode} icon={Calendar} editable={false}
+            label={t('account.dobFieldLabel')}
+            value={userInfo.dateOfBirth || notSpecified}
           />
-
-          <InfoField
-            colors={colors}
-            editMode={editMode}
-            icon={Globe}
-            label="Nationality"
-            value={userInfo.nationality}
-            onChangeText={(text) => setUserInfo(prev => ({ ...prev, nationality: text }))}
+          <InfoField colors={colors} editMode={editMode} icon={MapPin} multiline
+            label={t('account.addressFieldLabel')}
+            value={userInfo.address || notSpecified}
+            onChangeText={v => setUserInfo(p => ({ ...p, address: v }))}
+          />
+          <InfoField colors={colors} editMode={editMode} icon={Globe}
+            label={t('account.nationalityFieldLabel')}
+            value={userInfo.nationality || notSpecified}
+            onChangeText={v => setUserInfo(p => ({ ...p, nationality: v }))}
           />
         </View>
 
-        {/* Professional Information */}
+        {/* Professional information */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>Professional Information</Text>
-          
-          <InfoField
-            colors={colors}
-            editMode={editMode}
-            icon={Building}
-            label="Occupation"
-            value={userInfo.occupation}
-            onChangeText={(text) => setUserInfo(prev => ({ ...prev, occupation: text }))}
-          />
+          <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>{t('account.professionalInfo')}</Text>
 
-          <InfoField
-            colors={colors}
-            editMode={editMode}
-            icon={CreditCard}
-            label="Annual Income"
-            value={userInfo.annualIncome}
-            onChangeText={(text) => setUserInfo(prev => ({ ...prev, annualIncome: text }))}
+          <InfoField colors={colors} editMode={editMode} icon={Building}
+            label={t('account.occupationFieldLabel')}
+            value={userInfo.occupation || notSpecified}
+            onChangeText={v => setUserInfo(p => ({ ...p, occupation: v }))}
+          />
+          <InfoField colors={colors} editMode={editMode} icon={CreditCard}
+            label={t('account.annualIncomeFieldLabel')}
+            value={userInfo.annualIncome || notSpecified}
+            onChangeText={v => setUserInfo(p => ({ ...p, annualIncome: v }))}
           />
         </View>
 
-        {/* Investment Profile */}
+        {/* Investment profile */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>Investment Profile</Text>
-          
-          <InfoField
-            colors={colors}
-            editMode={editMode}
-            icon={Shield}
-            label="Investment Experience"
-            value={userInfo.investmentExperience}
-            onChangeText={(text) => setUserInfo(prev => ({ ...prev, investmentExperience: text }))}
-          />
+          <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>{t('account.investmentProfile')}</Text>
 
-          <InfoField
-            colors={colors}
-            editMode={editMode}
-            icon={Shield}
-            label="Risk Tolerance"
-            value={userInfo.riskTolerance}
-            onChangeText={(text) => setUserInfo(prev => ({ ...prev, riskTolerance: text }))}
+          <InfoField colors={colors} editMode={editMode} icon={Shield}
+            label={t('account.investmentExperienceLabel')}
+            value={userInfo.investmentExperience || notSpecified}
+            onChangeText={v => setUserInfo(p => ({ ...p, investmentExperience: v }))}
+          />
+          <InfoField colors={colors} editMode={editMode} icon={Shield}
+            label={t('account.riskToleranceLabel')}
+            value={userInfo.riskTolerance || notSpecified}
+            onChangeText={v => setUserInfo(p => ({ ...p, riskTolerance: v }))}
           />
         </View>
 
-        {/* KYC Verification Section */}
+        {/* KYC */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>Identity Verification</Text>
-          
+          <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>{t('account.identityVerification')}</Text>
           <View style={[styles.kycCard, { backgroundColor: colors.background.card, borderColor: colors.border.primary }]}>
             <View style={styles.kycHeader}>
-              <View style={[styles.kycIcon, { backgroundColor: `${colors.warning}15` }]}>
+              <View style={[styles.kycIconWrap, { backgroundColor: `${colors.warning}18` }]}>
                 <Shield size={24} color={colors.warning} />
               </View>
               <View style={styles.kycInfo}>
-                <Text style={[styles.kycTitle, { color: colors.text.primary }]}>KYC Verification</Text>
+                <Text style={[styles.kycTitle, { color: colors.text.primary }]}>
+                  {t('account.kycVerification')}
+                </Text>
                 <Text style={[styles.kycSubtitle, { color: colors.text.secondary }]}>
-                  Complete identity verification to unlock all features
+                  {t('account.kycSubtitle')}
                 </Text>
               </View>
-              <View style={[styles.kycStatus, { backgroundColor: `${colors.warning}15` }]}>
-                <View style={[styles.kycStatusDot, { backgroundColor: colors.warning }]} />
-                <Text style={[styles.kycStatusText, { color: colors.warning }]}>Pending</Text>
-              </View>
             </View>
-
-            <View style={styles.kycDescription}>
-              <Text style={[styles.kycDescriptionText, { color: colors.text.secondary }]}>
-                Verify your identity with our secure partner Sumsub to access advanced features and higher investment limits.
-              </Text>
-            </View>
-
-            <TouchableOpacity 
-              style={[styles.sumsubButton, { backgroundColor: colors.primary }]}
-              onPress={() => setSumsubModalVisible(true)}
+            <Text style={[styles.kycDesc, { color: colors.text.secondary }]}>
+              {t('account.kycDescription')}
+            </Text>
+            <TouchableOpacity
+              style={[styles.kycButton, { backgroundColor: colors.primary }]}
+              onPress={() => router.push('/auth/kycRequest')}
+              activeOpacity={0.8}
             >
-              <Shield size={20} color={colors.text.inverse} />
-              <Text style={[styles.sumsubButtonText, { color: colors.text.inverse }]}>
-                Start Verification with Sumsub
-              </Text>
-              <ExternalLink size={16} color={colors.text.inverse} />
+              <Shield size={18} color="#fff" />
+              <Text style={styles.kycButtonText}>{t('account.proceedSumsub')}</Text>
             </TouchableOpacity>
           </View>
         </View>
       </ScrollView>
-
-      {/* Sumsub Verification Modal */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={sumsubModalVisible}
-        onRequestClose={() => setSumsubModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.sumsubModal, { backgroundColor: colors.background.primary }]}>
-            <View style={styles.sumsubModalHeader}>
-              <Text style={[styles.sumsubModalTitle, { color: colors.text.primary }]}>Identity Verification</Text>
-              <TouchableOpacity
-                style={[styles.closeButton, { backgroundColor: colors.background.secondary }]}
-                onPress={() => setSumsubModalVisible(false)}
-              >
-                <Text style={[styles.closeButtonText, { color: colors.text.secondary }]}>×</Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.sumsubContent}>
-              <View style={[styles.sumsubIcon, { backgroundColor: `${colors.primary}15` }]}>
-                <Shield size={48} color={colors.primary} />
-              </View>
-              
-              <Text style={[styles.sumsubTitle, { color: colors.text.primary }]}>
-                Secure Identity Verification
-              </Text>
-              
-              <Text style={[styles.sumsubDescription, { color: colors.text.secondary }]}>
-                We use Sumsub, a leading identity verification provider, to ensure the security and compliance of our platform. The process is quick, secure, and typically takes 5-10 minutes.
-              </Text>
-
-              <View style={styles.sumsubFeatures}>
-                <View style={styles.sumsubFeature}>
-                  <Check size={16} color={colors.success} />
-                  <Text style={[styles.sumsubFeatureText, { color: colors.text.secondary }]}>
-                    Bank-grade security
-                  </Text>
-                </View>
-                <View style={styles.sumsubFeature}>
-                  <Check size={16} color={colors.success} />
-                  <Text style={[styles.sumsubFeatureText, { color: colors.text.secondary }]}>
-                    GDPR compliant
-                  </Text>
-                </View>
-                <View style={styles.sumsubFeature}>
-                  <Check size={16} color={colors.success} />
-                  <Text style={[styles.sumsubFeatureText, { color: colors.text.secondary }]}>
-                    Quick 5-minute process
-                  </Text>
-                </View>
-              </View>
-
-              <TouchableOpacity 
-                style={[styles.proceedButton, { backgroundColor: colors.primary }]}
-                onPress={handleSumsubVerification}
-              >
-                <Shield size={20} color={colors.text.inverse} />
-                <Text style={[styles.proceedButtonText, { color: colors.text.inverse }]}>
-                  Proceed to Sumsub
-                </Text>
-                <ExternalLink size={16} color={colors.text.inverse} />
-              </TouchableOpacity>
-
-              <TouchableOpacity 
-                style={[styles.cancelButton, { backgroundColor: colors.background.secondary, borderColor: colors.border.primary }]}
-                onPress={() => setSumsubModalVisible(false)}
-              >
-                <Text style={[styles.cancelButtonText, { color: colors.text.secondary }]}>
-                  Maybe Later
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+  container: { flex: 1 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -410,10 +394,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: Spacing.md,
   },
-  headerContent: {
-    flex: 1,
-    alignItems: 'center',
-  },
+  headerContent: { flex: 1, alignItems: 'center' },
   headerTitle: {
     fontSize: Typography.fontSize.xl,
     fontFamily: Typography.fontFamily.bold,
@@ -432,10 +413,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: Spacing.md,
-    ...Shadows.sm,
-  },
-  content: {
-    flex: 1,
   },
   photoSection: {
     paddingHorizontal: Spacing.xl,
@@ -447,17 +424,11 @@ const styles = StyleSheet.create({
     padding: Spacing.xl,
     alignItems: 'center',
     borderWidth: 1,
-    ...Shadows.sm,
   },
-  photoContainer: {
-    position: 'relative',
-    marginBottom: Spacing.lg,
-  },
-  profilePhoto: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-  },
+  photoContainer: { position: 'relative', marginBottom: Spacing.lg },
+  profilePhoto: { width: 80, height: 80, borderRadius: 40 },
+  avatarFallback: { alignItems: 'center', justifyContent: 'center' },
+  avatarInitial: { color: '#fff', fontSize: 28, fontFamily: 'Inter-Bold' },
   photoEditButton: {
     position: 'absolute',
     bottom: -4,
@@ -467,7 +438,6 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    ...Shadows.sm,
   },
   photoLabel: {
     fontSize: Typography.fontSize.lg,
@@ -494,13 +464,8 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
     marginBottom: Spacing.md,
     borderWidth: 1,
-    ...Shadows.xs,
   },
-  fieldHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: Spacing.sm,
-  },
+  fieldHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: Spacing.sm },
   fieldIcon: {
     width: 32,
     height: 32,
@@ -527,179 +492,46 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
     borderWidth: 1,
   },
-  fieldInputMultiline: {
-    height: 80,
-    textAlignVertical: 'top',
-  },
+  fieldInputMultiline: { height: 80, textAlignVertical: 'top' },
   kycCard: {
     borderRadius: BorderRadius.lg,
     padding: Spacing.xl,
     borderWidth: 1,
-    ...Shadows.md,
+    gap: Spacing.lg,
   },
-  kycHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: Spacing.lg,
-  },
-  kycIcon: {
+  kycHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.md },
+  kycIconWrap: {
     width: 48,
     height: 48,
     borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: Spacing.lg,
   },
-  kycInfo: {
-    flex: 1,
-  },
+  kycInfo: { flex: 1, gap: 4 },
   kycTitle: {
     fontSize: Typography.fontSize.lg,
     fontFamily: Typography.fontFamily.semiBold,
-    marginBottom: Spacing.xs,
   },
   kycSubtitle: {
     fontSize: Typography.fontSize.base,
     fontFamily: Typography.fontFamily.regular,
   },
-  kycStatus: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
-    borderRadius: BorderRadius.sm,
-  },
-  kycStatusDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    marginRight: Spacing.xs,
-  },
-  kycStatusText: {
-    fontSize: Typography.fontSize.sm,
-    fontFamily: Typography.fontFamily.semiBold,
-  },
-  kycDescription: {
-    marginBottom: Spacing.xl,
-  },
-  kycDescriptionText: {
+  kycDesc: {
     fontSize: Typography.fontSize.base,
     fontFamily: Typography.fontFamily.regular,
     lineHeight: 20,
   },
-  sumsubButton: {
+  kycButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: Spacing.lg,
     borderRadius: BorderRadius.md,
     gap: Spacing.sm,
-    ...Shadows.button,
   },
-  sumsubButtonText: {
+  kycButtonText: {
+    color: '#fff',
     fontSize: Typography.fontSize.lg,
     fontFamily: Typography.fontFamily.semiBold,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  sumsubModal: {
-    borderRadius: BorderRadius.xl,
-    padding: Spacing.xl,
-    margin: Spacing.xl,
-    alignItems: 'center',
-    ...Shadows.xl,
-  },
-  sumsubModalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    width: '100%',
-    marginBottom: Spacing.xl,
-  },
-  sumsubModalTitle: {
-    fontSize: Typography.fontSize.xl,
-    fontFamily: Typography.fontFamily.bold,
-  },
-  closeButton: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  closeButtonText: {
-    fontSize: Typography.fontSize.xl,
-    fontWeight: 'bold',
-  },
-  sumsubContent: {
-    alignItems: 'center',
-    width: '100%',
-  },
-  sumsubIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.xl,
-  },
-  sumsubTitle: {
-    fontSize: Typography.fontSize.xl,
-    fontFamily: Typography.fontFamily.bold,
-    textAlign: 'center',
-    marginBottom: Spacing.lg,
-  },
-  sumsubDescription: {
-    fontSize: Typography.fontSize.base,
-    fontFamily: Typography.fontFamily.regular,
-    textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: Spacing.xl,
-  },
-  sumsubFeatures: {
-    width: '100%',
-    marginBottom: Spacing.xl,
-  },
-  sumsubFeature: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: Spacing.md,
-  },
-  sumsubFeatureText: {
-    fontSize: Typography.fontSize.base,
-    fontFamily: Typography.fontFamily.regular,
-    marginLeft: Spacing.sm,
-  },
-  proceedButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: Spacing.lg,
-    paddingHorizontal: Spacing.xl,
-    borderRadius: BorderRadius.md,
-    gap: Spacing.sm,
-    width: '100%',
-    marginBottom: Spacing.md,
-    ...Shadows.button,
-  },
-  proceedButtonText: {
-    fontSize: Typography.fontSize.lg,
-    fontFamily: Typography.fontFamily.semiBold,
-  },
-  cancelButton: {
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.xl,
-    borderRadius: BorderRadius.md,
-    borderWidth: 1,
-    width: '100%',
-  },
-  cancelButtonText: {
-    fontSize: Typography.fontSize.base,
-    fontFamily: Typography.fontFamily.medium,
-    textAlign: 'center',
   },
 });

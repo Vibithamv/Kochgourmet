@@ -7,19 +7,21 @@ import {
   Dimensions,
   Animated,
   ActivityIndicator,
+  Share,
 } from 'react-native';
 import RenderHTML from 'react-native-render-html';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
-  ArrowLeft,
   Clock,
   Users,
   CircleCheck as CheckCircle,
   Calendar,
   Zap,
   ArrowRight,
+  X,
+  Share2,
 } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
@@ -390,13 +392,6 @@ export default function ProjectDetailScreen() {
     }
   };
 
-  // Header animation
-  const headerOpacity = scrollY.interpolate({
-    inputRange: [0, HEADER_HEIGHT - 100],
-    outputRange: [0, 1],
-    extrapolate: 'clamp',
-  });
-
   const imageTranslateY = scrollY.interpolate({
     inputRange: [0, HEADER_HEIGHT],
     outputRange: [0, -HEADER_HEIGHT * 0.3],
@@ -590,53 +585,11 @@ export default function ProjectDetailScreen() {
         { backgroundColor: colors.background.secondary },
       ]}
     >
-      {/* Animated Header */}
-      <Animated.View
-        style={[
-          styles.animatedHeader,
-          {
-            backgroundColor: colors.background.primary,
-            borderBottomColor: colors.border.primary,
-            paddingTop: insets.top,
-            opacity: headerOpacity,
-          },
-        ]}
-      >
-        <View style={styles.headerContent}>
-          <TouchableOpacity
-            style={[
-              styles.headerBackButton,
-              { backgroundColor: colors.background.secondary },
-            ]}
-            onPress={() => router.back()}
-          >
-            <ArrowLeft size={25} color={colors.text.primary} />
-          </TouchableOpacity>
-          <Text
-            style={[styles.headerTitle, { color: colors.text.primary }]}
-            numberOfLines={1}
-          >
-            {project.title}
-          </Text>
-          {/* <TouchableOpacity
-            style={[
-              styles.headerActionButton,
-              { backgroundColor: colors.background.secondary },
-            ]}
-            onPress={toggleFavorite}
-          >
-            <Heart
-              size={20}
-              color={isFavorited ? colors.error : colors.text.secondary}
-              fill={isFavorited ? colors.error : 'transparent'}
-            />
-          </TouchableOpacity> */}
-        </View>
-      </Animated.View>
+      {/* Animated sticky header removed — floating Schließen + share at the bottom replaces it. */}
 
       <Animated.ScrollView
         style={styles.scrollView}
-        contentContainerStyle={{ paddingBottom: insets.bottom }}
+        contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 16) + 180 }}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
           { useNativeDriver: false }
@@ -675,20 +628,8 @@ export default function ProjectDetailScreen() {
             />
           </Animated.View>
 
-          {/* Floating Controls */}
-          <TouchableOpacity
-            style={[
-              styles.floatingBackButton,
-              { backgroundColor: 'rgba(0,0,0,0.6)' },
-            ]}
-            onPress={() => router.back()}
-          >
-            <ArrowLeft size={24} color="#FFFFFF" />
-          </TouchableOpacity>
-
-          {/* <TouchableOpacity style={[styles.floatingShareButton, { backgroundColor: 'rgba(0,0,0,0.6)' }]} onPress={handleShare}>
-            <Share size={20} color="#FFFFFF" />
-          </TouchableOpacity> */}
+          {/* Top-corner back/share buttons removed — replaced by the floating
+              Schließen + share at the bottom of the screen. */}
 
           {/* <TouchableOpacity
             style={[
@@ -1354,16 +1295,29 @@ export default function ProjectDetailScreen() {
           </LinearGradient>
         </TouchableOpacity>
       </View> */}
+      {/* Floating Schließen + share — same pattern and position as Rezepte detail */}
       <View
-        style={[
-          styles.stickyBottomContainer,
-          {
-            backgroundColor: colors.background.primary,
-            borderTopColor: colors.border.primary,
-            paddingBottom: insets.bottom,
-          },
-        ]}
+        style={[styles.floatingActions, { bottom: Math.max(insets.bottom, 12) + 90 }]}
+        pointerEvents="box-none"
       >
+        <TouchableOpacity
+          style={[
+            styles.floatingCloseBtn,
+            { backgroundColor: colors.background.card, borderColor: colors.border.primary },
+          ]}
+          onPress={() => router.back()}
+          activeOpacity={0.7}
+        >
+          <X size={16} color={colors.text.primary} />
+          <Text style={[styles.floatingCloseText, { color: colors.text.primary }]}>Schließen</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.floatingShareBtn, { backgroundColor: colors.primary }]}
+          onPress={() => Share.share({ message: `${project.title}` })}
+          activeOpacity={0.8}
+        >
+          <Share2 size={16} color="#fff" />
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -1977,7 +1931,46 @@ const createStyles = (colors: any) =>
       fontFamily: Typography.fontFamily.regular,
     },
 
-    // Sticky Bottom Button
+    // Floating Schließen + share buttons (recipe-detail pattern)
+    floatingActions: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 12,
+      paddingHorizontal: 20,
+    },
+    floatingCloseBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      paddingVertical: 12,
+      paddingHorizontal: 22,
+      borderRadius: 9999,
+      borderWidth: 1,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.12,
+      shadowRadius: 12,
+      elevation: 6,
+    },
+    floatingCloseText: { fontSize: 14, fontFamily: 'Inter-SemiBold' },
+    floatingShareBtn: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      alignItems: 'center',
+      justifyContent: 'center',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.18,
+      shadowRadius: 12,
+      elevation: 6,
+    },
+
+    // Sticky Bottom Button (legacy — kept for the commented-out invest CTA)
     stickyBottomContainer: {
       position: 'absolute',
       bottom: 0,

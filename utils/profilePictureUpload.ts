@@ -1,6 +1,5 @@
 import {
   EncodingType,
-  getInfoAsync,
   readAsStringAsync,
 } from 'expo-file-system/legacy';
 
@@ -87,31 +86,25 @@ export async function prepareProfilePicturePayload(
     return { ok: false, error: 'unsupported' };
   }
 
-  let byteSize = fileSizeBytes ?? null;
-  if (byteSize == null) {
-    try {
-      const info = await getInfoAsync(uri);
-      if (!info.exists) {
-        return { ok: false, error: 'readFailed' };
-      }
-      byteSize = typeof info.size === 'number' ? info.size : null;
-    } catch {
-      return { ok: false, error: 'readFailed' };
-    }
-  }
-
-  if (byteSize == null || byteSize > PROFILE_PICTURE_MAX_BYTES) {
+  // Reject early only when the size is already known to be too large.
+  // On iOS the picker may return a ph:// URI where getInfoAsync returns no size,
+  // so we can't use null as a proxy for "too large" — attempt the read first.
+  if (fileSizeBytes != null && fileSizeBytes > PROFILE_PICTURE_MAX_BYTES) {
     return { ok: false, error: 'tooLarge' };
   }
 
   try {
-    const raw = await readAsStringAsync(uri, {
-      encoding: EncodingType.Base64,
-    });
+    const raw = await readAsStringAsync(uri, { encoding: EncodingType.Base64 });
+    const stripped = stripDataUrlPrefix(raw);
+    // base64 length × 0.75 ≈ actual byte count
+    const estimatedBytes = Math.ceil(stripped.length * 0.75);
+    if (estimatedBytes > PROFILE_PICTURE_MAX_BYTES) {
+      return { ok: false, error: 'tooLarge' };
+    }
     return {
       ok: true,
       payload: {
-        image: stripDataUrlPrefix(raw),
+        image: stripped,
         contentType,
       },
     };

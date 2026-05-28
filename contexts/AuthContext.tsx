@@ -66,9 +66,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       if (response.success) {
         await updateAuthTokensFromResponse(response.data.data.authentication_result);
-        // if (JSON.stringify(response.data.data.activeAccount) !== '{}') {
-        //   await AsyncStorage.setItem('AccountID', response.data.data.activeAccount.id);
-        // }
         const user: User = {
           email: response.data.data.user?.email ?? '',
           accessToken: response.data.data.authentication_result.access_token,

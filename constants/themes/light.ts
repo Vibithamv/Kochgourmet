@@ -1,7 +1,7 @@
 // KOCHGOURMET.com — light theme (warm cream surfaces, coral primary, burgundy + forest accents)
 export const LightTheme = {
-  primary: '#EE7B5F',
-  primaryDark: '#D9624A',
+  primary: '#EE7051',
+  primaryDark: '#D9623F',
   secondary: '#8B2323',
   accent: '#2D4635',
   success: '#2D5A42',
@@ -19,10 +19,10 @@ export const LightTheme = {
   },
 
   background: {
-    primary: '#FFFFFF',
-    secondary: '#FFF9F0',
+    primary: '#FEFFFF',
+    secondary: '#FFF6EA',
     tertiary: '#F5EDE4',
-    card: '#FFFFFF',
+    card: '#FEFFFF',
     overlay: 'rgba(45, 70, 53, 0.45)',
   },
 

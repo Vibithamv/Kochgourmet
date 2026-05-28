@@ -77,7 +77,7 @@ export default function InvestmentSuccessScreen() {
   }, [amountFormatted, projectTitle, t]);
 
   const goPortfolio = () => {
-    router.replace('/(tabs)/portfolio');
+    router.replace('/screens/portfolio');
   };
 
   const detailRows = useMemo(() => {

@@ -1,312 +1,181 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
   Image,
-  FlatList,
-  TextInput,
+  ScrollView,
   StyleSheet,
+  TouchableOpacity,
+  TextInput,
   RefreshControl,
-  ListRenderItem,
 } from 'react-native';
+
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Search } from 'lucide-react-native';
-import { useTranslation } from 'react-i18next';
-import { useTheme } from '@/contexts/ThemeContext';
-import { Typography, getColors, getTypography, BorderRadius } from '@/constants/theme';
-import ProjectCard from '@/components/ProjectCard';
-import { listOfferings } from '@/hooks/listOfferings';
-import { useGlobalAlert } from '@/contexts/AlertContext';
 import { router } from 'expo-router';
-import { useOfferingCheck } from '@/hooks/useOfferingCheck';
-import { useFocusEffect } from '@react-navigation/native';
-import { ProjectsShimmer } from '@/components/Shimmer';
+import { useTheme } from '@/contexts/ThemeContext';
+import { getColors, getTypography } from '@/constants/theme';
 
-type ProjectStatus = 'privatesale' | 'presale' | 'whitelisting' | 'announcement' | 'presaleannouncement' | 'public' | 'finished' | 'draft';
-
-interface ExtendedProject {
+interface Article {
   id: string;
   title: string;
-  description: string;
-  minimum_investment: number;
-  image_url: string;
-  status: ProjectStatus;
-  created_at: string;
-  announcement_date?: string;
-  presale_start_date?: string;
-  is_whitelisted?: boolean;
-  asset_symbol?: string;
-  decimals?: string;
-  price_per_token?: string;
-  main_currency: string;
-  fundingStartDate: string;
-  fundingEndDate: string;
-  privatesale_content?: unknown;
-  publicsale_content?: unknown;
-  presale_content?: unknown;
-  announcement_content?: unknown;
-  finished_content?: unknown;
-  whitelisting_content?: unknown;
+  imageUrl: string;
 }
 
-const ProjectListScreen = React.memo(() => {
-  const { t } = useTranslation();
+const ARTICLES: Article[] = [
+  {
+    id: '1',
+    title: 'Erfrischende Eistee-Ideen für echten Genuss',
+    imageUrl: 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=600',
+  },
+  {
+    id: '2',
+    title: 'Die ausgewogene Vegane Ernährung',
+    imageUrl: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=600',
+  },
+  {
+    id: '3',
+    title: 'Veganer Trend',
+    imageUrl: 'https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?w=600',
+  },
+];
+
+const TAB_BAR_HEIGHT = 90;
+
+export default function MagazinScreen() {
   const { theme } = useTheme();
   const colors = getColors(theme);
+  const typography = getTypography(theme);
   const insets = useSafeAreaInsets();
-  const scrollViewRef = React.useRef<FlatList>(null);
-  const [projects, setProjects] = useState<ExtendedProject[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [search, setSearch] = useState('');
   const [refreshing, setRefreshing] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [searchFocused, setSearchFocused] = useState(false);
-  const { showAlert } = useGlobalAlert();
-  const offerings = listOfferings();
-  const { performOfferingCheck } = useOfferingCheck();
 
-  useFocusEffect(
-    useCallback(() => {
-      loadProjects();
-    }, [])
-  );
-
-  const loadProjects = async () => {
-    setLoading(true);
-    await performOfferingCheck();
-    offerings.offerings().then((res) => {
-      setLoading(false);
-      if (res.success && res.data) {
-        const projectData: ExtendedProject[] = res.data.data.investWidget.selected_offerings.map((p: any) => ({
-          id: p.id,
-          title: p.details.asset_name,
-          description: p.details.asset_description,
-          minimum_investment: p.details.minimum_investment,
-          image_url:
-            p.details.detail_page_image ?? p.details.heroImage ?? '',
-          status: p.details.visibility_status,
-          created_at: p.details.created_at,
-          asset_symbol: p.details.asset_symbol,
-          decimals: p.details.decimals,
-          price_per_token: p.details.price_per_token,
-          main_currency: p.details.main_currency,
-          fundingStartDate: p.details.funding_start_date,
-          fundingEndDate: p.details.funding_end_date,
-          privatesale_content: p.details.privatesale_content,
-          publicsale_content: p.details.publicsale_content,
-          presale_content: p.details.presale_content,
-          announcement_content: p.details.announcement_content,
-          finished_content: p.details.finished_content,
-          whitelisting_content: p.details.whitelisting_content,
-        }));
-        setProjects(projectData);
-      } else {
-        console.log('Failed to fetch offerings:', res.error);
-        if (res.status === 401) {
-          showAlert(t('profile.sessionExpired'), t('profile.loginAgain'));
-          router.replace('/auth/login');
-        } else {
-          showAlert(t('common.error'), t('common.errorMessage'));
-        }
-      }
-    });
-  };
-
-  const onRefresh = React.useCallback(() => {
+  const onRefresh = useCallback(() => {
     setRefreshing(true);
-    loadProjects();
-    setTimeout(() => setRefreshing(false), 1000);
+    setTimeout(() => setRefreshing(false), 800);
   }, []);
 
-  const filteredProjects = projects.filter((project) =>
-    project.title.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const renderProject: ListRenderItem<ExtendedProject> = React.useCallback(({ item, index }) => (
-    <ProjectCard
-      key={item.id}
-      project={item}
-      showProgress={item.status === 'public'}
-      style={{ marginTop: index === 0 ? 0 : 16 }}
-    />
-  ), []);
-
-  const renderEmptyList = React.useCallback(() => (
-    <View style={styles.emptyContainer}>
-      <Text style={[styles.emptyText, { color: colors.text.tertiary }]}>{t('common.noResultsFound')}</Text>
-    </View>
-  ), [t, colors]);
-
-  const keyExtractor = React.useCallback((item: ExtendedProject) => item.id, []);
-
-  const getItemLayout = React.useCallback((_data: any, index: number) => ({
-    length: 400,
-    offset: 400 * index + (index > 0 ? 16 * index : 0),
-    index,
-  }), []);
+  const filteredArticles = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return ARTICLES;
+    return ARTICLES.filter(a => a.title.toLowerCase().includes(q));
+  }, [search]);
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background.secondary }]}>
-      {/* Header / Search */}
-      <View style={[styles.header, { paddingTop: Math.max(insets.top, 50), backgroundColor: colors.background.primary, borderBottomColor: colors.border.primary }]}>
-        <View style={styles.headerInner}>
-          <View style={styles.headerLogoWrap}>
-            <Image
-              source={require('../../assets/images/kochgourmet-logo.png')}
-              style={styles.headerLogo}
-              resizeMode="contain"
-            />
-          </View>
-          <Text
-            style={[
-              styles.headerTitle,
-              {
-                color: colors.text.primary,
-                fontFamily: getTypography(theme).fontFamily.display,
-              },
-            ]}
-          >
-            {t('common.tabs.token')}
-          </Text>
-        </View>
-        <View
-          style={[
-            styles.searchRow,
-            {
-              backgroundColor: colors.background.secondary,
-              borderColor: searchFocused ? colors.border.focus : colors.border.primary,
-              borderRadius: BorderRadius.full,
-            },
-          ]}
-        >
-          <Search size={16} color={searchFocused ? colors.border.focus : colors.text.tertiary} style={styles.searchIcon} />
+    <View style={[styles.screen, { backgroundColor: colors.background.primary }]}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={[
+          styles.scroll,
+          { paddingBottom: TAB_BAR_HEIGHT + Math.max(insets.bottom, 12) + 16 },
+        ]}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+          />
+        }
+      >
+        {/* Status bar spacer */}
+        <View style={{ height: Math.max(insets.top, 50) + 32 }} />
+
+        {/* Title */}
+        <Text style={[styles.title, { color: colors.text.primary, fontFamily: typography.fontFamily.display }]}>
+          Magazin
+        </Text>
+
+        {/* Subtitle */}
+        <Text style={[styles.subtitle, { color: colors.text.primary }]}>
+          Erweitere dein Kochwissen oder finden Tipps und Tricks rund ums Thema Kochen.
+        </Text>
+
+        {/* Search bar */}
+        <View style={[styles.searchBar, { backgroundColor: colors.background.secondary }]}>
           <TextInput
             style={[styles.searchInput, { color: colors.text.primary }]}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            placeholder={t('projects.searchPlaceholder')}
-            placeholderTextColor={colors.text.placeholder}
-            selectionColor={colors.border.focus}
-            onFocus={() => setSearchFocused(true)}
-            onBlur={() => setSearchFocused(false)}
+            placeholder="Suchen"
+            placeholderTextColor={colors.text.tertiary}
+            value={search}
+            onChangeText={setSearch}
           />
+          <Search size={18} color={colors.text.tertiary} />
         </View>
-      </View>
 
-      {loading ? (
-        <ProjectsShimmer />
-      ) : (
-        <FlatList
-          ref={scrollViewRef}
-          data={filteredProjects}
-          renderItem={renderProject}
-          ListEmptyComponent={renderEmptyList}
-          keyExtractor={keyExtractor}
-          getItemLayout={getItemLayout}
-          contentContainerStyle={[
-            styles.listContent,
-            filteredProjects.length === 0 && { flex: 1, justifyContent: 'center' },
-            { paddingBottom: insets.bottom + 100 },
-          ]}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor={colors.primary}
-              colors={[colors.primary]}
-            />
-          }
-          showsVerticalScrollIndicator={false}
-          removeClippedSubviews={true}
-          maxToRenderPerBatch={5}
-          updateCellsBatchingPeriod={50}
-          initialNumToRender={3}
-          windowSize={10}
-        />
-      )}
+        {/* Article list */}
+        <View style={styles.articles}>
+          {filteredArticles.length === 0 && (
+            <Text style={[styles.emptyText, { color: colors.text.tertiary }]}>
+              Keine Artikel gefunden.
+            </Text>
+          )}
+          {filteredArticles.map(article => (
+            <TouchableOpacity
+              key={article.id}
+              style={styles.articleCard}
+              activeOpacity={0.85}
+              onPress={() => router.push(`/magazin/${article.id}`)}
+            >
+              <Image
+                source={{ uri: article.imageUrl }}
+                style={[styles.articleImage, { borderRadius: 15 }]}
+                resizeMode="cover"
+              />
+              <Text style={[styles.articleTitle, { color: colors.text.primary }]}>
+                {article.title}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </ScrollView>
     </View>
   );
-});
-
-ProjectListScreen.displayName = 'ProjectListScreen';
-
-export default ProjectListScreen;
+}
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  screen: { flex: 1 },
+  scroll: { paddingHorizontal: 26 },
+  title: {
+    fontSize: 80,
+    lineHeight: 107,
+    marginBottom: 20,
   },
-
-  // Header
-  header: {
-    paddingHorizontal: 24,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
+  subtitle: {
+    fontSize: 17,
+    fontFamily: 'Inter-Regular',
+    lineHeight: 23,
+    marginBottom: 33,
   },
-  headerInner: {
+  searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
-  },
-  headerLogoWrap: {
-    width: 48,
-    height: 48,
-    marginRight: 25,
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'visible',
-  },
-  headerLogo: {
-    position: 'absolute',
-    width: 76,
-    height: 76,
-  },
-  headerTitle: {
-    fontSize: Typography.fontSize['2xl'],
-    letterSpacing: -0.3,
-  },
-
-  // Search
-  searchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1.5,
-    paddingHorizontal: 12,
-    height: 44,
-  },
-  searchRowFocused: {
-  },
-  searchIcon: {
-    marginRight: 8,
+    borderRadius: 9999,
+    paddingHorizontal: 22,
+    height: 45,
+    gap: 10,
+    marginBottom: 66,
   },
   searchInput: {
     flex: 1,
-    fontSize: Typography.fontSize.base,
+    fontSize: 17,
     fontFamily: 'Inter-Regular',
-    height: '100%',
   },
-
-  // List
-  listContent: {
-    paddingHorizontal: 24,
-    paddingTop: 20,
-  },
-
-  // Loader
-  loaderContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  // Empty
-  emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 60,
-  },
+  articles: { gap: 35 },
+  articleCard: { gap: 15 },
   emptyText: {
-    fontSize: Typography.fontSize.lg,
-    fontFamily: 'Inter-Medium',
+    fontSize: 15,
+    fontFamily: 'Inter-Regular',
     textAlign: 'center',
+    paddingVertical: 40,
+  },
+  articleImage: {
+    width: '100%',
+    height: 252,
+  },
+  articleTitle: {
+    fontSize: 16,
+    fontFamily: 'Inter-Regular',
+    lineHeight: 21,
   },
 });

@@ -633,9 +633,9 @@ export default function PaymentMethodsScreen() {
           <ArrowLeft size={24} color={colors.text.primary} />
         </TouchableOpacity>
         <View style={styles.headerContent}>
-          <Text style={[styles.headerTitle, { color: colors.text.primary }]}>Payment Methods</Text>
+          <Text style={[styles.headerTitle, { color: colors.text.primary }]}>Zahlungsmethoden</Text>
           <Text style={[styles.headerSubtitle, { color: colors.text.primary }]}>
-            {paymentMethods.length} {paymentMethods.length === 1 ? 'method' : 'methods'} added
+            {paymentMethods.length} {paymentMethods.length === 1 ? 'Methode' : 'Methoden'} hinzugefügt
           </Text>
         </View>
         {/* <TouchableOpacity 

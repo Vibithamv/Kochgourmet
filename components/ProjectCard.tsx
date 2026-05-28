@@ -229,7 +229,7 @@ function ProjectCard({
   return (
     <View
       style={[styles.projectCard, style, {
-        backgroundColor: colors.background.secondary, borderColor: colors.border.primary,
+        backgroundColor: colors.background.card, borderColor: colors.border.primary,
         borderWidth: 1,
       }]}
       onTouchStart={onTouchStart}

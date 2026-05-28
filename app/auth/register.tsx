@@ -12,11 +12,10 @@ import {
 } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { replaceLoginClearingAuthStack } from '@/utils/authNavigation';
-import { Eye, EyeOff, User, Mail, Lock } from 'lucide-react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Eye, EyeOff, X, ChevronRight } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/contexts/ThemeContext';
-import { getColors } from '@/constants/theme';
+import { getColors, getTypography } from '@/constants/theme';
 import { userRegister } from '@/contexts/user_register';
 import { useRegisterPending } from '@/contexts/RegisterPendingContext';
 import { useGlobalAlert } from '@/contexts/AlertContext';
@@ -126,7 +125,6 @@ export default function RegisterScreen() {
   const { t } = useTranslation();
   const { theme } = useTheme();
   const colors = getColors(theme);
-  const isDark = theme === 'dark' || theme === 'darkGreen';
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -181,266 +179,305 @@ export default function RegisterScreen() {
     alertRegisterFailure(registerResult.error.error.message, t, showAlert);
   };
 
+  const onClose = () => {
+    if (router.canGoBack()) router.back();
+    else replaceLoginClearingAuthStack();
+  };
+
+  const goLogin = () => replaceLoginClearingAuthStack();
+
+  const fieldBorder = (key: string, hasError: boolean): string => {
+    if (hasError) return '#EF4444';
+    if (focusedField === key) return colors.primary;
+    return colors.border.primary;
+  };
+
+  const renderPillInput = (props: React.ComponentProps<typeof TextInput> & { fieldKey: string; hasError: boolean }) => {
+    const { fieldKey, hasError, ...inputProps } = props;
+    return (
+      <TextInput
+        {...inputProps}
+        style={[
+          styles.pillInput,
+          {
+            backgroundColor: colors.background.card,
+            borderColor: fieldBorder(fieldKey, hasError),
+            color: colors.text.primary,
+          },
+        ]}
+      />
+    );
+  };
+
   return (
-    <LinearGradient colors={isDark ? ['#0D1117', '#14181F', '#1A1F28'] : [colors.background.secondary, colors.background.primary, colors.background.secondary]} style={{ flex: 1 }}>
+    <View style={[styles.screen, { backgroundColor: colors.background.primary }]}>
       <KeyboardAwareScrollView
         style={{ flex: 1 }}
         contentContainerStyle={styles.scrollContent}
-        enableOnAndroid={true}
+        enableOnAndroid
         keyboardShouldPersistTaps="handled"
         extraScrollHeight={keyboardHeight}
-        enableAutomaticScroll={true}
+        enableAutomaticScroll
       >
-        {/* Hero */}
-        <View style={styles.hero}>
+        {/* Header */}
+        <View style={styles.headerRow}>
+          <Text style={[styles.title, { color: colors.text.primary, fontFamily: getTypography(theme).fontFamily.display }]}>
+            Registrieren
+          </Text>
+          <TouchableOpacity
+            style={[styles.closeBtn, { borderColor: colors.border.primary }]}
+            onPress={onClose}
+            hitSlop={8}
+            activeOpacity={0.7}
+          >
+            <X size={18} color={colors.text.primary} />
+          </TouchableOpacity>
+        </View>
+
+        <Text style={[styles.subtitle, { color: colors.text.primary }]}>
+          {t('auth.register.subtitle')}
+        </Text>
+
+        {/* First name */}
+        <View style={styles.fieldGroup}>
+          {renderPillInput({
+            fieldKey: 'firstName',
+            hasError: !!errors.firstName,
+            value: firstName,
+            onChangeText: (text) => { setFirstName(text); setErrors({ ...errors, firstName: '' }); },
+            placeholder: t('auth.register.firstName'),
+            placeholderTextColor: colors.text.placeholder,
+            autoComplete: 'name',
+            returnKeyType: 'next',
+            onFocus: () => setFocusedField('firstName'),
+            onBlur: () => setFocusedField(''),
+            onSubmitEditing: () => lastNameRef.current?.focus(),
+          })}
+          <RegisterFieldError messageKey={errors.firstName} t={t} />
+        </View>
+
+        {/* Last name */}
+        <View style={styles.fieldGroup}>
+          {renderPillInput({
+            ref: lastNameRef as any,
+            fieldKey: 'lastName',
+            hasError: !!errors.lastName,
+            value: lastName,
+            onChangeText: (text) => { setLastName(text); setErrors({ ...errors, lastName: '' }); },
+            placeholder: t('auth.register.lastName'),
+            placeholderTextColor: colors.text.placeholder,
+            autoComplete: 'name',
+            returnKeyType: 'next',
+            onFocus: () => setFocusedField('lastName'),
+            onBlur: () => setFocusedField(''),
+            onSubmitEditing: () => emailRef.current?.focus(),
+          })}
+          <RegisterFieldError messageKey={errors.lastName} t={t} />
+        </View>
+
+        {/* Email */}
+        <View style={styles.fieldGroup}>
+          {renderPillInput({
+            ref: emailRef as any,
+            fieldKey: 'email',
+            hasError: !!errors.email,
+            value: email,
+            onChangeText: (text) => { setEmail(text); setErrors({ ...errors, email: '' }); },
+            placeholder: t('auth.register.email'),
+            placeholderTextColor: colors.text.placeholder,
+            keyboardType: 'email-address',
+            autoCapitalize: 'none',
+            autoComplete: 'email',
+            returnKeyType: 'next',
+            onFocus: () => setFocusedField('email'),
+            onBlur: () => setFocusedField(''),
+            onSubmitEditing: () => passwordRef.current?.focus(),
+          })}
+          <RegisterFieldError messageKey={errors.email} t={t} />
+        </View>
+
+        {/* Password */}
+        <View style={styles.fieldGroup}>
+          <View
+            style={[
+              styles.pillInputWrap,
+              {
+                backgroundColor: colors.background.card,
+                borderColor: fieldBorder('password', !!errors.pwField),
+              },
+            ]}
+          >
+            <TextInput
+              ref={passwordRef}
+              style={[styles.pillInputInline, { color: colors.text.primary }]}
+              value={password}
+              onChangeText={(text) => { setPassword(text); setErrors({ ...errors, pwField: '' }); }}
+              placeholder={t('auth.register.password')}
+              placeholderTextColor={colors.text.placeholder}
+              secureTextEntry={!showPassword}
+              autoComplete="new-password"
+              maxLength={SIGNUP_PASSWORD_MAX_LENGTH}
+              returnKeyType="next"
+              onFocus={() => setFocusedField('password')}
+              onBlur={() => setFocusedField('')}
+              onSubmitEditing={() => confirmRef.current?.focus()}
+            />
+            <PasswordToggle visible={showPassword} onToggle={() => setShowPassword(!showPassword)} />
+          </View>
+          <RegisterPwFieldError code={errors.pwField} t={t} />
+        </View>
+
+        {/* Confirm password */}
+        <View style={styles.fieldGroup}>
+          <View
+            style={[
+              styles.pillInputWrap,
+              {
+                backgroundColor: colors.background.card,
+                borderColor: fieldBorder('confirm', !!errors.cpwField),
+              },
+            ]}
+          >
+            <TextInput
+              ref={confirmRef}
+              style={[styles.pillInputInline, { color: colors.text.primary }]}
+              value={confirmPassword}
+              onChangeText={(text) => { setConfirmPassword(text); setErrors({ ...errors, cpwField: '' }); }}
+              placeholder={t('auth.register.confirmPassword')}
+              placeholderTextColor={colors.text.placeholder}
+              secureTextEntry={!showConfirmPassword}
+              autoComplete="new-password"
+              maxLength={SIGNUP_PASSWORD_MAX_LENGTH}
+              returnKeyType="done"
+              onFocus={() => setFocusedField('confirm')}
+              onBlur={() => setFocusedField('')}
+              onSubmitEditing={handleRegister}
+            />
+            <PasswordToggle visible={showConfirmPassword} onToggle={() => setShowConfirmPassword(!showConfirmPassword)} />
+          </View>
+          <RegisterPwFieldError code={errors.cpwField} t={t} />
+        </View>
+
+        {generalError ? <Text style={styles.generalError}>{t(generalError)}</Text> : null}
+
+        {/* Register button */}
+        <TouchableOpacity
+          onPress={handleRegister}
+          disabled={loading}
+          activeOpacity={0.85}
+          style={[styles.primaryBtn, { backgroundColor: colors.primary, opacity: loading ? 0.6 : 1 }]}
+        >
+          {loading
+            ? <ActivityIndicator color="#fff" />
+            : <Text style={styles.primaryBtnText}>{t('auth.register.createAccount')}</Text>}
+        </TouchableOpacity>
+
+        {/* Login card with cheese illustration */}
+        <TouchableOpacity
+          onPress={goLogin}
+          activeOpacity={0.85}
+          style={[styles.signupCard, { backgroundColor: colors.background.secondary }]}
+        >
+          <View style={styles.signupCardLeft}>
+            <Text style={[styles.signupTitle, { color: colors.text.primary, fontFamily: getTypography(theme).fontFamily.display }]}>
+              {t('auth.register.alreadyHaveAccount')}
+            </Text>
+            <View style={styles.signupActionRow}>
+              <View style={[styles.signupArrow, { backgroundColor: colors.primary }]}>
+                <ChevronRight size={14} color="#fff" strokeWidth={3} />
+              </View>
+              <Text style={[styles.signupActionText, { color: colors.text.primary }]}>
+                {t('auth.register.signIn')}
+              </Text>
+            </View>
+          </View>
           <Image
-            source={require('../../assets/images/kochgourmet-logo.png')}
-            style={styles.logo}
+            source={require('../../assets/images/chese.png')}
+            style={styles.signupCheese}
             resizeMode="contain"
           />
-          <Text style={[styles.appName, { color: colors.text.primary }]}>{t('auth.register.title')}</Text>
-          <Text style={[styles.tagline, { color: colors.text.tertiary }]}>{t('auth.register.subtitle')}</Text>
-        </View>
+        </TouchableOpacity>
 
-        {/* Card */}
-        <View style={[styles.card, { backgroundColor: colors.background.card, borderColor: colors.border.primary }]}>
-
-          {/* First name */}
-          <View style={styles.fieldGroup}>
-            <Text style={[styles.label, { color: colors.text.primary }]}>{t('auth.register.firstName')}<Text style={styles.required}> *</Text></Text>
-            <InputRow icon={<User size={18} color={focusedField === 'firstName' ? colors.border.focus : colors.text.tertiary} />} focused={focusedField === 'firstName'} hasError={!!errors.firstName} colors={colors}>
-              <TextInput
-                style={[styles.input, { color: colors.text.primary }]}
-                value={firstName}
-                onChangeText={(text) => { setFirstName(text); setErrors({ ...errors, firstName: '' }); }}
-                placeholder={t('auth.register.firstName')}
-                placeholderTextColor={colors.text.placeholder}
-                autoComplete="name"
-                returnKeyType="next"
-                onFocus={() => setFocusedField('firstName')}
-                onBlur={() => setFocusedField('')}
-                onSubmitEditing={() => lastNameRef.current?.focus()}
-              />
-            </InputRow>
-            <RegisterFieldError messageKey={errors.firstName} t={t} />
-          </View>
-
-          {/* Last name */}
-          <View style={styles.fieldGroup}>
-            <Text style={[styles.label, { color: colors.text.primary }]}>{t('auth.register.lastName')}<Text style={styles.required}> *</Text></Text>
-            <InputRow icon={<User size={18} color={focusedField === 'lastName' ? colors.border.focus : colors.text.tertiary} />} focused={focusedField === 'lastName'} hasError={!!errors.lastName} colors={colors}>
-              <TextInput
-                ref={lastNameRef}
-                style={[styles.input, { color: colors.text.primary }]}
-                value={lastName}
-                onChangeText={(text) => { setLastName(text); setErrors({ ...errors, lastName: '' }); }}
-                placeholder={t('auth.register.lastName')}
-                placeholderTextColor={colors.text.placeholder}
-                autoComplete="name"
-                returnKeyType="next"
-                onFocus={() => setFocusedField('lastName')}
-                onBlur={() => setFocusedField('')}
-                onSubmitEditing={() => emailRef.current?.focus()}
-              />
-            </InputRow>
-            <RegisterFieldError messageKey={errors.lastName} t={t} />
-          </View>
-
-          {/* Email */}
-          <View style={styles.fieldGroup}>
-            <Text style={[styles.label, { color: colors.text.primary }]}>{t('auth.register.email')}<Text style={styles.required}> *</Text></Text>
-            <InputRow icon={<Mail size={18} color={focusedField === 'email' ? colors.border.focus : colors.text.tertiary} />} focused={focusedField === 'email'} hasError={!!errors.email} colors={colors}>
-              <TextInput
-                ref={emailRef}
-                style={[styles.input, { color: colors.text.primary }]}
-                value={email}
-                onChangeText={(text) => { setEmail(text); setErrors({ ...errors, email: '' }); }}
-                placeholder={t('auth.register.email')}
-                placeholderTextColor={colors.text.placeholder}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoComplete="email"
-                returnKeyType="next"
-                onFocus={() => setFocusedField('email')}
-                onBlur={() => setFocusedField('')}
-                onSubmitEditing={() => passwordRef.current?.focus()}
-              />
-            </InputRow>
-            <RegisterFieldError messageKey={errors.email} t={t} />
-          </View>
-
-          {/* Password */}
-          <View style={styles.fieldGroup}>
-            <Text style={[styles.label, { color: colors.text.primary }]}>{t('auth.register.password')}<Text style={styles.required}> *</Text></Text>
-            <InputRow icon={<Lock size={18} color={focusedField === 'password' ? colors.border.focus : colors.text.tertiary} />} focused={focusedField === 'password'} hasError={!!errors.pwField} colors={colors}>
-              <TextInput
-                ref={passwordRef}
-                style={[styles.input, { color: colors.text.primary }]}
-                value={password}
-                onChangeText={(text) => { setPassword(text); setErrors({ ...errors, pwField: '' }); }}
-                placeholder={t('auth.register.password')}
-                placeholderTextColor={colors.text.placeholder}
-                secureTextEntry={!showPassword}
-                autoComplete="new-password"
-                maxLength={SIGNUP_PASSWORD_MAX_LENGTH}
-                returnKeyType="next"
-                onFocus={() => setFocusedField('password')}
-                onBlur={() => setFocusedField('')}
-                onSubmitEditing={() => confirmRef.current?.focus()}
-              />
-              <PasswordToggle visible={showPassword} onToggle={() => setShowPassword(!showPassword)} />
-            </InputRow>
-            <RegisterPwFieldError code={errors.pwField} t={t} />
-          </View>
-
-          {/* Confirm password */}
-          <View style={styles.fieldGroup}>
-            <Text style={[styles.label, { color: colors.text.primary }]}>{t('auth.register.confirmPassword')}<Text style={styles.required}> *</Text></Text>
-            <InputRow icon={<Lock size={18} color={focusedField === 'confirm' ? colors.border.focus : colors.text.tertiary} />} focused={focusedField === 'confirm'} hasError={!!errors.cpwField} colors={colors}>
-              <TextInput
-                ref={confirmRef}
-                style={[styles.input, { color: colors.text.primary }]}
-                value={confirmPassword}
-                onChangeText={(text) => { setConfirmPassword(text); setErrors({ ...errors, cpwField: '' }); }}
-                placeholder={t('auth.register.confirmPassword')}
-                placeholderTextColor={colors.text.placeholder}
-                secureTextEntry={!showConfirmPassword}
-                autoComplete="new-password"
-                maxLength={SIGNUP_PASSWORD_MAX_LENGTH}
-                returnKeyType="done"
-                onFocus={() => setFocusedField('confirm')}
-                onBlur={() => setFocusedField('')}
-                onSubmitEditing={handleRegister}
-              />
-              <PasswordToggle visible={showConfirmPassword} onToggle={() => setShowConfirmPassword(!showConfirmPassword)} />
-            </InputRow>
-            <RegisterPwFieldError code={errors.cpwField} t={t} />
-          </View>
-
-          {generalError ? <Text style={styles.generalError}>{t(generalError)}</Text> : null}
-
-          {/* Register button */}
-          <TouchableOpacity onPress={handleRegister} disabled={loading} activeOpacity={0.85}>
-            <LinearGradient
-              colors={loading ? (isDark ? ['#3A4030', '#3A4030'] : [colors.interactive.disabled, colors.interactive.disabled]) : [colors.primary, colors.primaryDark]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.button}
-            >
-              {loading
-                ? <ActivityIndicator size="small" color={colors.primary} />
-                : <Text style={[styles.buttonText, { color: colors.text.onPrimary }]}>{t('auth.register.createAccount')}</Text>}
-            </LinearGradient>
-          </TouchableOpacity>
-
-          {/* Divider */}
-          <View style={styles.divider}>
-            <View style={[styles.dividerLine, { backgroundColor: colors.border.primary }]} />
-            <Text style={[styles.dividerText, { color: colors.text.secondary }]}>or</Text>
-            <View style={[styles.dividerLine, { backgroundColor: colors.border.primary }]} />
-          </View>
-
-          {/* Footer */}
-          <View style={styles.footer}>
-            <Text style={[styles.footerText, { color: colors.text.secondary }]}>{t('auth.register.alreadyHaveAccount')} </Text>
-            <TouchableOpacity onPress={() => replaceLoginClearingAuthStack()}>
-              <Text style={[styles.linkText, { color: colors.primary }]}>{t('auth.register.signIn')}</Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.languageContainer}>
-            <LanguageSelector />
-          </View>
+        <View style={styles.languageContainer}>
+          <LanguageSelector />
         </View>
       </KeyboardAwareScrollView>
-    </LinearGradient>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  screen: { flex: 1 },
   scrollContent: {
     flexGrow: 1,
+    paddingTop: 90,
+    paddingHorizontal: 26,
     paddingBottom: 40,
   },
 
-  // Hero
-  hero: {
-    alignItems: 'center',
-    paddingTop: 60,
-    paddingBottom: 32,
-    paddingHorizontal: 24,
+  // Header
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    marginBottom: 12,
   },
-  logo: {
-    width: '88%',
-    maxWidth: 200,
-    height: undefined,
-    aspectRatio: 527 / 77,
-    alignSelf: 'center',
-    marginBottom: 10,
-  },
-  appName: {
-    fontSize: 26,
-    fontFamily: 'Inter-Bold',
+  title: {
+    fontSize: 44,
+    lineHeight: 54,
     letterSpacing: -0.5,
-    textAlign: 'center',
+    flex: 1,
   },
-  tagline: {
-    fontSize: 14,
-    fontFamily: 'Inter-Regular',
-    marginTop: 6,
-    textAlign: 'center',
-  },
-
-  // Card
-  card: {
-    marginHorizontal: 20,
-    borderRadius: 24,
-    padding: 28,
+  closeBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 8,
+  },
+  subtitle: {
+    fontSize: 16,
+    fontFamily: 'Inter-Regular',
+    lineHeight: 24,
+    marginBottom: 28,
   },
 
   // Fields
-  fieldGroup: {
-    marginBottom: 16,
+  fieldGroup: { marginBottom: 14 },
+  pillInput: {
+    borderWidth: 1,
+    borderRadius: 9999,
+    paddingHorizontal: 22,
+    paddingVertical: 14,
+    fontSize: 15,
+    fontFamily: 'Inter-Regular',
+    minHeight: 48,
   },
-  label: {
-    fontSize: 13,
-    fontFamily: 'Inter-Medium',
-    marginBottom: 8,
-    letterSpacing: 0.1,
-  },
-  required: {
-    color: '#EF4444',
-  },
-  inputRow: {
+  pillInputWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 12,
-    borderWidth: 1.5,
+    borderWidth: 1,
+    borderRadius: 9999,
+    paddingRight: 16,
+    minHeight: 48,
   },
-  inputRowFocused: {
-  },
-  inputRowError: {
-    borderColor: '#EF4444',
-  },
-  inputIcon: {
-    marginLeft: 14,
-  },
-  input: {
+  pillInputInline: {
     flex: 1,
+    paddingHorizontal: 22,
     paddingVertical: 14,
-    paddingHorizontal: 10,
     fontSize: 15,
     fontFamily: 'Inter-Regular',
   },
-  eyeButton: {
-    padding: 14,
-  },
+  eyeButton: { padding: 6 },
+
   errorText: {
     color: '#EF4444',
     fontSize: 12,
     fontFamily: 'Inter-Regular',
     marginTop: 5,
+    marginLeft: 22,
   },
   generalError: {
     color: '#EF4444',
@@ -450,54 +487,63 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Regular',
   },
 
-  // Button
-  button: {
-    borderRadius: 12,
-    paddingVertical: 15,
+  // Primary button
+  primaryBtn: {
+    paddingVertical: 14,
+    borderRadius: 9999,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 4,
+    marginTop: 8,
   },
-  buttonText: {
-    fontSize: 16,
+  primaryBtnText: {
+    color: '#fff',
+    fontSize: 15,
     fontFamily: 'Inter-SemiBold',
-    letterSpacing: 0.2,
   },
 
-  // Divider
-  divider: {
+  // Sign-in card with cheese illustration (image overflows slightly at bottom)
+  signupCard: {
+    marginTop: 28,
+    marginBottom: 30,
+    borderRadius: 16,
+    paddingVertical: 44,
+    paddingHorizontal: 24,
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 24,
+    overflow: 'visible',
   },
-  dividerLine: {
-    flex: 1,
-    height: 1,
+  signupCardLeft: { flex: 1, gap: 14, paddingRight: 120 },
+  signupTitle: {
+    fontSize: 24,
+    lineHeight: 30,
   },
-  dividerText: {
-    fontSize: 12,
-    fontFamily: 'Inter-Regular',
-    marginHorizontal: 12,
-  },
-
-  // Footer
-  footer: {
+  signupActionRow: {
     flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  signupArrow: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    alignItems: 'center',
     justifyContent: 'center',
-    alignItems: 'center',
   },
-  footerText: {
-    fontSize: 14,
-    fontFamily: 'Inter-Regular',
-  },
-  linkText: {
-    fontSize: 14,
+  signupActionText: {
+    fontSize: 15,
     fontFamily: 'Inter-SemiBold',
+  },
+  signupCheese: {
+    position: 'absolute',
+    right: 12,
+    top: 8,
+    width: 130,
+    height: 200,
   },
 
   // Language
   languageContainer: {
-    marginTop: 20,
+    marginTop: 56,
     alignItems: 'center',
   },
 });

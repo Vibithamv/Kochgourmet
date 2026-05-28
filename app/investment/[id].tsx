@@ -295,10 +295,11 @@ export default function InvestmentScreen() {
   ) => {
     try {
       offering.calculateTokenAmt(tokenAmount, currency, id, 0).then((data) => {
+        if (!data) return;
         if (data.success && data.data) {
           setTotalAmount(Number.parseInt(data.data.data.paymentAmount, 10));
         } else {
-          showAlert(t('common.error'), data.error.message || t('common.errorMessage'));
+          showAlert(t('common.error'), data.error?.message || t('common.errorMessage'));
         }
       });
     } catch (error: any) {

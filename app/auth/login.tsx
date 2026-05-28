@@ -9,14 +9,13 @@ import {
   Image,
   Keyboard,
 } from 'react-native';
-import { Link, router, useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { Eye, EyeOff, Mail, Lock } from 'lucide-react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Eye, EyeOff, X, ChevronRight } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
-import { getColors } from '@/constants/theme';
+import { getColors, getTypography } from '@/constants/theme';
 import { useTranslation } from 'react-i18next';
 import LanguageSelector from '@/components/LanguageSelector';
 import { useGlobalAlert } from '@/contexts/AlertContext';
@@ -127,7 +126,6 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [tenantID, setTenantID] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [facebookLoading, setFacebookLoading] = useState(false);
@@ -140,7 +138,6 @@ export default function LoginScreen() {
   }>();
   const { theme } = useTheme();
   const colors = getColors(theme);
-  const isDark = theme === 'dark' || theme === 'darkGreen';
   const [generalError, setGeneralError] = useState('');
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [emailFocused, setEmailFocused] = useState(false);
@@ -164,13 +161,6 @@ export default function LoginScreen() {
       showSubscription.remove();
       hideSubscription.remove();
     };
-  }, []);
-
-  useEffect(() => {
-    const loadTenant = async () => {
-      setTenantID((await AsyncStorage.getItem('tenantID')) || '');
-    };
-    loadTenant();
   }, []);
 
   useFocusEffect(
@@ -465,346 +455,312 @@ export default function LoginScreen() {
     }
   };
 
+  const onClose = () => {
+    if (router.canGoBack()) router.back();
+  };
+
+  const goRegister = () => router.push('/auth/register');
+
+  // Derive border colors so JSX has no nested ternaries.
+  const borderFor = (hasError: boolean, isFocused: boolean): string => {
+    if (hasError) return '#EF4444';
+    if (isFocused) return colors.primary;
+    return colors.border.primary;
+  };
+  const emailBorder = borderFor(Boolean(errors.email), emailFocused);
+  const passwordBorder = borderFor(Boolean(errors.pwField), passwordFocused);
+
   return (
-    <LinearGradient
-      colors={isDark ? ['#0D1117', '#14181F', '#1A1F28'] : [colors.background.secondary, colors.background.primary, colors.background.secondary]}
-      style={{ flex: 1 }}
-    >
+    <View style={[styles.screen, { backgroundColor: colors.background.primary }]}>
       <KeyboardAwareScrollView
         style={{ flex: 1 }}
         contentContainerStyle={styles.scrollContent}
-        enableOnAndroid={true}
+        enableOnAndroid
         keyboardShouldPersistTaps="handled"
         extraScrollHeight={keyboardHeight}
-        enableAutomaticScroll={true}
+        enableAutomaticScroll
       >
-        {/* Hero section */}
-        <View style={styles.hero}>
-          {/* Decorative accent circle behind logo */}
-          <Image
-            source={require('../../assets/images/kochgourmet-logo.png')}
-            style={styles.logo}
-            resizeMode="contain"
-          />
-
-          {/* <Text style={[styles.appName, { color: colors.text.primary }]}>
-            {tenantID || t('common.defaultTenantName')}
-          </Text> */}
-          <Text style={[styles.tagline, { color: colors.text.tertiary }]}>{t('auth.login.title')}</Text>
+        {/* Header row */}
+        <View style={styles.headerRow}>
+          <Text style={[styles.title, { color: colors.text.primary, fontFamily: getTypography(theme).fontFamily.display }]}>
+            Einloggen
+          </Text>
+          {router.canGoBack() && (
+            <TouchableOpacity
+              style={[styles.closeBtn, { borderColor: colors.border.primary }]}
+              onPress={onClose}
+              hitSlop={8}
+              activeOpacity={0.7}
+            >
+              <X size={18} color={colors.text.primary} />
+            </TouchableOpacity>
+          )}
         </View>
 
-        {/* Form card */}
-        <View style={[styles.card, { backgroundColor: colors.background.card, borderColor: colors.border.primary }]}>
-          {/* Email field */}
-          <View style={styles.fieldGroup}>
-            <Text style={[styles.label, { color: colors.text.primary }]}>
-              {t('auth.login.email')}
-              <Text style={styles.required}> *</Text>
-            </Text>
-            <View
-              style={[
-                styles.inputRow,
-                { backgroundColor: colors.background.secondary, borderColor: emailFocused ? colors.border.focus : colors.border.primary },
-                errors.email ? styles.inputRowError : null,
-              ]}
-            >
-              <Mail size={18} color={emailFocused ? colors.border.focus : colors.text.tertiary} style={styles.inputIcon} />
-              <TextInput
-                style={[styles.input, { color: colors.text.primary }]}
-                value={email}
-                onChangeText={(text) => {
-                  setEmail(text);
-                  if (errors.email) setErrors({ ...errors, email: '' });
-                }}
-                placeholder={t('auth.login.email')}
-                placeholderTextColor={colors.text.placeholder}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoComplete="email"
-                returnKeyType="next"
-                onFocus={() => setEmailFocused(true)}
-                onBlur={() => setEmailFocused(false)}
-                onSubmitEditing={() => passwordRef.current?.focus()}
-              />
-            </View>
-            {errors.email ? (
-              <Text style={styles.errorText}>{t(errors.email)}</Text>
-            ) : null}
-          </View>
+        <Text style={[styles.subtitle, { color: colors.text.primary }]}>
+          Melde dich an, um weitere Features unserer App zu verwenden.
+        </Text>
 
-          {/* Password field */}
-          <View style={styles.fieldGroup}>
-            <Text style={[styles.label, { color: colors.text.primary }]}>
-              {t('auth.login.password')}
-              <Text style={styles.required}> *</Text>
-            </Text>
-            <View
-              style={[
-                styles.inputRow,
-                { backgroundColor: colors.background.secondary, borderColor: passwordFocused ? colors.border.focus : colors.border.primary },
-                errors.pwField ? styles.inputRowError : null,
-              ]}
-            >
-              <Lock size={18} color={passwordFocused ? colors.border.focus : colors.text.tertiary} style={styles.inputIcon} />
-              <TextInput
-                ref={passwordRef}
-                style={[styles.input, { color: colors.text.primary }]}
-                value={password}
-                onChangeText={(text) => {
-                  setPassword(text);
-                  if (errors.pwField) setErrors({ ...errors, pwField: '' });
-                }}
-                placeholder={t('auth.login.password')}
-                placeholderTextColor={colors.text.placeholder}
-                secureTextEntry={!showPassword}
-                autoComplete="password"
-                returnKeyType="done"
-                onFocus={() => setPasswordFocused(true)}
-                onBlur={() => setPasswordFocused(false)}
-                onSubmitEditing={handleLogin}
-              />
-              <TouchableOpacity
-                style={styles.eyeButton}
-                onPress={() => setShowPassword(!showPassword)}
-              >
-                {showPassword ? (
-                  <EyeOff size={18} color={colors.text.placeholder} />
-                ) : (
-                  <Eye size={18} color={colors.text.placeholder} />
-                )}
-              </TouchableOpacity>
-            </View>
-            {errors.pwField ? (
-              <Text style={styles.errorText}>
-                {t(
-                  loginPasswordFieldErrorI18nKey[
-                    errors.pwField as LoginPasswordFieldErrorCode
-                  ]
-                )}
-              </Text>
-            ) : null}
-          </View>
-
-          {/* Forgot password */}
-          <TouchableOpacity onPress={onForgot} style={styles.forgotContainer}>
-            <Text style={[styles.forgotText, { color: colors.primary }]}>
-              {t('auth.login.forgotPassword')}
-            </Text>
-          </TouchableOpacity>
-
-          {generalError ? (
-            <Text style={styles.generalError}>{t(generalError)}</Text>
+        {/* Email */}
+        <View style={styles.fieldGroup}>
+          <TextInput
+            style={[
+              styles.pillInput,
+              {
+                backgroundColor: colors.background.card,
+                borderColor: emailBorder,
+                color: colors.text.primary,
+              },
+            ]}
+            value={email}
+            onChangeText={(text) => {
+              setEmail(text);
+              if (errors.email) setErrors({ ...errors, email: '' });
+            }}
+            placeholder={t('auth.login.email')}
+            placeholderTextColor={colors.text.placeholder}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoComplete="email"
+            returnKeyType="next"
+            onFocus={() => setEmailFocused(true)}
+            onBlur={() => setEmailFocused(false)}
+            onSubmitEditing={() => passwordRef.current?.focus()}
+          />
+          {errors.email ? (
+            <Text style={styles.errorText}>{t(errors.email)}</Text>
           ) : null}
+        </View>
 
-          {/* Sign in button */}
+        {/* Password */}
+        <View style={styles.fieldGroup}>
+          <View
+            style={[
+              styles.pillInputWrap,
+              {
+                backgroundColor: colors.background.card,
+                borderColor: passwordBorder,
+              },
+            ]}
+          >
+            <TextInput
+              ref={passwordRef}
+              style={[styles.pillInputInline, { color: colors.text.primary }]}
+              value={password}
+              onChangeText={(text) => {
+                setPassword(text);
+                if (errors.pwField) setErrors({ ...errors, pwField: '' });
+              }}
+              placeholder={t('auth.login.password')}
+              placeholderTextColor={colors.text.placeholder}
+              secureTextEntry={!showPassword}
+              autoComplete="password"
+              returnKeyType="done"
+              onFocus={() => setPasswordFocused(true)}
+              onBlur={() => setPasswordFocused(false)}
+              onSubmitEditing={handleLogin}
+            />
+            <TouchableOpacity
+              style={styles.eyeButton}
+              onPress={() => setShowPassword(!showPassword)}
+              hitSlop={8}
+            >
+              {showPassword
+                ? <EyeOff size={18} color={colors.text.tertiary} />
+                : <Eye size={18} color={colors.text.tertiary} />}
+            </TouchableOpacity>
+          </View>
+          {errors.pwField ? (
+            <Text style={styles.errorText}>
+              {t(loginPasswordFieldErrorI18nKey[errors.pwField as LoginPasswordFieldErrorCode])}
+            </Text>
+          ) : null}
+        </View>
+
+        {generalError ? (
+          <Text style={styles.generalError}>{t(generalError)}</Text>
+        ) : null}
+
+        {/* Sign in button + forgot link on same row */}
+        <View style={styles.actionRow}>
           <TouchableOpacity
             onPress={handleLogin}
             disabled={loading}
             activeOpacity={0.85}
+            style={[styles.primaryBtn, { backgroundColor: colors.primary, opacity: loading ? 0.6 : 1 }]}
           >
-            <LinearGradient
-              colors={loading ? (isDark ? ['#3A4030', '#3A4030'] : [colors.interactive.disabled, colors.interactive.disabled]) : [colors.primary, colors.primaryDark]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.loginButton}
-            >
-              {loading ? (
-                <ActivityIndicator size="small" color={colors.text.onPrimary} />
-              ) : (
-                <Text style={[styles.loginButtonText, { color: colors.text.onPrimary }]}>
-                  {t('auth.login.signIn')}
-                </Text>
-              )}
-            </LinearGradient>
+            {loading
+              ? <ActivityIndicator color="#fff" />
+              : <Text style={styles.primaryBtnText}>{t('auth.login.signIn')}</Text>}
           </TouchableOpacity>
+          <TouchableOpacity onPress={onForgot} style={styles.forgotLink}>
+            <Text style={[styles.forgotText, { color: colors.text.primary }]}>
+              {t('auth.login.forgotPassword')}
+            </Text>
+          </TouchableOpacity>
+        </View>
 
-          {(showGoogleSignIn || showFacebookSignIn) ? (
-            <>
-              <View style={styles.divider}>
-                <View style={[styles.dividerLine, { backgroundColor: colors.border.primary }]} />
-                <Text style={[styles.dividerText, { color: colors.text.secondary }]}>{t('auth.login.or')}</Text>
-                <View style={[styles.dividerLine, { backgroundColor: colors.border.primary }]} />
-              </View>
-
-              {showGoogleSignIn ? (
-                <TouchableOpacity
-                  onPress={handleGoogleSignIn}
-                  disabled={loading || googleLoading || facebookLoading}
-                  activeOpacity={0.85}
-                  style={[
-                    styles.googleButton,
-                    {
-                      backgroundColor: colors.background.secondary,
-                      borderColor: colors.border.primary,
-                      opacity: loading || googleLoading || facebookLoading ? 0.65 : 1,
-                    },
-                  ]}
-                >
-                  {googleLoading ? (
-                    <ActivityIndicator size="small" color={colors.primary} />
-                  ) : (
-                    <>
-                      <FontAwesome name="google" size={20} color={colors.text.primary} style={styles.googleIcon} />
-                      <Text style={[styles.googleButtonText, { color: colors.text.primary }]}>
+        {/* OAuth options (kept when allowed) */}
+        {(showGoogleSignIn || showFacebookSignIn) ? (
+          <View style={styles.oauthGroup}>
+            {showGoogleSignIn ? (
+              <TouchableOpacity
+                onPress={handleGoogleSignIn}
+                disabled={loading || googleLoading || facebookLoading}
+                activeOpacity={0.85}
+                style={[
+                  styles.oauthBtn,
+                  {
+                    backgroundColor: colors.background.card,
+                    borderColor: colors.border.primary,
+                    opacity: loading || googleLoading || facebookLoading ? 0.65 : 1,
+                  },
+                ]}
+              >
+                {googleLoading
+                  ? <ActivityIndicator size="small" color={colors.primary} />
+                  : <>
+                      <FontAwesome name="google" size={18} color={colors.text.primary} />
+                      <Text style={[styles.oauthText, { color: colors.text.primary }]}>
                         {t('auth.login.signInWithGoogle')}
                       </Text>
-                    </>
-                  )}
-                </TouchableOpacity>
-              ) : null}
-
-              {showFacebookSignIn ? (
-                <TouchableOpacity
-                  onPress={handleFacebookSignIn}
-                  disabled={loading || googleLoading || facebookLoading}
-                  activeOpacity={0.85}
-                  style={[
-                    styles.googleButton,
-                    {
-                      backgroundColor: colors.background.secondary,
-                      borderColor: colors.border.primary,
-                      opacity: loading || googleLoading || facebookLoading ? 0.65 : 1,
-                    },
-                  ]}
-                >
-                  {facebookLoading ? (
-                    <ActivityIndicator size="small" color={colors.primary} />
-                  ) : (
-                    <>
-                      <FontAwesome name="facebook" size={20} color={colors.text.primary} style={styles.googleIcon} />
-                      <Text style={[styles.googleButtonText, { color: colors.text.primary }]}>
+                    </>}
+              </TouchableOpacity>
+            ) : null}
+            {showFacebookSignIn ? (
+              <TouchableOpacity
+                onPress={handleFacebookSignIn}
+                disabled={loading || googleLoading || facebookLoading}
+                activeOpacity={0.85}
+                style={[
+                  styles.oauthBtn,
+                  {
+                    backgroundColor: colors.background.card,
+                    borderColor: colors.border.primary,
+                    opacity: loading || googleLoading || facebookLoading ? 0.65 : 1,
+                  },
+                ]}
+              >
+                {facebookLoading
+                  ? <ActivityIndicator size="small" color={colors.primary} />
+                  : <>
+                      <FontAwesome name="facebook" size={18} color={colors.text.primary} />
+                      <Text style={[styles.oauthText, { color: colors.text.primary }]}>
                         {t('auth.login.signInWithFacebook')}
                       </Text>
-                    </>
-                  )}
-                </TouchableOpacity>
-              ) : null}
-            </>
-          ) : null}
-
-          {/* Sign up link */}
-          <View style={styles.footer}>
-            <Text style={[styles.footerText, { color: colors.text.secondary }]}>
-              {t('auth.login.noAccount')}{' '}
-            </Text>
-            <Link href="/auth/register" asChild>
-              <TouchableOpacity>
-                <Text style={[styles.linkText, { color: colors.primary }]}>{t('auth.login.signUp')}</Text>
+                    </>}
               </TouchableOpacity>
-            </Link>
+            ) : null}
           </View>
+        ) : null}
 
-          <View style={styles.languageContainer}>
-            <LanguageSelector />
+        {/* Sign up card with cheese illustration */}
+        <TouchableOpacity
+          onPress={goRegister}
+          activeOpacity={0.85}
+          style={[styles.signupCard, { backgroundColor: colors.background.secondary }]}
+        >
+          <View style={styles.signupCardLeft}>
+            <Text style={[styles.signupTitle, { color: colors.text.primary, fontFamily: getTypography(theme).fontFamily.display }]}>
+              {t('auth.login.noAccount')}
+            </Text>
+            <View style={styles.signupActionRow}>
+              <View style={[styles.signupArrow, { backgroundColor: colors.primary }]}>
+                <ChevronRight size={14} color="#fff" strokeWidth={3} />
+              </View>
+              <Text style={[styles.signupActionText, { color: colors.text.primary }]}>
+                {t('auth.login.signUp')}
+              </Text>
+            </View>
           </View>
+          <Image
+            source={require('../../assets/images/chese.png')}
+            style={styles.signupCheese}
+            resizeMode="contain"
+          />
+        </TouchableOpacity>
+
+        <View style={styles.languageContainer}>
+          <LanguageSelector />
         </View>
       </KeyboardAwareScrollView>
-    </LinearGradient>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  screen: { flex: 1 },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: 'center',
-    paddingTop: 24,
+    paddingTop: 90,
+    paddingHorizontal: 26,
     paddingBottom: 40,
   },
 
-  // Hero
-  hero: {
-    width: '100%',
-    alignItems: 'center',
-    paddingTop: 24,
-    paddingBottom: 20,
-    paddingHorizontal: 24,
+  // Header
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    marginBottom: 12,
   },
-  logo: {
-    width: '88%',
-    maxWidth: 300,
-    height: undefined,
-    aspectRatio: 527 / 77,
-    alignSelf: 'center',
-  },
-  appName: {
-    fontSize: 26,
-    fontFamily: 'Inter-Bold',
+  title: {
+    fontSize: 48,
+    lineHeight: 60,
     letterSpacing: -0.5,
-    textAlign: 'center',
+    flex: 1,
   },
-  tagline: {
-    fontSize: 14,
-    fontFamily: 'Inter-Regular',
-    marginTop: 18,
-    textAlign: 'center',
-  },
-
-  // Card
-  card: {
-    alignSelf: 'center',
-    width: '92%',
-    maxWidth: 400,
-    borderRadius: 24,
-    padding: 28,
+  closeBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 8,
+  },
+  subtitle: {
+    fontSize: 16,
+    fontFamily: 'Inter-Regular',
+    lineHeight: 24,
+    marginBottom: 32,
   },
 
   // Fields
-  fieldGroup: {
-    marginBottom: 16,
+  fieldGroup: { marginBottom: 14 },
+  pillInput: {
+    borderWidth: 1,
+    borderRadius: 9999,
+    paddingHorizontal: 22,
+    paddingVertical: 14,
+    fontSize: 15,
+    fontFamily: 'Inter-Regular',
+    minHeight: 48,
   },
-  label: {
-    fontSize: 13,
-    fontFamily: 'Inter-Medium',
-    marginBottom: 8,
-    letterSpacing: 0.1,
-  },
-  required: {
-    color: '#EF4444',
-  },
-  inputRow: {
+  pillInputWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 12,
-    borderWidth: 1.5,
+    borderWidth: 1,
+    borderRadius: 9999,
+    paddingRight: 16,
+    minHeight: 48,
   },
-  inputRowFocused: {
-  },
-  inputRowError: {
-    borderColor: '#EF4444',
-  },
-  inputIcon: {
-    marginLeft: 14,
-  },
-  input: {
+  pillInputInline: {
     flex: 1,
+    paddingHorizontal: 22,
     paddingVertical: 14,
-    paddingHorizontal: 10,
     fontSize: 15,
     fontFamily: 'Inter-Regular',
   },
-  eyeButton: {
-    padding: 14,
-  },
+  eyeButton: { padding: 6 },
+
   errorText: {
     color: '#EF4444',
     fontSize: 12,
     fontFamily: 'Inter-Regular',
     marginTop: 5,
-    textAlign: 'center',
+    marginLeft: 22,
   },
-
-  // Forgot password
-  forgotContainer: {
-    alignSelf: 'center',
-    marginBottom: 24,
-    marginTop: 4,
-  },
-  forgotText: {
-    fontSize: 13,
-    fontFamily: 'Inter-Medium',
-  },
-
   generalError: {
     color: '#EF4444',
     textAlign: 'center',
@@ -813,73 +769,93 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Regular',
   },
 
-  // Button
-  loginButton: {
-    borderRadius: 12,
-    paddingVertical: 15,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  loginButtonText: {
-    fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
-    letterSpacing: 0.2,
-  },
-
-  googleButton: {
+  // Action row (Einloggen + forgot password)
+  actionRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 12,
-    borderWidth: 1.5,
+    gap: 16,
+    marginTop: 8,
+  },
+  primaryBtn: {
     paddingVertical: 14,
-    paddingHorizontal: 16,
-    marginBottom: 8,
+    paddingHorizontal: 32,
+    borderRadius: 9999,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  googleIcon: {
-    marginRight: 10,
-  },
-  googleButtonText: {
+  primaryBtnText: {
+    color: '#fff',
     fontSize: 15,
     fontFamily: 'Inter-SemiBold',
-    letterSpacing: 0.2,
   },
-
-  // Divider
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 10,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-  },
-  dividerText: {
-    fontSize: 12,
+  forgotLink: { flex: 1 },
+  forgotText: {
+    fontSize: 14,
     fontFamily: 'Inter-Regular',
-    marginHorizontal: 12,
   },
 
-  // Footer
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+  // OAuth
+  oauthGroup: {
     marginTop: 20,
+    gap: 10,
   },
-  footerText: {
-    fontSize: 14,
-    fontFamily: 'Inter-Regular',
+  oauthBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 9999,
+    borderWidth: 1,
+    paddingVertical: 14,
+    gap: 10,
   },
-  linkText: {
-    fontSize: 14,
+  oauthText: {
+    fontSize: 15,
     fontFamily: 'Inter-SemiBold',
+  },
+
+  // Sign-up card with cheese illustration (image overflows slightly at bottom)
+  signupCard: {
+    marginTop: 28,
+    marginBottom: 30, // small breathing room for the dripping cheese overflow
+    borderRadius: 16,
+    paddingVertical: 44,
+    paddingHorizontal: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    overflow: 'visible',
+  },
+  signupCardLeft: { flex: 1, gap: 14, paddingRight: 120 },
+  signupTitle: {
+    fontSize: 24,
+    lineHeight: 30,
+  },
+  signupActionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  signupArrow: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  signupActionText: {
+    fontSize: 15,
+    fontFamily: 'Inter-SemiBold',
+  },
+  signupCheese: {
+    position: 'absolute',
+    right: 12,
+    top: 8, // sits inside the top of the card
+    width: 130,
+    height: 200, // overflows ~30-40px out the bottom only
   },
 
   // Language
   languageContainer: {
-    marginTop: 20,
+    marginTop: 56,
     alignItems: 'center',
   },
 });

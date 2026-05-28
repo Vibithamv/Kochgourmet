@@ -7,10 +7,9 @@ import {
   ScrollView,
   ActivityIndicator,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
-import { CheckCircle, LogOut } from 'lucide-react-native';
+import { CheckCircle, LogOut, ArrowLeft } from 'lucide-react-native';
 import {
   getColors,
   Typography,
@@ -37,15 +36,18 @@ export default function VerifyIdentityScreen() {
   const { showAlert } = useGlobalAlert();
   const { signOut } = useAuth();
   const [loading, setLoading] = React.useState(false);
-  const { syncKycStatusAndNavigate } = useKycPostVerificationFlow();
+  const [kycStatus, setKycStatus] = React.useState<string | null>(null);
+  // `fetchActiveAccountKycStatus` reads the status without redirecting,
+  // so users entering from the Menü don't get bounced when already verified.
+  const { fetchActiveAccountKycStatus } = useKycPostVerificationFlow();
 
   const loadData = async () => {
     setLoading(true);
     try {
-      await syncKycStatusAndNavigate();
+      const status = await fetchActiveAccountKycStatus();
+      setKycStatus(status);
     } catch (error) {
-      showAlert(t('common.error'), t('common.errorMessage'));
-      console.error('Error loading user data:', error);
+      console.error('Error loading KYC status:', error);
     } finally {
       setLoading(false);
     }
@@ -89,10 +91,47 @@ export default function VerifyIdentityScreen() {
     }
   };
 
+  // Derive content from kycStatus so the JSX has no nested ternaries.
+  const isKycSettled = kycStatus === 'CONFIRMED' || kycStatus === 'PENDING';
+  let titleText: string;
+  let subtitleText: string;
+  let buttonLabel: string;
+  if (kycStatus === 'CONFIRMED') {
+    titleText = 'KYC abgeschlossen';
+    subtitleText = 'Deine Identität wurde erfolgreich verifiziert.';
+    buttonLabel = 'Zurück';
+  } else if (kycStatus === 'PENDING') {
+    titleText = 'KYC wird überprüft';
+    subtitleText = 'Wir prüfen deine Angaben. Das dauert in der Regel 24–48 Stunden.';
+    buttonLabel = 'Zurück';
+  } else {
+    titleText = t('kycRequest.title');
+    subtitleText = t('kycRequest.subtitle');
+    buttonLabel = t('kycRequest.completeButton');
+  }
+
   return (
-    <LinearGradient colors={colors.gradient.secondary} style={styles.gradient}>
+    <View style={[styles.gradient, { backgroundColor: colors.background.secondary }]}>
       <TouchableOpacity
-        style={[styles.logoutBtn, { top: insets.top + 10, backgroundColor: colors.background.card }]}
+        style={[styles.circleBtn, {
+          top: insets.top + 10,
+          left: 20,
+          backgroundColor: colors.background.card,
+          borderColor: colors.border.primary,
+        }]}
+        onPress={() => router.back()}
+        hitSlop={8}
+        activeOpacity={0.7}
+      >
+        <ArrowLeft size={20} color={colors.text.primary} />
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[styles.circleBtn, {
+          top: insets.top + 10,
+          right: 20,
+          backgroundColor: colors.background.card,
+          borderColor: colors.border.primary,
+        }]}
         onPress={() => {
           showAlert(
             t('common.logout'),
@@ -145,25 +184,25 @@ export default function VerifyIdentityScreen() {
           </Text>
 
           <Text style={[styles.title, { color: colors.text.primary }]}>
-            {t('kycRequest.title')}
+            {titleText}
           </Text>
 
           {/* Subtitle */}
           <Text style={[styles.subtitle, { color: colors.text.secondary }]}>
-            {t('kycRequest.subtitle')}
+            {subtitleText}
           </Text>
 
           {/* Button */}
           <TouchableOpacity
             style={[styles.button, { backgroundColor: colors.primary }]}
-            disabled={loading}
-            onPress={handleCompleteKYC}
+            disabled={loading || isKycSettled}
+            onPress={isKycSettled ? () => router.back() : handleCompleteKYC}
           >
             {loading ? (
               <ActivityIndicator size="small" color={colors.text.inverse} />
             ) : (
               <Text style={[styles.buttonText, { color: colors.text.inverse }]}>
-                {t('kycRequest.completeButton')}
+                {buttonLabel}
               </Text>
             )}
           </TouchableOpacity>
@@ -179,7 +218,7 @@ export default function VerifyIdentityScreen() {
           </View>
         </View>
       </ScrollView>
-    </LinearGradient>
+    </View>
   );
 }
 
@@ -255,13 +294,14 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize.sm,
     fontFamily: Typography.fontFamily.medium,
   },
-  logoutBtn: {
+  circleBtn: {
     position: 'absolute',
-    right: 20,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    backgroundColor: '#1E293B',
-    borderRadius: 10,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
     zIndex: 999,
   },
   alertModalOverlay: {

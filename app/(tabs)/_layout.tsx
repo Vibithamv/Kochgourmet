@@ -1,266 +1,190 @@
-import { Tabs, useFocusEffect, usePathname } from 'expo-router';
+import { Tabs, usePathname } from 'expo-router';
 import React, { useCallback } from 'react';
 import {
-  View,
-  TouchableOpacity,
-  type TouchableOpacityProps,
-  StyleSheet,
+  BackHandler,
   Platform,
-  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { House, Search, TrendingUp, User } from 'lucide-react-native';
-import { useTenant } from '@/contexts/TenantContext';
+import { ChefHat, Heart, Menu, Star, TrendingUp } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getColors } from '@/constants/theme';
-import { BackHandler } from "react-native";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ASYNC_STORAGE_EXIT_RESET_TO_HOME } from '@/constants/navigation';
 import { useGlobalAlert } from '@/contexts/AlertContext';
-import { useTranslation } from 'react-i18next';
+import { useFocusEffect } from '@react-navigation/native';
 
-type TabBarIconProps = { size: number; color: string };
-type LucideIcon = React.ComponentType<{ size: number; color: string }>;
+// Figma: rgba(255,246,234,0.8) + backdropFilter blur(10px)
+const TAB_BAR_BG = 'rgba(255, 246, 234, 0.95)';
 
-function createTabBarIcon(Icon: LucideIcon) {
-  return function TabBarIcon({ size, color }: TabBarIconProps) {
-    return <Icon size={size} color={color} />;
-  };
+async function exitApp() {
+  try {
+    await AsyncStorage.setItem(ASYNC_STORAGE_EXIT_RESET_TO_HOME, '1');
+  } catch { /* still exit */ }
+  BackHandler.exitApp();
 }
 
-const TabIconHome = createTabBarIcon(House);
-const TabIconSearch = createTabBarIcon(Search);
-const TabIconTrendingUp = createTabBarIcon(TrendingUp);
-const TabIconUser = createTabBarIcon(User);
+const TAB_ICONS: Record<string, React.ComponentType<{ size: number; color: string }>> = {
+  index: Star,
+  offerings: TrendingUp,
+  projects: ChefHat,
+  portfolio: Heart,
+  account: Menu,
+};
 
-// Lazy load tab screens for better performance
-const HomeScreen = React.lazy(() => import('./index'));
-const ProjectsScreen = React.lazy(() => import('./projects'));
-const InvestmentsScreen = React.lazy(() => import('./portfolio'));
-const AccountScreen = React.lazy(() => import('./account'));
+const TAB_LABELS: Record<string, string> = {
+  index: 'Rezepte',
+  projects: 'Magazin',
+  portfolio: 'Favoriten',
+  offerings: 'Bonus',
+  account: 'Menü',
+};
+
+interface FloatingTabBarProps {
+  readonly state: any;
+  readonly navigation: any;
+  readonly primaryColor: string;
+  readonly tertiaryColor: string;
+  readonly tabBarBottom: number;
+}
+
+function FloatingTabBar({ state, navigation, primaryColor, tertiaryColor, tabBarBottom }: FloatingTabBarProps) {
+  const visibleRoutes = state.routes.filter((r: any) => r.name !== 'engagement');
+
+  return (
+    <View style={[styles.tabBarWrapper, { bottom: tabBarBottom }]}>
+      <View style={styles.tabBar}>
+        {visibleRoutes.map((route: any) => {
+          const routeIndex = state.routes.findIndex((r: any) => r.key === route.key);
+          const isFocused = state.index === routeIndex;
+          const Icon = TAB_ICONS[route.name] ?? Star;
+          const label = TAB_LABELS[route.name] ?? route.name;
+          const color = isFocused ? primaryColor : tertiaryColor;
+
+          const onPress = () => {
+            const event = navigation.emit({
+              type: 'tabPress',
+              target: route.key,
+              canPreventDefault: true,
+            });
+            if (!isFocused && !event.defaultPrevented) {
+              navigation.navigate(route.name);
+            }
+          };
+
+          return (
+            <TouchableOpacity
+              key={route.key}
+              onPress={onPress}
+              style={styles.tabItem}
+              activeOpacity={0.7}
+            >
+              <Icon size={22} color={color} />
+              <Text style={[styles.tabLabel, { color }]}>{label}</Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
 
 export default function TabLayout() {
-  useTenant();
   const { theme } = useTheme();
   const colors = getColors(theme);
   const insets = useSafeAreaInsets();
-  const scrollViewRefs = React.useRef<{ [key: string]: ScrollView | null }>({});
-  const { showAlert } = useGlobalAlert();
-  const { t } = useTranslation();
-
-  const tabBarHeight = 60 + Math.max(insets.bottom, 0);
   const pathname = usePathname();
+  const { showAlert } = useGlobalAlert();
 
-  const scrollToTop = (routeName: string) => {
-    const scrollView = scrollViewRefs.current[routeName];
-    if (scrollView) {
-      scrollView.scrollTo({ y: 0, animated: true });
-    }
-  };
+  const tabBarBottom = Math.max(insets.bottom, 12) + 4;
 
   useFocusEffect(
     useCallback(() => {
       const onBackPress = () => {
-        // List all root tab routes
         const isOnTabRoot =
-          pathname === "/projects" ||
-          pathname === "/portfolio" ||
-          pathname === "/" ||
-          pathname === "/account";
+          pathname === '/' ||
+          pathname === '/projects' ||
+          pathname === '/portfolio' ||
+          pathname === '/offerings' ||
+          pathname === '/account';
 
         if (isOnTabRoot) {
-          showAlert('Exit', 'Do you want to exit the app?',
-            {
-              buttonText: "Yes",
-              buttonCallback: () => {
-                void (async () => {
-                  try {
-                    await AsyncStorage.setItem(ASYNC_STORAGE_EXIT_RESET_TO_HOME, '1');
-                  } catch {
-                    /* still exit */
-                  }
-                  BackHandler.exitApp();
-                })();
-              },
-              secondaryButtonText: "Cancel",
-              // secondaryButtonCallback: handleCancel,
-            }
-          )
-
+          showAlert('App beenden', 'Möchtest du die App beenden?', {
+            buttonText: 'Ja',
+            buttonCallback: () => { void exitApp(); },
+            secondaryButtonText: 'Abbrechen',
+          });
           return true;
         }
-
-        return false; // default behavior (go back)
+        return false;
       };
 
-      if (Platform.OS === "android") {
-        const sub = BackHandler.addEventListener(
-          "hardwareBackPress",
-          onBackPress
-        );
+      if (Platform.OS === 'android') {
+        const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
         return () => sub.remove();
       }
     }, [pathname])
   );
 
+  const renderTabBar = useCallback(
+    (props: any) => (
+      <FloatingTabBar
+        {...props}
+        primaryColor={colors.primary}
+        tertiaryColor={colors.text.tertiary}
+        tabBarBottom={tabBarBottom}
+      />
+    ),
+    [colors.primary, colors.text.tertiary, tabBarBottom]
+  );
+
   return (
     <View style={styles.container}>
       <Tabs
-        screenOptions={{
-          headerShown: false,
-          tabBarActiveTintColor: colors.primary,
-          tabBarInactiveTintColor: colors.text.tertiary,
-          tabBarStyle: {
-            backgroundColor: colors.background.primary,
-            borderTopColor: colors.border.primary,
-            borderTopWidth: 1,
-            paddingBottom: 4,
-            paddingTop: 8,
-            height: tabBarHeight,
-            position: 'absolute',
-            bottom: 0,
-            left: 0,
-            right: 0,
-          },
-          tabBarLabelStyle: {
-            fontSize: 11,
-            fontFamily: 'Inter-Medium',
-            marginTop: 2,
-          },
-          lazy: true,
-        }}
+        screenOptions={{ headerShown: false, tabBarStyle: { display: 'none' } }}
+        tabBar={renderTabBar}
       >
-        <Tabs.Screen
-          name="index"
-          options={{
-            title: t('common.tabs.start'),
-            tabBarIcon: TabIconHome,
-            tabBarButton: (props) => (
-              <TouchableOpacity
-                {...({
-                  ...props,
-                  delayLongPress: props.delayLongPress ?? undefined,
-                  disabled: props.disabled ?? undefined,
-                  onPress: (e) => {
-                    scrollToTop('index');
-                    props.onPress?.(e);
-                  },
-                } as TouchableOpacityProps)}
-              />
-            ),
-          }}
-        />
-        <Tabs.Screen
-          name="projects"
-          options={{
-            title: t('common.tabs.token'),
-            tabBarIcon: TabIconSearch,
-            tabBarButton: (props) => (
-              <TouchableOpacity
-                {...({
-                  ...props,
-                  delayLongPress: props.delayLongPress ?? undefined,
-                  disabled: props.disabled ?? undefined,
-                  onPress: (e) => {
-                    scrollToTop('projects');
-                    props.onPress?.(e);
-                  },
-                } as TouchableOpacityProps)}
-              />
-            ),
-          }}
-        />
-        <Tabs.Screen
-          name="portfolio"
-          options={{
-            title: t('common.tabs.portfolio'),
-            tabBarIcon: TabIconTrendingUp,
-            tabBarButton: (props) => (
-              <TouchableOpacity
-                {...({
-                  ...props,
-                  delayLongPress: props.delayLongPress ?? undefined,
-                  disabled: props.disabled ?? undefined,
-                  onPress: (e) => {
-                    scrollToTop('portfolio');
-                    props.onPress?.(e);
-                  },
-                } as TouchableOpacityProps)}
-              />
-            ),
-          }}
-        />
-        {/* <Tabs.Screen
-          name="project/[id]"
-          options={{
-            href: null,
-          }}
-        /> */}
-        {/* <Tabs.Screen
-          name="transfer"
-          options={{
-            href: null,
-          }}
-        /> */}
-        {/* <Tabs.Screen
-          name="wallets"
-          options={{
-            href: null,
-          }}
-        /> */}
-        <Tabs.Screen
-          name="account"
-          options={{
-            title: t('common.tabs.account'),
-            tabBarIcon: TabIconUser,
-            tabBarButton: (props) => (
-              <TouchableOpacity
-                {...({
-                  ...props,
-                  delayLongPress: props.delayLongPress ?? undefined,
-                  disabled: props.disabled ?? undefined,
-                  onPress: (e) => {
-                    scrollToTop('account');
-                    props.onPress?.(e);
-                  },
-                } as TouchableOpacityProps)}
-              />
-            ),
-          }}
-        />
-        <Tabs.Screen
-          name="engagement"
-          options={{
-            href: null,
-          }}
-        />
+        <Tabs.Screen name="index" options={{ title: 'Rezepte' }} />
+        <Tabs.Screen name="projects" options={{ title: 'Magazin' }} />
+        <Tabs.Screen name="portfolio" options={{ title: 'Favoriten' }} />
+        <Tabs.Screen name="offerings" options={{ title: 'Bonus' }} />
+        <Tabs.Screen name="account" options={{ title: 'Menü' }} />
+        <Tabs.Screen name="engagement" options={{ href: null }} />
       </Tabs>
-
-      {/* <FloatingTenantButton /> */}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  floatingButtonContainer: {
+  container: { flex: 1 },
+  tabBarWrapper: {
     position: 'absolute',
-    left: '50%',
-    marginLeft: -28,
+    left: 20,
+    right: 20,
   },
-  floatingButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+  tabBar: {
+    flexDirection: 'row',
+    borderRadius: 32,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    backgroundColor: TAB_BAR_BG,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  tabItem: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 3,
+    gap: 3,
   },
-  tenantLogo: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  tabLabel: {
+    fontSize: 11,
+    fontFamily: 'Inter-Medium',
   },
 });
