@@ -87,7 +87,7 @@ function PromoBanner({ onDismiss, tabBarHeight }: Readonly<{ onDismiss: () => vo
           <View style={styles.bannerTextBlock}>
             <Text style={styles.bannerTitle}>Werde Teil der Familie! 🎁</Text>
             <Text style={styles.bannerSubtitle}>
-              Empfehle Kochgourmet & kassiere exklusive Bonus-Vorteile.
+              Jetzt Gutschein sichern & von exklusiven Rabatten profitieren!
             </Text>
           </View>
 

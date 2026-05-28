@@ -144,7 +144,7 @@ export default function TabLayout() {
   return (
     <View style={styles.container}>
       <Tabs
-        screenOptions={{ headerShown: false, tabBarStyle: { display: 'none' } }}
+        screenOptions={{ headerShown: false, tabBarStyle: { display: 'none' }, animation: 'shift' }}
         tabBar={renderTabBar}
       >
         <Tabs.Screen name="index" options={{ title: 'Rezepte' }} />

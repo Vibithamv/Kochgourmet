@@ -578,15 +578,18 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
     gap: 16,
   },
-  photoContainer: { position: 'relative' },
+  photoContainer: {
+    position: 'relative',
+    width: 160,
+    height: 160,
+  },
   profilePhoto: { width: 160, height: 160, borderRadius: 80 },
   avatarFallback: { alignItems: 'center', justifyContent: 'center' },
   avatarInitial: { color: '#fff', fontSize: 56, fontFamily: 'Inter-Bold' },
   photoUploadBtn: {
     position: 'absolute',
-    bottom: 0,
-    right: '50%',
-    transform: [{ translateX: 18 }],
+    bottom: 6,
+    left: 62,   // (160 - 36) / 2 — centres the 36px button in the 160px circle
     width: 36,
     height: 36,
     borderRadius: 18,
