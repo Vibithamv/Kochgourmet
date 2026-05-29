@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useRef } from 'react';
+import { View, Text, Image, TouchableOpacity, StyleSheet, Pressable } from 'react-native';
 import { Clock, Star, Heart } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getColors } from '@/constants/theme';
@@ -13,61 +13,94 @@ export interface Recipe {
   isFavourite?: boolean;
 }
 
-interface RecipeCardProps {
-  readonly recipe: Recipe;
-  readonly onPress: () => void;
-  readonly onToggleFavourite?: () => void;
+export interface CardLayout {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
 }
 
-export default function RecipeCard({ recipe, onPress, onToggleFavourite }: RecipeCardProps) {
+interface RecipeCardProps {
+  readonly recipe: Recipe;
+  readonly onPress?: () => void;
+  readonly onPressWithLayout?: (layout: CardLayout) => void;
+  readonly onToggleFavourite?: () => void;
+  readonly hidden?: boolean;
+}
+
+export default function RecipeCard({
+  recipe,
+  onPress,
+  onPressWithLayout,
+  onToggleFavourite,
+  hidden = false,
+}: RecipeCardProps) {
   const { theme } = useTheme();
   const colors = getColors(theme);
+  const cardRef = useRef<View>(null);
+
+  const handlePress = () => {
+    if (onPressWithLayout) {
+      cardRef.current?.measureInWindow((x, y, width, height) => {
+        onPressWithLayout({ x, y, width, height });
+      });
+      return;
+    }
+    onPress?.();
+  };
 
   return (
-    <TouchableOpacity
-      onPress={onPress}
-      activeOpacity={0.85}
-      style={[styles.card, { backgroundColor: colors.background.card }]}
-    >
-      <Image
-        source={{ uri: recipe.imageUrl }}
-        style={styles.image}
-        resizeMode="cover"
-      />
-      <View style={styles.body}>
-        <Text
-          style={[styles.title, { color: colors.text.secondary }]}
-          numberOfLines={2}
-        >
-          {recipe.title}
-        </Text>
-        <View style={styles.meta}>
-          <View style={styles.metaItem}>
-            <Clock size={13} color="#525252" />
-            <Text style={[styles.metaText, { color: '#525252' }]}>
-              {recipe.durationMinutes} Min
-            </Text>
+    <View ref={cardRef} collapsable={false} style={[styles.wrapper, hidden && styles.hidden]}>
+      <Pressable
+        onPress={handlePress}
+        style={[styles.card, { backgroundColor: colors.background.card }]}
+      >
+        <Image
+          source={{ uri: recipe.imageUrl }}
+          style={styles.image}
+          resizeMode="cover"
+        />
+        <View style={styles.body}>
+          <Text
+            style={[styles.title, { color: colors.text.secondary }]}
+            numberOfLines={2}
+          >
+            {recipe.title}
+          </Text>
+          <View style={styles.meta}>
+            <View style={styles.metaItem}>
+              <Clock size={13} color={colors.text.tertiary} />
+              <Text style={[styles.metaText, { color: colors.text.tertiary }]}>
+                {recipe.durationMinutes} Min
+              </Text>
+            </View>
+            <View style={styles.metaItem}>
+              <Star size={13} color={colors.text.tertiary} />
+              <Text style={[styles.metaText, { color: colors.text.tertiary }]}>
+                {recipe.rating}
+              </Text>
+            </View>
+            <TouchableOpacity onPress={onToggleFavourite} hitSlop={8}>
+              <Heart
+                size={16}
+                color={recipe.isFavourite ? colors.primary : colors.text.tertiary}
+                fill={recipe.isFavourite ? colors.primary : 'transparent'}
+              />
+            </TouchableOpacity>
           </View>
-          <View style={styles.metaItem}>
-            <Star size={13} color="#525252" />
-            <Text style={[styles.metaText, { color: '#525252' }]}>
-              {recipe.rating}
-            </Text>
-          </View>
-          <TouchableOpacity onPress={onToggleFavourite} hitSlop={8}>
-            <Heart
-              size={16}
-              color={recipe.isFavourite ? colors.primary : colors.text.tertiary}
-              fill={recipe.isFavourite ? colors.primary : 'transparent'}
-            />
-          </TouchableOpacity>
         </View>
-      </View>
-    </TouchableOpacity>
+      </Pressable>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  wrapper: {
+    flex: 1,
+  },
+  hidden: {
+    opacity: 0,
+  },
   card: {
     flex: 1,
     borderRadius: 12,

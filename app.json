@@ -34,6 +34,7 @@
         }
       },
       "package": "com.Kochgourmet.stapp",
+      "scheme": "kochgourmet",
       "jsEngine": "hermes",
       "enableProguardInReleaseBuilds": false,
       "enableShrinkResourcesInReleaseBuilds": false,
@@ -53,6 +54,7 @@
     },
     "ios": {
       "supportsTablet": true,
+      "scheme": "kochgourmet",
       "splash": {
         "image": "./assets/images/kochgourmet-logo.png",
         "resizeMode": "contain",
@@ -74,6 +76,11 @@
         ],
         "UIBackgroundModes": [
           "remote-notification"
+        ],
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLSchemes": ["kochgourmet"]
+          }
         ]
       },
       "bundleIdentifier": "com.Kochgourmet.stapp"

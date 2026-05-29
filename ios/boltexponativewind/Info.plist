@@ -27,8 +27,7 @@
 		<dict>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>myapp</string>
-				<string>com.Kochgourmet.stapp</string>
+				<string>kochgourmet</string>
 			</array>
 		</dict>
 	</array>

@@ -2,27 +2,21 @@ import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
-  Image,
   ScrollView,
   StyleSheet,
-  TouchableOpacity,
   TextInput,
   RefreshControl,
 } from 'react-native';
 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Search } from 'lucide-react-native';
-import { router } from 'expo-router';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getColors, getTypography } from '@/constants/theme';
+import ArticleCard, { type ArticleListItem } from '@/components/ArticleCard';
+import ArticleExpandOverlay from '@/components/ArticleExpandOverlay';
+import type { CardLayout } from '@/components/RecipeCard';
 
-interface Article {
-  id: string;
-  title: string;
-  imageUrl: string;
-}
-
-const ARTICLES: Article[] = [
+const ARTICLES: ArticleListItem[] = [
   {
     id: '1',
     title: 'Erfrischende Eistee-Ideen für echten Genuss',
@@ -49,6 +43,10 @@ export default function MagazinScreen() {
   const insets = useSafeAreaInsets();
   const [search, setSearch] = useState('');
   const [refreshing, setRefreshing] = useState(false);
+  const [expandedArticle, setExpandedArticle] = useState<{
+    article: ArticleListItem;
+    layout: CardLayout;
+  } | null>(null);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -111,24 +109,23 @@ export default function MagazinScreen() {
             </Text>
           )}
           {filteredArticles.map(article => (
-            <TouchableOpacity
+            <ArticleCard
               key={article.id}
-              style={styles.articleCard}
-              activeOpacity={0.85}
-              onPress={() => router.push(`/magazin/${article.id}`)}
-            >
-              <Image
-                source={{ uri: article.imageUrl }}
-                style={[styles.articleImage, { borderRadius: 15 }]}
-                resizeMode="cover"
-              />
-              <Text style={[styles.articleTitle, { color: colors.text.primary }]}>
-                {article.title}
-              </Text>
-            </TouchableOpacity>
+              article={article}
+              hidden={expandedArticle?.article.id === article.id}
+              onPressWithLayout={(layout) => setExpandedArticle({ article, layout })}
+            />
           ))}
         </View>
       </ScrollView>
+
+      {expandedArticle && (
+        <ArticleExpandOverlay
+          article={expandedArticle.article}
+          sourceLayout={expandedArticle.layout}
+          onClose={() => setExpandedArticle(null)}
+        />
+      )}
     </View>
   );
 }
@@ -162,20 +159,10 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Regular',
   },
   articles: { gap: 35 },
-  articleCard: { gap: 15 },
   emptyText: {
     fontSize: 15,
     fontFamily: 'Inter-Regular',
     textAlign: 'center',
     paddingVertical: 40,
-  },
-  articleImage: {
-    width: '100%',
-    height: 252,
-  },
-  articleTitle: {
-    fontSize: 16,
-    fontFamily: 'Inter-Regular',
-    lineHeight: 21,
   },
 });
