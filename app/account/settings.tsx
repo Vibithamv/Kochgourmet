@@ -38,7 +38,7 @@ export default function SettingsScreen() {
       </View>
 
       <ScrollView
-        contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 16) + 24 }}
+        contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 16) + 90 }}
         showsVerticalScrollIndicator={false}
       >
         {/* Appearance */}

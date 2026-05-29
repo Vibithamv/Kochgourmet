@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   TextInput,
   RefreshControl,
+  useWindowDimensions,
 } from 'react-native';
 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -47,6 +48,9 @@ export default function MagazinScreen() {
   const colors = getColors(theme);
   const typography = getTypography(theme);
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  // Scale the display title with screen width; 80px is the design size at 390px wide
+  const titleFontSize = Math.round(Math.min(80, width * 0.205));
   const [search, setSearch] = useState('');
   const [refreshing, setRefreshing] = useState(false);
 
@@ -82,7 +86,7 @@ export default function MagazinScreen() {
         <View style={{ height: Math.max(insets.top, 50) + 32 }} />
 
         {/* Title */}
-        <Text style={[styles.title, { color: colors.text.primary, fontFamily: typography.fontFamily.display }]}>
+        <Text style={[styles.title, { color: colors.text.primary, fontFamily: typography.fontFamily.display, fontSize: titleFontSize, lineHeight: titleFontSize * 1.34 }]}>
           Magazin
         </Text>
 

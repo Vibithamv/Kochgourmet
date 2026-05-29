@@ -35,6 +35,7 @@ import { userManagement } from '@/hooks/userManagement';
 import { whitelistManagement } from '@/hooks/whitelistManagement';
 import { FcmNotificationBridge } from '@/components/FcmNotificationBridge';
 import CustomSplash from '@/components/CustomSplash';
+import GlobalFloatingTabBar from '@/components/GlobalFloatingTabBar';
 import { persistPlatformSignInOptionsFromValidateResponse } from '@/constants/platformSignInOptions';
 
 void SplashScreen.preventAutoHideAsync();
@@ -352,6 +353,7 @@ export default function RootLayout() {
                       <Stack.Screen name="favoriten" options={{ animation: 'slide_from_bottom', presentation: 'card', headerShown: false }} />
                       <Stack.Screen name="+not-found" />
                     </Stack>
+                    <GlobalFloatingTabBar />
                     <StatusBar style="auto" />
                     <CustomSplash visible={showSplash} />
                   </FoldersProvider>

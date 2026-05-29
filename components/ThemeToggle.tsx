@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal, FlatList } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Sun, Moon, Leaf, Check } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import {
@@ -9,6 +10,7 @@ import {
   BorderRadius,
   type ThemeMode,
 } from '@/constants/theme';
+import { suppressTabBar, restoreTabBar } from '@/utils/tabBarStore';
 
 interface ThemeOption {
   mode: ThemeMode;
@@ -45,6 +47,7 @@ interface ThemeToggleProps {
 export default function ThemeToggle({ style }: Readonly<ThemeToggleProps>) {
   const { theme, setTheme } = useTheme();
   const [modalVisible, setModalVisible] = useState(false);
+  const insets = useSafeAreaInsets();
 
   const colors = getColors(theme);
 
@@ -52,9 +55,12 @@ export default function ThemeToggle({ style }: Readonly<ThemeToggleProps>) {
     return themeOptions.find(option => option.mode === theme) || themeOptions[0];
   };
 
+  const openModal = () => { suppressTabBar(); setModalVisible(true); };
+  const closeModal = () => { restoreTabBar(); setModalVisible(false); };
+
   const handleThemeChange = (newTheme: ThemeMode) => {
     setTheme(newTheme);
-    setModalVisible(false);
+    closeModal();
   };
 
   return (
@@ -62,7 +68,7 @@ export default function ThemeToggle({ style }: Readonly<ThemeToggleProps>) {
       <View style={[styles.container, style]}>
         <TouchableOpacity 
           style={styles.content}
-          onPress={() => setModalVisible(true)}
+          onPress={openModal}
           activeOpacity={0.7}
         >
           <Text style={[styles.title, { color: colors.text.primary }]}>
@@ -75,15 +81,15 @@ export default function ThemeToggle({ style }: Readonly<ThemeToggleProps>) {
         animationType="slide"
         transparent={true}
         visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
+        onRequestClose={closeModal}
       >
         <View style={[styles.modalOverlay, { backgroundColor: colors.background.overlay }]}>
-          <View style={[styles.modalContent, { backgroundColor: colors.background.primary }]}>
+          <View style={[styles.modalContent, { backgroundColor: colors.background.primary, paddingBottom: Math.max(insets.bottom, 16) }]}>
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: colors.text.primary }]}>Choose Theme</Text>
               <TouchableOpacity
                 style={[styles.closeButton, { backgroundColor: colors.background.secondary }]}
-                onPress={() => setModalVisible(false)}
+                onPress={closeModal}
               >
                 <Text style={[styles.closeButtonText, { color: colors.text.secondary }]}>×</Text>
               </TouchableOpacity>

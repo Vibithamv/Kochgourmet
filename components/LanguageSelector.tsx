@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   View,
   Text,
@@ -10,6 +11,7 @@ import { useTranslation } from 'react-i18next';
 import { Globe, Check, X } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getColors, Typography } from '@/constants/theme';
+import { suppressTabBar, restoreTabBar } from '@/utils/tabBarStore';
 
 interface Language {
   code: string;
@@ -27,11 +29,15 @@ export default function LanguageSelector() {
   const { i18n } = useTranslation();
   const { theme } = useTheme();
   const colors = getColors(theme);
+  const insets = useSafeAreaInsets();
   const [modalVisible, setModalVisible] = useState(false);
+
+  const openModal = () => { suppressTabBar(); setModalVisible(true); };
+  const closeModal = () => { restoreTabBar(); setModalVisible(false); };
 
   const changeLanguage = (languageCode: string) => {
     i18n.changeLanguage(languageCode);
-    setModalVisible(false);
+    closeModal();
   };
 
   const currentLang =
@@ -44,7 +50,7 @@ export default function LanguageSelector() {
     <>
       <TouchableOpacity
         style={[styles.trigger, { borderColor: colors.border.primary }]}
-        onPress={() => setModalVisible(true)}
+        onPress={openModal}
         activeOpacity={0.7}
       >
         <Globe size={15} color={colors.text.tertiary} />
@@ -55,23 +61,24 @@ export default function LanguageSelector() {
         animationType="fade"
         transparent={true}
         visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
+        onRequestClose={closeModal}
       >
         <TouchableOpacity
           style={styles.overlay}
           activeOpacity={1}
-          onPress={() => setModalVisible(false)}
+          onPress={closeModal}
         >
           <View style={[styles.sheet, {
             backgroundColor: colors.background.primary,
             borderColor: colors.border.primary,
+            paddingBottom: Math.max(insets.bottom, 16),
           }]}>
             {/* Header */}
             <View style={[styles.sheetHeader, { borderBottomColor: colors.border.primary }]}>
               <Text style={[styles.sheetTitle, { color: colors.text.primary }]}>Language</Text>
               <TouchableOpacity
                 style={[styles.closeBtn, { backgroundColor: colors.background.secondary }]}
-                onPress={() => setModalVisible(false)}
+                onPress={closeModal}
               >
                 <X size={16} color={colors.text.tertiary} />
               </TouchableOpacity>
@@ -140,7 +147,6 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderLeftWidth: 1,
     borderRightWidth: 1,
-    paddingBottom: 32,
   },
   sheetHeader: {
     flexDirection: 'row',

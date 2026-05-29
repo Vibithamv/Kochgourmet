@@ -252,7 +252,7 @@ export default function ProfileScreen() {
 
       <KeyboardAwareScrollView
         ref={kasvRef}
-        contentContainerStyle={{ paddingBottom: insets.bottom + 50 }}
+        contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 16) + 90 }}
         showsVerticalScrollIndicator={false}
         enableOnAndroid
         keyboardShouldPersistTaps="handled"
@@ -482,7 +482,7 @@ export default function ProfileScreen() {
             <Text style={[styles.fieldLabel, { color: colors.text.tertiary }]}>Neues Passwort</Text>
             <TextInput
               style={[styles.pillInput, styles.pillField, { borderColor: colors.border.primary, backgroundColor: colors.background.card, color: colors.text.primary }]}
-              placeholder="Mind. 8 Zeichen, Groß-/Kleinbuchstaben, Zahl, Sonderzeichen"
+              placeholder="Mind. 8 Zeichen, A-z, 0-9, Sonderzeichen"
               placeholderTextColor={colors.text.tertiary}
               value={newPassword}
               onChangeText={setNewPassword}

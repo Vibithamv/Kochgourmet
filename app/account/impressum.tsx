@@ -138,7 +138,7 @@ export default function ImpressumScreen() {
       </View>
 
       <ScrollView
-        contentContainerStyle={[styles.scroll, { paddingBottom: Math.max(insets.bottom, 16) + 32 }]}
+        contentContainerStyle={[styles.scroll, { paddingBottom: Math.max(insets.bottom, 16) + 90 }]}
         showsVerticalScrollIndicator={false}
       >
         <Text style={[styles.title, { color: colors.text.primary, fontFamily: typography.fontFamily.display }]}>

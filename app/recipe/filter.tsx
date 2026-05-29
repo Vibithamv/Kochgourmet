@@ -122,7 +122,7 @@ interface ActionButtonsProps {
 
 function ActionButtons({ colors, bottomInset, onCancel, onApply }: ActionButtonsProps) {
   return (
-    <View style={[styles.actions, { borderTopColor: colors.border.primary, paddingBottom: Math.max(bottomInset, 16) }]}>
+    <View style={[styles.actions, { borderTopColor: colors.border.primary, paddingBottom: Math.max(bottomInset, 16) + 90 }]}>
       <TouchableOpacity
         style={[styles.cancelBtn, { borderColor: colors.border.primary }]}
         onPress={onCancel}

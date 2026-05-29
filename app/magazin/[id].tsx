@@ -165,10 +165,7 @@ export default function MagazinDetailScreen() {
 
       {/* Floating action buttons — sit above the floating tab bar */}
       <View
-        style={[
-          styles.floatingActions,
-          { bottom: Math.max(insets.bottom, 12) + 90 },
-        ]}
+        style={[styles.floatingActions, { bottom: Math.max(insets.bottom, 12) + 90 }]}
         pointerEvents="box-none"
       >
         <TouchableOpacity
@@ -216,7 +213,6 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
 
-  // Floating actions (above the tab bar)
   floatingActions: {
     position: 'absolute',
     left: 0,

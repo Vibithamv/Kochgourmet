@@ -53,8 +53,6 @@ export default function MenuScreen() {
     // Investment & account
     { label: 'Mein Portfolio', route: '/screens/portfolio' },
     { label: 'Profil ändern', route: '/account/profile' },
-    { label: 'Wallets', route: '/account/wallets' },
-    { label: 'Zahlungsmethoden', route: '/account/payment-methods' },
     { label: 'KYC Verifizierung', route: '/auth/kycRequest' },
     // Legal & support
     { label: 'Einstellungen', route: '/account/settings' },

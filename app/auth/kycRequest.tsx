@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
-import { CheckCircle, LogOut, ArrowLeft } from 'lucide-react-native';
+import { CheckCircle } from 'lucide-react-native';
 import {
   getColors,
   Typography,
@@ -23,7 +23,6 @@ import { useTranslation } from 'react-i18next';
 import { kycRequest } from '@/hooks/kycRequest';
 import { useGlobalAlert } from '@/contexts/AlertContext';
 import { useFocusEffect } from '@react-navigation/native';
-import { useAuth } from '@/contexts/AuthContext';
 import { useKycPostVerificationFlow } from '@/hooks/useKycPostVerificationFlow';
 
 export default function VerifyIdentityScreen() {
@@ -34,7 +33,6 @@ export default function VerifyIdentityScreen() {
   const { name, id } = useLocalSearchParams();
   const request = kycRequest();
   const { showAlert } = useGlobalAlert();
-  const { signOut } = useAuth();
   const [loading, setLoading] = React.useState(false);
   const [kycStatus, setKycStatus] = React.useState<string | null>(null);
   // `fetchActiveAccountKycStatus` reads the status without redirecting,
@@ -62,11 +60,6 @@ export default function VerifyIdentityScreen() {
       void loadData();
     }, [])
   );
-
-  const handleLogout = async () => {
-    await signOut(); // or the correct logout method you have
-    router.replace('/auth/login');
-  };
 
   const handleCompleteKYC = async () => {
     setLoading(true);
@@ -112,44 +105,6 @@ export default function VerifyIdentityScreen() {
 
   return (
     <View style={[styles.gradient, { backgroundColor: colors.background.secondary }]}>
-      <TouchableOpacity
-        style={[styles.circleBtn, {
-          top: insets.top + 10,
-          left: 20,
-          backgroundColor: colors.background.card,
-          borderColor: colors.border.primary,
-        }]}
-        onPress={() => router.back()}
-        hitSlop={8}
-        activeOpacity={0.7}
-      >
-        <ArrowLeft size={20} color={colors.text.primary} />
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={[styles.circleBtn, {
-          top: insets.top + 10,
-          right: 20,
-          backgroundColor: colors.background.card,
-          borderColor: colors.border.primary,
-        }]}
-        onPress={() => {
-          showAlert(
-            t('common.logout'),
-            t('common.logoutMsg'),
-            {
-              buttonText: t('common.logout'),
-              buttonCallback: () => {
-                void handleLogout();
-              },
-              secondaryButtonText: t('common.cancel'),
-              // secondaryButtonCallback: handleCancel,
-            }
-          )
-        }
-        }
-      >
-        <LogOut size={22} color={colors.text.primary} />
-      </TouchableOpacity>
       <ScrollView
         contentContainerStyle={[
           styles.container,
@@ -174,8 +129,8 @@ export default function VerifyIdentityScreen() {
         </Text> */}
 
           {/* Check Icon */}
-          <View style={styles.iconContainer}>
-            <CheckCircle size={56} color={colors.primary} />
+          <View style={[styles.iconContainer, { backgroundColor: 'rgba(45,90,66,0.1)' }]}>
+            <CheckCircle size={56} color={colors.success} />
           </View>
 
           {/* Title */}
@@ -195,7 +150,7 @@ export default function VerifyIdentityScreen() {
           {/* Button */}
           <TouchableOpacity
             style={[styles.button, { backgroundColor: colors.primary }]}
-            disabled={loading || isKycSettled}
+            disabled={loading}
             onPress={isKycSettled ? () => router.back() : handleCompleteKYC}
           >
             {loading ? (
