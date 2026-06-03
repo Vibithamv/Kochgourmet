@@ -16,7 +16,8 @@ import { router } from 'expo-router';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getColors } from '@/constants/theme';
 import { Search, SlidersHorizontal, X, Sparkles, ChevronRight } from 'lucide-react-native';
-import RecipeCard from '@/components/RecipeCard';
+import RecipeCard, { type Recipe, type CardLayout } from '@/components/RecipeCard';
+import RecipeExpandOverlay from '@/components/RecipeExpandOverlay';
 import { useFavourites } from '@/contexts/FavouritesContext';
 import { useFocusEffect } from '@react-navigation/native';
 import { userManagement } from '@/hooks/userManagement';
@@ -121,6 +122,10 @@ export default function RezepteScreen() {
   const [profilePictureUrl, setProfilePictureUrl] = useState<string | null>(null);
   const [showBanner, setShowBanner] = useState(false);
   const bannerShownRef = useRef(false);
+  const [expandedRecipe, setExpandedRecipe] = useState<{
+    recipe: Recipe;
+    layout: CardLayout;
+  } | null>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -247,7 +252,7 @@ export default function RezepteScreen() {
         <FlatList
           data={filteredRecipes}
           keyExtractor={item => item.id}
-          extraData={recipes}
+          extraData={expandedRecipe?.recipe.id ?? recipes}
           numColumns={2}
           columnWrapperStyle={styles.row}
           contentContainerStyle={[
@@ -267,11 +272,20 @@ export default function RezepteScreen() {
             <View style={styles.cardWrapper}>
               <RecipeCard
                 recipe={item}
-                onPress={() => router.push(`/recipe/${item.id}`)}
+                hidden={expandedRecipe?.recipe.id === item.id}
+                onPressWithLayout={(layout) => setExpandedRecipe({ recipe: item, layout })}
                 onToggleFavourite={() => toggleFavourite(item.id)}
               />
             </View>
           )}
+        />
+      )}
+
+      {expandedRecipe && (
+        <RecipeExpandOverlay
+          recipe={expandedRecipe.recipe}
+          sourceLayout={expandedRecipe.layout}
+          onClose={() => setExpandedRecipe(null)}
         />
       )}
     </View>
