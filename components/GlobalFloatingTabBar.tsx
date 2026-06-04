@@ -1,10 +1,11 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { BlurView } from 'expo-blur';
 import { router, usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChefHat, Heart, Menu, Star, TrendingUp } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
-import { getColors } from '@/constants/theme';
+import { getColors, getShadows, getTypography } from '@/constants/theme';
 import { useTabBarSuppressed } from '@/utils/tabBarStore';
 
 const TABS = [
@@ -29,6 +30,8 @@ export default function GlobalFloatingTabBar() {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
   const colors = getColors(theme);
+  const typography = getTypography(theme);
+  const shadows = getShadows(theme);
   const isDark = theme === 'dark' || theme === 'darkGreen';
 
   const suppressed = useTabBarSuppressed();
@@ -39,34 +42,43 @@ export default function GlobalFloatingTabBar() {
   const activeTab = TABS.find(t => t.match(pathname)) ?? TABS[0];
   const bottom = Math.max(insets.bottom, 12) + 4;
 
-  const barBg = isDark
-    ? 'rgba(34, 30, 28, 0.97)'
-    : 'rgba(255, 246, 234, 0.97)';
+  const blurTint = isDark ? 'dark' : 'light';
+  const glassOverlay = isDark
+    ? 'rgba(34, 30, 28, 0.42)'
+    : 'rgba(255, 249, 240, 0.52)';
+  const glassBorder = isDark
+    ? 'rgba(255, 255, 255, 0.1)'
+    : 'rgba(255, 255, 255, 0.72)';
 
   return (
     <View style={[styles.wrapper, { bottom }]} pointerEvents="box-none">
-      <View style={[styles.bar, { backgroundColor: barBg, borderColor: colors.border.primary }]}>
-        {TABS.map(tab => {
-          const isFocused = activeTab.route === tab.route;
-          const color = isFocused ? colors.primary : colors.text.tertiary;
+      <View style={[styles.bar, shadows.card, { borderColor: glassBorder }]}>
+        <BlurView
+          intensity={Platform.OS === 'ios' ? 68 : 85}
+          tint={blurTint}
+          style={StyleSheet.absoluteFill}
+        />
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: glassOverlay }]} />
+        <View style={styles.barInner}>
+          {TABS.map(tab => {
+            const isFocused = activeTab.route === tab.route;
+            const color = isFocused ? colors.primary : colors.text.primary;
 
-          return (
-            <TouchableOpacity
-              key={tab.route}
-              onPress={() => {
-                if (!isFocused) router.navigate(tab.route as any);
-              }}
-              style={styles.item}
-              activeOpacity={0.7}
-            >
-              {isFocused && (
-                <View style={[styles.activePill, { backgroundColor: isDark ? 'rgba(240,138,114,0.15)' : 'rgba(238,123,95,0.12)' }]} />
-              )}
-              <tab.Icon size={22} color={color} />
-              <Text style={[styles.label, { color }]}>{tab.label}</Text>
-            </TouchableOpacity>
-          );
-        })}
+            return (
+              <TouchableOpacity
+                key={tab.route}
+                onPress={() => {
+                  if (!isFocused) router.navigate(tab.route as any);
+                }}
+                style={styles.item}
+                activeOpacity={0.7}
+              >
+                <tab.Icon size={22} color={color} />
+                <Text style={[styles.label, { color, fontFamily: typography.fontFamily.regular }]}>{tab.label}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
       </View>
     </View>
   );
@@ -80,20 +92,14 @@ const styles = StyleSheet.create({
     zIndex: 999,
   },
   bar: {
-    flexDirection: 'row',
     borderRadius: 32,
+    overflow: 'hidden',
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  barInner: {
+    flexDirection: 'row',
     paddingVertical: 10,
     paddingHorizontal: 8,
-    borderWidth: StyleSheet.hairlineWidth,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.12,
-        shadowRadius: 16,
-      },
-      android: { elevation: 8 },
-    }),
   },
   item: {
     flex: 1,
@@ -102,16 +108,8 @@ const styles = StyleSheet.create({
     gap: 3,
     paddingVertical: 4,
   },
-  activePill: {
-    position: 'absolute',
-    top: 0,
-    left: 4,
-    right: 4,
-    bottom: 0,
-    borderRadius: 20,
-  },
   label: {
-    fontSize: 11,
-    fontFamily: 'Inter-Medium',
+    fontSize: 10,
+    letterSpacing: 0.1,
   },
 });

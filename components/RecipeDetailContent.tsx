@@ -12,7 +12,7 @@ import {
   Pressable,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Clock, Star, Heart, Share2, ChevronDown, Minus, Plus, Check, X } from 'lucide-react-native';
+import { Clock, Star, Heart, Share2, ChevronDown, Minus, Plus, Check } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getColors, getTypography } from '@/constants/theme';
 import { getRecipeDetail } from '@/utils/mockRecipeDetails';
@@ -112,7 +112,7 @@ export default function RecipeDetailContent({
         <View style={styles.content}>
 
           {/* Title */}
-          <Text style={[styles.title, { color: colors.text.primary, fontFamily: typography.fontFamily.bold }]}>
+          <Text style={[styles.title, { color: colors.text.primary, fontFamily: typography.fontFamily.display }]}>
             {recipe.title}
           </Text>
 
@@ -145,18 +145,25 @@ export default function RecipeDetailContent({
             </TouchableOpacity>
           </View>
 
-          {/* Nutrition vertical table */}
-          <View style={[styles.nutritionTable, { backgroundColor: colors.background.card, borderColor: colors.border.primary }]}>
-            <View style={styles.nutritionHeader}>
-              <Text style={[styles.nutritionHeaderLabel, { color: colors.text.tertiary }]}>
+          {/* Nutrition table — borderless rows with dividers between items only */}
+          <View style={styles.nutritionTable}>
+            <View style={[styles.nutritionRow, styles.nutritionRowDivider, { borderBottomColor: colors.border.primary }]}>
+              <Text style={[styles.nutritionLabel, { color: colors.text.tertiary }]}>
                 Nährwerte pro
               </Text>
-              <Text style={[styles.nutritionHeaderValue, { color: colors.text.tertiary }]}>
+              <Text style={[styles.nutritionValue, { color: colors.text.tertiary }]}>
                 100 g
               </Text>
             </View>
-            {recipe.nutrition.map(n => (
-              <View key={n.label} style={[styles.nutritionRow, { borderTopColor: colors.border.primary }]}>
+            {recipe.nutrition.map((n, index) => (
+              <View
+                key={n.label}
+                style={[
+                  styles.nutritionRow,
+                  index < recipe.nutrition.length - 1 && styles.nutritionRowDivider,
+                  index < recipe.nutrition.length - 1 && { borderBottomColor: colors.border.primary },
+                ]}
+              >
                 <Text style={[styles.nutritionLabel, { color: colors.text.primary }]}>{n.label}</Text>
                 <Text style={[styles.nutritionValue, { color: colors.text.primary }]}>{n.value}</Text>
               </View>
@@ -166,14 +173,18 @@ export default function RecipeDetailContent({
           {/* Author */}
           <View style={styles.authorRow}>
             <Image source={{ uri: recipe.author.avatarUrl }} style={styles.authorAvatar} />
-            <Text style={[styles.authorName, { color: colors.text.primary }]}>{recipe.author.name}</Text>
+            <Text style={[styles.authorName, { color: colors.text.primary, fontFamily: typography.fontFamily.display }]}>
+              {recipe.author.name}
+            </Text>
           </View>
 
           <View style={[styles.divider, { backgroundColor: colors.border.primary }]} />
 
           {/* Zutaten header with +/- servings */}
           <View style={styles.zutatenHeader}>
-            <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>Zutaten</Text>
+            <Text style={[styles.displaySectionTitle, { color: colors.text.primary, fontFamily: typography.fontFamily.display }]}>
+              Zutaten
+            </Text>
             <View style={styles.servingsControl}>
               <TouchableOpacity
                 style={[styles.servingsDot, { backgroundColor: colors.primary }]}
@@ -201,7 +212,7 @@ export default function RecipeDetailContent({
             onPress={() => setShowPrepDropdown(true)}
             activeOpacity={0.7}
           >
-            <Text style={[styles.zubereitungText, { color: colors.text.primary }]}>
+            <Text style={[styles.zubereitungText, { color: colors.text.primary, fontFamily: typography.fontFamily.display }]}>
               {prepStyle}
             </Text>
             <ChevronDown size={16} color={colors.text.tertiary} />
@@ -216,9 +227,9 @@ export default function RecipeDetailContent({
               {section.items.map(item => (
                 <View
                   key={`${section.title}-${item.name}`}
-                  style={[styles.ingredientRow, { borderBottomColor: colors.border.primary }]}
+                  style={styles.ingredientRow}
                 >
-                  <Text style={[styles.ingredientAmount, { color: colors.text.tertiary }]}>
+                  <Text style={[styles.ingredientAmount, { color: colors.text.primary }]}>
                     {[item.amount, item.unit].filter(Boolean).join(' ')}
                   </Text>
                   <Text style={[styles.ingredientName, { color: colors.text.primary, flex: 1 }]}>
@@ -232,12 +243,12 @@ export default function RecipeDetailContent({
           <View style={[styles.divider, { backgroundColor: colors.border.primary }]} />
 
           {/* Steps */}
-          <Text style={[styles.sectionTitle, { color: colors.text.primary, marginBottom: 16 }]}>
+          <Text style={[styles.displaySectionTitle, { color: colors.text.primary, fontFamily: typography.fontFamily.display, marginBottom: 16 }]}>
             Zubereitung
           </Text>
           {recipe.steps.map(step => (
             <View key={step.number} style={styles.stepBlock}>
-              <Text style={[styles.stepLabel, { color: colors.primary }]}>
+              <Text style={[styles.stepLabel, { color: colors.text.primary }]}>
                 Schritt {step.number} / {step.total}
               </Text>
               <Text style={[styles.stepText, { color: colors.text.primary }]}>
@@ -248,7 +259,7 @@ export default function RecipeDetailContent({
 
           {/* Guten Appetit */}
           <Text style={[styles.appetit, { color: colors.text.primary, fontFamily: typography.fontFamily.display }]}>
-            Guten Appetit 👋
+            Guten Appetit 👏
           </Text>
 
           <View style={{ height: Math.max(insets.bottom, 16) + 180 }} />
@@ -262,15 +273,21 @@ export default function RecipeDetailContent({
           onPress={onClose}
           activeOpacity={0.7}
         >
-          <X size={16} color={colors.text.primary} />
+          {/* <X size={16} color={colors.text.primary} /> */}
           <Text style={[styles.closeBtnText, { color: colors.text.primary }]}>Schließen</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.shareBtn, { backgroundColor: colors.primary }]}
+          style={[
+            styles.shareBtn,
+            {
+              backgroundColor: '#FFFFFF',
+              borderColor: colors.border.primary,
+            },
+          ]}
           onPress={onShare}
           activeOpacity={0.8}
         >
-          <Share2 size={16} color="#fff" />
+          <Share2 size={16} color="#141414" />
         </TouchableOpacity>
       </View>
 
@@ -284,7 +301,7 @@ export default function RecipeDetailContent({
         <Pressable style={styles.modalOverlay} onPress={() => setShowPrepDropdown(false)}>
           <Pressable style={[styles.sheet, { backgroundColor: colors.background.card }]}>
             <View style={[styles.sheetHandle, { backgroundColor: colors.border.primary }]} />
-            <Text style={[styles.sheetTitle, { color: colors.text.primary }]}>
+            <Text style={[styles.sheetTitle, { color: colors.text.primary, fontFamily: typography.fontFamily.display }]}>
               Zubereitungsart
             </Text>
             {PREP_STYLES.map(style => (
@@ -311,23 +328,26 @@ const styles = StyleSheet.create({
   heroImage: { width: '100%', height: 280 },
   content: { paddingHorizontal: 20, paddingTop: 20 },
 
-  title: { fontSize: 22, letterSpacing: -0.3, marginBottom: 12, lineHeight: 30 },
+  title: { fontSize: 28, letterSpacing: -0.3, marginBottom: 12, lineHeight: 36 },
 
   metaRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 20 },
   metaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   metaText: { fontSize: 12, fontFamily: 'Inter-Regular' },
 
-  nutritionTable: { borderWidth: 1, borderRadius: 12, marginBottom: 20, overflow: 'hidden' },
-  nutritionHeader: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 14, paddingVertical: 10 },
-  nutritionHeaderLabel: { fontSize: 12, fontFamily: 'Inter-Regular' },
-  nutritionHeaderValue: { fontSize: 12, fontFamily: 'Inter-Regular' },
-  nutritionRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10, borderTopWidth: StyleSheet.hairlineWidth },
+  nutritionTable: { marginBottom: 20 },
+  nutritionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 14,
+  },
+  nutritionRowDivider: { borderBottomWidth: StyleSheet.hairlineWidth },
   nutritionLabel: { fontSize: 14, fontFamily: 'Inter-Regular' },
-  nutritionValue: { fontSize: 14, fontFamily: 'Inter-SemiBold' },
+  nutritionValue: { fontSize: 14, fontFamily: 'Inter-Regular', textAlign: 'right' },
 
   authorRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 },
   authorAvatar: { width: 36, height: 36, borderRadius: 18 },
-  authorName: { fontSize: 14, fontFamily: 'Inter-Medium' },
+  authorName: { fontSize: 16, letterSpacing: -0.2 },
 
   floatingActions: {
     position: 'absolute',
@@ -358,11 +378,12 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.18,
+    shadowOpacity: 0.12,
     shadowRadius: 12,
     elevation: 6,
   },
@@ -370,31 +391,31 @@ const styles = StyleSheet.create({
   divider: { height: 1, marginVertical: 20 },
 
   zutatenHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
-  sectionTitle: { fontSize: 20, fontFamily: 'Inter-Bold' },
+  displaySectionTitle: { fontSize: 28, lineHeight: 36, letterSpacing: -0.3 },
   servingsControl: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   servingsDot: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   servingsText: { fontSize: 14, fontFamily: 'Inter-Medium' },
 
   zubereitungSelector: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingVertical: 12, borderWidth: 1, borderRadius: 10, marginBottom: 20 },
-  zubereitungText: { fontSize: 14, fontFamily: 'Inter-Regular' },
+  zubereitungText: { fontSize: 14, letterSpacing: -0.2 },
 
-  ingredientSection: { marginBottom: 16 },
-  ingredientSectionTitle: { fontSize: 14, fontFamily: 'Inter-SemiBold', marginBottom: 8 },
-  ingredientRow: { flexDirection: 'row', gap: 12, paddingVertical: 8, borderBottomWidth: StyleSheet.hairlineWidth },
-  ingredientAmount: { fontSize: 13, fontFamily: 'Inter-Regular', width: 60 },
-  ingredientName: { fontSize: 13, fontFamily: 'Inter-Regular' },
+  ingredientSection: { marginBottom: 20 },
+  ingredientSectionTitle: { fontSize: 15, fontFamily: 'Inter-SemiBold', marginBottom: 10, lineHeight: 22 },
+  ingredientRow: { flexDirection: 'row', gap: 16, paddingVertical: 6 },
+  ingredientAmount: { fontSize: 15, fontFamily: 'Inter-Regular', width: 72, lineHeight: 22 },
+  ingredientName: { fontSize: 15, fontFamily: 'Inter-Regular', lineHeight: 22 },
 
-  stepBlock: { marginBottom: 20 },
-  stepLabel: { fontSize: 13, fontFamily: 'Inter-SemiBold', marginBottom: 6 },
-  stepText: { fontSize: 14, fontFamily: 'Inter-Regular', lineHeight: 22 },
+  stepBlock: { marginBottom: 24 },
+  stepLabel: { fontSize: 15, fontFamily: 'Inter-SemiBold', marginBottom: 8, lineHeight: 22 },
+  stepText: { fontSize: 15, fontFamily: 'Inter-Regular', lineHeight: 24 },
 
   appetit: { fontSize: 32, marginTop: 12, lineHeight: 40 },
 
   // Bottom sheet
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+  modalOverlay: { flex: 1, backgroundColor: 'transparent', justifyContent: 'flex-end' },
   sheet: { borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 20, paddingTop: 12 },
   sheetHandle: { width: 40, height: 4, borderRadius: 2, alignSelf: 'center', marginBottom: 16 },
-  sheetTitle: { fontSize: 16, fontFamily: 'Inter-SemiBold', marginBottom: 8 },
+  sheetTitle: { fontSize: 16, letterSpacing: -0.2, marginBottom: 8 },
   sheetOption: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 16, borderBottomWidth: StyleSheet.hairlineWidth },
   sheetOptionText: { fontSize: 15, fontFamily: 'Inter-Regular' },
 });

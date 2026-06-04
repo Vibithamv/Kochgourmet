@@ -7,7 +7,6 @@ import {
   ScrollView,
   ActivityIndicator,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import {
@@ -82,11 +81,11 @@ export default function WhitelistRequestScreen() {
   };
 
   return (
-    <LinearGradient colors={colors.gradient.secondary} style={styles.gradient}>
+    <View style={[styles.screen, { backgroundColor: colors.background.primary }]}>
       <TouchableOpacity
         style={[
           styles.logoutBtn,
-          { top: insets.top + 10, backgroundColor: colors.background.card },
+          { top: insets.top + 10, backgroundColor: colors.background.secondary },
         ]}
         onPress={() =>
           showAlert(t('common.logout'), t('common.logoutMsg'), {
@@ -107,57 +106,53 @@ export default function WhitelistRequestScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        <View
-          style={[styles.card, { backgroundColor: colors.background.card }]}
+        <Text style={[styles.title, { color: colors.text.primary }]}>
+          {t('whitelistRequest.title')}
+        </Text>
+
+        <Text style={[styles.subtitle, { color: colors.text.secondary }]}>
+          {t('whitelistRequest.subtitle')}
+        </Text>
+
+        <TouchableOpacity
+          style={[styles.buttonPrimary, { backgroundColor: colors.primary }]}
+          disabled={loading}
+          onPress={() => {
+            void handleRequest();
+          }}
         >
-          <Text style={[styles.title, { color: colors.text.primary }]}>
-            {t('whitelistRequest.title')}
+          {loading ? (
+            <ActivityIndicator size="small" color={colors.text.inverse} />
+          ) : (
+            <Text style={[styles.buttonText, { color: colors.text.inverse }]}>
+              {t('whitelistRequest.requestAccess')}
+            </Text>
+          )}
+        </TouchableOpacity>
+
+        <View style={styles.footerNote}>
+          <View style={[styles.dot, { backgroundColor: colors.text.tertiary }]} />
+          <Text style={[styles.noteText, { color: colors.text.secondary }]}>
+            {t('whitelistRequest.reviewNotice')}
           </Text>
-
-          <Text style={[styles.subtitle, { color: colors.text.secondary }]}>
-            {t('whitelistRequest.subtitle')}
-          </Text>
-
-          <TouchableOpacity
-            style={[styles.buttonPrimary, { backgroundColor: colors.primary }]}
-            disabled={loading}
-            onPress={() => {
-              void handleRequest();
-            }}
-          >
-            {loading ? (
-              <ActivityIndicator size="small" color={colors.text.inverse} />
-            ) : (
-              <Text style={[styles.buttonText, { color: colors.text.inverse }]}>
-                {t('whitelistRequest.requestAccess')}
-              </Text>
-            )}
-          </TouchableOpacity>
-
-          <View style={styles.footerNote}>
-            <View style={styles.dot} />
-            <Text style={[styles.noteText, { color: colors.text.secondary }]}>
-              {t('whitelistRequest.reviewNotice')}
-            </Text>
-          </View>
-
-          <View style={styles.footer}>
-            <Text style={[styles.footerText, { color: colors.text.secondary }]}>
-              {t('common.poweredBy')}{' '}
-            </Text>
-            <Text style={[styles.brandText, { color: colors.primary }]}>
-              {t('common.brandName')}
-            </Text>
-          </View>
         </View>
+
+        {/* <View style={styles.footer}>
+          <Text style={[styles.footerText, { color: colors.text.secondary }]}>
+            {t('common.poweredBy')}{' '}
+          </Text>
+          <Text style={[styles.brandText, { color: colors.primary }]}>
+            {t('common.brandName')}
+          </Text>
+        </View> */}
       </ScrollView>
-    </LinearGradient>
+    </View>
   );
 }
 
 const createStyles = (colors: ReturnType<typeof getColors>) =>
   StyleSheet.create({
-    gradient: {
+    screen: {
       flex: 1,
     },
     container: {
@@ -166,11 +161,6 @@ const createStyles = (colors: ReturnType<typeof getColors>) =>
       justifyContent: 'center',
       paddingHorizontal: Spacing['3xl'],
       paddingTop: Spacing['5xl'],
-    },
-    card: {
-      borderRadius: Spacing['3xl'],
-      padding: Spacing['3xl'],
-      ...Shadows.lg,
       width: '100%',
     },
     title: {
@@ -208,7 +198,6 @@ const createStyles = (colors: ReturnType<typeof getColors>) =>
       width: 6,
       height: 6,
       borderRadius: 3,
-      backgroundColor: colors.text.tertiary,
       marginRight: 8,
     },
     noteText: {

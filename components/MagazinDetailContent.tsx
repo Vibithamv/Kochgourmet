@@ -10,12 +10,25 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { X, Share2, Check } from 'lucide-react-native';
+import { Share2 } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getColors, getTypography } from '@/constants/theme';
 import { getArticleDetail, type ArticleSection } from '@/utils/mockArticleDetails';
 import RecipeCard from '@/components/RecipeCard';
 import { useFavourites } from '@/contexts/FavouritesContext';
+
+/** First word capitalized for list-style paragraphs; remainder unchanged. */
+function splitLeadingWord(text: string): { readonly first: string; readonly rest: string } {
+  const trimmed = text.trim();
+  const space = trimmed.indexOf(' ');
+  if (space === -1) {
+    const word = trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+    return { first: word, rest: '' };
+  }
+  const raw = trimmed.slice(0, space);
+  const first = raw.charAt(0).toUpperCase() + raw.slice(1);
+  return { first, rest: trimmed.slice(space) };
+}
 
 export interface MagazinDetailContentProps {
   readonly articleId: string;
@@ -50,14 +63,14 @@ export default function MagazinDetailContent({
     switch (section.type) {
       case 'heading':
         return (
-          <Text key={index} style={[styles.sectionHeading, { color: colors.text.primary }]}>
+          <Text key={index} style={[styles.sectionHeading, { color: colors.text.primary, fontFamily: typography.fontFamily.regular }]}>
             {section.content}
           </Text>
         );
 
       case 'text':
         return (
-          <Text key={index} style={[styles.bodyText, { color: colors.text.primary }]}>
+          <Text key={index} style={[styles.bodyText, { color: colors.text.primary, fontFamily: typography.fontFamily.regular }]}>
             {section.content}
           </Text>
         );
@@ -96,14 +109,18 @@ export default function MagazinDetailContent({
       case 'list':
         return (
           <View key={index} style={styles.listBlock}>
-            {(section.items ?? []).map(item => (
-              <View key={item} style={styles.listItem}>
-                <View style={[styles.listCheck, { backgroundColor: colors.success }]}>
-                  <Check size={10} color="#fff" strokeWidth={3} />
+            {(section.items ?? []).map(item => {
+              const { first, rest } = splitLeadingWord(item);
+              return (
+                <View key={item} style={styles.listItem}>
+                  <Text style={[styles.listBullet, { color: colors.text.primary }]}>•</Text>
+                  <Text style={[styles.listItemText, { color: colors.text.primary }]}>
+                    <Text style={{ fontFamily: typography.fontFamily.semiBold }}>{first}</Text>
+                    <Text style={{ fontFamily: typography.fontFamily.regular }}>{rest}</Text>
+                  </Text>
                 </View>
-                <Text style={[styles.listItemText, { color: colors.text.primary }]}>{item}</Text>
-              </View>
-            ))}
+              );
+            })}
           </View>
         );
 
@@ -143,7 +160,7 @@ export default function MagazinDetailContent({
           }]}>
             {article.title}
           </Text>
-          <Text style={[styles.intro, { color: colors.text.secondary }]}>
+          <Text style={[styles.intro, { color: colors.text.primary, fontFamily: typography.fontFamily.regular }]}>
             {article.intro}
           </Text>
         </View>
@@ -183,15 +200,22 @@ export default function MagazinDetailContent({
           onPress={onClose}
           activeOpacity={0.7}
         >
-          <X size={16} color={colors.text.primary} />
-          <Text style={[styles.closeBtnText, { color: colors.text.primary }]}>Schließen</Text>
+          <Text style={[styles.closeBtnText, { color: colors.text.primary, fontFamily: typography.fontFamily.regular }]}>
+            Schließen
+          </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.shareBtn, { backgroundColor: colors.primary }]}
+          style={[
+            styles.shareBtn,
+            {
+              backgroundColor: colors.background.card,
+              borderColor: colors.border.primary,
+            },
+          ]}
           onPress={onShare}
           activeOpacity={0.8}
         >
-          <Share2 size={16} color="#fff" />
+          <Share2 size={16} color={colors.text.primary} />
         </TouchableOpacity>
       </View>
     </View>
@@ -216,10 +240,10 @@ const styles = StyleSheet.create({
     fontSize: 28,
     lineHeight: 36,
     letterSpacing: -0.3,
+    marginBottom: 4,
   },
   intro: {
     fontSize: 15,
-    fontFamily: 'Inter-Regular',
     lineHeight: 24,
   },
 
@@ -247,16 +271,17 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 6,
   },
-  closeBtnText: { fontSize: 14, fontFamily: 'Inter-SemiBold' },
+  closeBtnText: { fontSize: 14, letterSpacing: 0.1 },
   shareBtn: {
     width: 44,
     height: 44,
     borderRadius: 22,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.18,
+    shadowOpacity: 0.12,
     shadowRadius: 12,
     elevation: 6,
   },
@@ -264,18 +289,17 @@ const styles = StyleSheet.create({
   // Content sections
   content: {
     paddingHorizontal: 20,
-    gap: 16,
+    gap: 20,
   },
   sectionHeading: {
-    fontSize: 18,
-    fontFamily: 'Inter-Bold',
-    lineHeight: 26,
-    marginTop: 8,
+    fontSize: 20,
+    lineHeight: 24,
+    marginTop: 12,
+    marginBottom: 4,
   },
   bodyText: {
     fontSize: 15,
-    fontFamily: 'Inter-Regular',
-    lineHeight: 26,
+    lineHeight: 24,
   },
   sectionImage: {
     width: '100%',
@@ -313,22 +337,17 @@ const styles = StyleSheet.create({
   listBlock: { gap: 12 },
   listItem: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 10,
     alignItems: 'flex-start',
   },
-  listCheck: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 3,
-    flexShrink: 0,
+  listBullet: {
+    fontSize: 16,
+    lineHeight: 24,
+    fontFamily: 'Inter-Regular',
   },
   listItemText: {
     flex: 1,
-    fontSize: 15,
-    fontFamily: 'Inter-Regular',
+    fontSize: 16,
     lineHeight: 24,
   },
 

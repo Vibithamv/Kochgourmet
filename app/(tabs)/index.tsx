@@ -14,7 +14,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { useTheme } from '@/contexts/ThemeContext';
-import { getColors } from '@/constants/theme';
+import { getColors, getTypography } from '@/constants/theme';
 import { Search, SlidersHorizontal, X, Sparkles, ChevronRight } from 'lucide-react-native';
 import RecipeCard, { type Recipe, type CardLayout } from '@/components/RecipeCard';
 import RecipeExpandOverlay from '@/components/RecipeExpandOverlay';
@@ -110,6 +110,7 @@ function PromoBanner({ onDismiss, tabBarHeight }: Readonly<{ onDismiss: () => vo
 export default function RezepteScreen() {
   const { theme } = useTheme();
   const colors = getColors(theme);
+  const typography = getTypography(theme);
   const insets = useSafeAreaInsets();
   const { showAlert } = useGlobalAlert();
   const userAccount = userManagement();
@@ -166,7 +167,7 @@ export default function RezepteScreen() {
   const TAB_BAR_HEIGHT = 80;
 
   return (
-    <View style={[styles.screen, { backgroundColor: colors.background.secondary }]}>
+    <View style={[styles.screen, { backgroundColor: colors.background.primary }]}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: Math.max(insets.top, 44) + 12 }]}>
         {profilePictureUrl ? (
@@ -180,9 +181,11 @@ export default function RezepteScreen() {
         )}
         <View style={styles.greeting}>
           <Text style={[styles.greetingName, { color: colors.text.primary }]}>
-            Bonjour {userName || '...'} 👋
+            <Text style={{ fontFamily: typography.fontFamily.regular }}>Bonjour </Text>
+            <Text style={{ fontFamily: typography.fontFamily.regular }}>{userName || '...'}</Text>
+            <Text style={{ fontFamily: typography.fontFamily.regular }}> 👋</Text>
           </Text>
-          <Text style={[styles.greetingSubtitle, { color: colors.text.tertiary }]}>
+          <Text style={[styles.greetingSubtitle, { color: colors.text.tertiary, fontFamily: typography.fontFamily.regular }]}>
             Was willst du heute Kochen?
           </Text>
         </View>
@@ -192,20 +195,20 @@ export default function RezepteScreen() {
       <View style={styles.searchRow}>
         <View style={[styles.searchBar, { backgroundColor: colors.background.tertiary }]}>
           <TextInput
-            style={[styles.searchInput, { color: colors.text.primary }]}
+            style={[styles.searchInput, { color: colors.text.primary, fontFamily: typography.fontFamily.regular }]}
             placeholder="Rezeptsuche"
             placeholderTextColor={colors.text.tertiary}
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
-          <Search size={20} color={colors.text.tertiary} />
+          <Search size={18} color={colors.text.tertiary} />
         </View>
         <TouchableOpacity
           style={[styles.filterButton, { backgroundColor: colors.primary }]}
           onPress={() => router.push('/recipe/filter')}
           activeOpacity={0.8}
         >
-          <SlidersHorizontal size={20} color="#fff" />
+          <SlidersHorizontal size={18} color="#fff" />
         </TouchableOpacity>
       </View>
 
@@ -241,10 +244,10 @@ export default function RezepteScreen() {
       {/* Recipe grid / empty state */}
       {filteredRecipes.length === 0 ? (
         <View style={styles.emptyState}>
-          <Text style={[styles.emptyTitle, { color: colors.text.primary }]}>
+          <Text style={[styles.emptyTitle, { color: colors.text.primary, fontFamily: typography.fontFamily.bold }]}>
             Nichts gefunden 😱
           </Text>
-          <Text style={[styles.emptySubtitle, { color: colors.text.tertiary }]}>
+          <Text style={[styles.emptySubtitle, { color: colors.text.tertiary, fontFamily: typography.fontFamily.regular }]}>
             Ändere deine Suchanfrage oder Filter-Einstellungen.
           </Text>
         </View>
@@ -318,11 +321,11 @@ const styles = StyleSheet.create({
   greeting: { gap: 2 },
   greetingName: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
+    letterSpacing: -0.2,
   },
   greetingSubtitle: {
-    fontSize: 13,
-    fontFamily: 'Inter-Regular',
+    fontSize: 14,
+    lineHeight: 20,
   },
   searchRow: {
     flexDirection: 'row',
@@ -336,19 +339,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderRadius: 9999,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     gap: 8,
+    minHeight: 40,
   },
   searchInput: {
     flex: 1,
     fontSize: 15,
-    fontFamily: 'Inter-Regular',
+    lineHeight: 18,
+    paddingVertical: 0,
   },
   filterButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -388,11 +393,10 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 28,
-    fontFamily: 'Inter-Bold',
+    letterSpacing: -0.3,
   },
   emptySubtitle: {
     fontSize: 15,
-    fontFamily: 'Inter-Regular',
     lineHeight: 22,
   },
   bannerWrap: {

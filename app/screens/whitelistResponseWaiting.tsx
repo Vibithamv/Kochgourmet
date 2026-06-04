@@ -1,6 +1,5 @@
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { Hourglass, LogOut } from "lucide-react-native";
@@ -63,9 +62,9 @@ export default function WhitelistResponseWaiting() {
   };
 
   return (
-    <LinearGradient colors={colors.gradient.secondary} style={styles.gradient}>
+    <View style={[styles.screen, { backgroundColor: colors.background.primary }]}>
       <TouchableOpacity
-        style={[styles.logoutBtn, { top: insets.top + 10, backgroundColor: colors.background.card }]}
+        style={[styles.logoutBtn, { top: insets.top + 10, backgroundColor: colors.background.secondary }]}
         onPress={() => showAlert(
           t('common.logout'),
           t('common.logoutMsg'),
@@ -88,64 +87,47 @@ export default function WhitelistResponseWaiting() {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        <View
-          style={[
-            styles.card,
-            { backgroundColor: colors.background.card },
-          ]}
-        >
-          {/* Step Text
-          <Text style={[styles.stepText, { color: colors.text.secondary }]}>
-            STEP 3 of 3
-          </Text> */}
-
-          {/* Icon */}
-          <View style={styles.iconContainer}>
-            <Hourglass size={56} color={colors.primary} />
-          </View>
-
-          {/* Title */}
-          <Text style={[styles.title, { color: colors.text.primary }]}>
-            {t('whitelistWaiting.title')}
-          </Text>
-
-          {/* Description */}
-          <Text style={[styles.subtitle, { color: colors.text.secondary }]}>
-            {t('whitelistWaiting.subtitle')}
-          </Text>
-
-          {/* Button */}
-          <TouchableOpacity
-            style={[styles.button, { backgroundColor: colors.primary }]}
-            onPress={checkStatus}
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <ActivityIndicator size="small" color={colors.text.inverse} />
-            ) : (
-              <Text style={[styles.buttonText, { color: colors.text.inverse }]}>
-                {t('whitelistWaiting.checkStatus')}
-              </Text>
-            )}
-          </TouchableOpacity>
-
-          {/* Footer */}
-          <View style={styles.footer}>
-            <Text style={[styles.footerText, { color: colors.text.secondary }]}>
-              {t('common.poweredBy')}{" "}
-            </Text>
-            <Text style={[styles.brandText, { color: colors.primary }]}>
-              {t('common.brandName')}
-            </Text>
-          </View>
+        <View style={[styles.iconContainer, { backgroundColor: colors.interactive.hover }]}>
+          <Hourglass size={56} color={colors.primary} />
         </View>
+
+        <Text style={[styles.title, { color: colors.text.primary }]}>
+          {t('whitelistWaiting.title')}
+        </Text>
+
+        <Text style={[styles.subtitle, { color: colors.text.secondary }]}>
+          {t('whitelistWaiting.subtitle')}
+        </Text>
+
+        <TouchableOpacity
+          style={[styles.button, { backgroundColor: colors.primary }]}
+          onPress={checkStatus}
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <ActivityIndicator size="small" color={colors.text.inverse} />
+          ) : (
+            <Text style={[styles.buttonText, { color: colors.text.inverse }]}>
+              {t('whitelistWaiting.checkStatus')}
+            </Text>
+          )}
+        </TouchableOpacity>
+
+        {/* <View style={styles.footer}>
+          <Text style={[styles.footerText, { color: colors.text.secondary }]}>
+            {t('common.poweredBy')}{" "}
+          </Text>
+          <Text style={[styles.brandText, { color: colors.primary }]}>
+            {t('common.brandName')}
+          </Text>
+        </View> */}
       </ScrollView>
-    </LinearGradient>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  gradient: {
+  screen: {
     flex: 1,
   },
   container: {
@@ -155,13 +137,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing["3xl"],
     paddingTop: Spacing["5xl"],
   },
-  card: {
-    borderRadius: Spacing["3xl"],
-    padding: Spacing["3xl"],
-    width: "100%",
-    ...Shadows.lg,
-    alignItems: "center",
-  },
   stepText: {
     fontSize: Typography.fontSize.sm,
     fontFamily: Typography.fontFamily.medium,
@@ -170,10 +145,10 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   iconContainer: {
-    backgroundColor: "rgba(0,0,0,0.03)",
     borderRadius: 100,
     padding: Spacing["2xl"],
     marginBottom: Spacing["3xl"],
+    alignSelf: "center",
   },
   title: {
     fontSize: Typography.fontSize["5xl"],
@@ -271,7 +246,6 @@ const styles = StyleSheet.create({
     right: 20,
     paddingVertical: 6,
     paddingHorizontal: 12,
-    backgroundColor: '#1E293B',
     borderRadius: 10,
     zIndex: 999,
   },

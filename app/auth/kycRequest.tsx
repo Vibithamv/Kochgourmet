@@ -104,7 +104,7 @@ export default function VerifyIdentityScreen() {
   }
 
   return (
-    <View style={[styles.gradient, { backgroundColor: colors.background.secondary }]}>
+    <View style={[styles.screen, { backgroundColor: colors.background.primary }]}>
       <ScrollView
         contentContainerStyle={[
           styles.container,
@@ -112,73 +112,51 @@ export default function VerifyIdentityScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        <View
-          style={[
-            {
-              borderRadius: Spacing['3xl'],
-              padding: Spacing['3xl'],
-              ...Shadows.lg,
-              alignSelf: 'stretch',
-            },
-            { backgroundColor: colors.background.card },
-          ]}
-        >
-          {/* Step Progress */}
-          {/* <Text style={[styles.stepText, { color: colors.text.secondary }]}>
-          STEP 1 of 3
-        </Text> */}
-
-          {/* Check Icon */}
-          <View style={[styles.iconContainer, { backgroundColor: 'rgba(45,90,66,0.1)' }]}>
-            <CheckCircle size={56} color={colors.success} />
-          </View>
-
-          {/* Title */}
-          <Text style={[styles.welcomeText, { color: colors.text.primary }]}>
-            {name}
-          </Text>
-
-          <Text style={[styles.title, { color: colors.text.primary }]}>
-            {titleText}
-          </Text>
-
-          {/* Subtitle */}
-          <Text style={[styles.subtitle, { color: colors.text.secondary }]}>
-            {subtitleText}
-          </Text>
-
-          {/* Button */}
-          <TouchableOpacity
-            style={[styles.button, { backgroundColor: colors.primary }]}
-            disabled={loading}
-            onPress={isKycSettled ? () => router.back() : handleCompleteKYC}
-          >
-            {loading ? (
-              <ActivityIndicator size="small" color={colors.text.inverse} />
-            ) : (
-              <Text style={[styles.buttonText, { color: colors.text.inverse }]}>
-                {buttonLabel}
-              </Text>
-            )}
-          </TouchableOpacity>
-
-          {/* Footer */}
-          <View style={styles.footer}>
-            <Text style={[styles.footerText, { color: colors.text.secondary }]}>
-              {t('common.poweredBy')}{' '}
-            </Text>
-            <Text style={[styles.brandText, { color: colors.primary }]}>
-              {t('common.brandName')}
-            </Text>
-          </View>
+        <View style={[styles.iconContainer, { backgroundColor: colors.interactive.hover }]}>
+          <CheckCircle size={56} color={colors.success} />
         </View>
+
+        <Text style={[styles.welcomeText, { color: colors.text.primary }]}>
+          {name}
+        </Text>
+
+        <Text style={[styles.title, { color: colors.text.primary }]}>
+          {titleText}
+        </Text>
+
+        <Text style={[styles.subtitle, { color: colors.text.secondary }]}>
+          {subtitleText}
+        </Text>
+
+        <TouchableOpacity
+          style={[styles.button, { backgroundColor: colors.primary }]}
+          disabled={loading}
+          onPress={isKycSettled ? () => router.back() : handleCompleteKYC}
+        >
+          {loading ? (
+            <ActivityIndicator size="small" color={colors.text.inverse} />
+          ) : (
+            <Text style={[styles.buttonText, { color: colors.text.inverse }]}>
+              {buttonLabel}
+            </Text>
+          )}
+        </TouchableOpacity>
+
+        {/* <View style={styles.footer}>
+          <Text style={[styles.footerText, { color: colors.text.secondary }]}>
+            {t('common.poweredBy')}{' '}
+          </Text>
+          <Text style={[styles.brandText, { color: colors.primary }]}>
+            {t('common.brandName')}
+          </Text>
+        </View> */}
       </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  gradient: {
+  screen: {
     flex: 1,
   },
   container: {
@@ -196,7 +174,6 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   iconContainer: {
-    backgroundColor: 'rgba(0,0,0,0.03)',
     borderRadius: 100,
     padding: Spacing['2xl'],
     marginBottom: Spacing['3xl'],
