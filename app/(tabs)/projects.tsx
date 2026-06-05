@@ -6,13 +6,12 @@ import {
   StyleSheet,
   TextInput,
   RefreshControl,
-  useWindowDimensions,
 } from 'react-native';
 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Search } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
-import { getColors, getTypography } from '@/constants/theme';
+import { getColors } from '@/constants/theme';
 import ArticleCard, { type ArticleListItem } from '@/components/ArticleCard';
 import ArticleExpandOverlay from '@/components/ArticleExpandOverlay';
 import type { CardLayout } from '@/components/RecipeCard';
@@ -40,10 +39,7 @@ const TAB_BAR_HEIGHT = 90;
 export default function MagazinScreen() {
   const { theme } = useTheme();
   const colors = getColors(theme);
-  const typography = getTypography(theme);
   const insets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
-  const titleFontSize = Math.round(Math.min(80, width * 0.205));
   const [search, setSearch] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [expandedArticle, setExpandedArticle] = useState<{
@@ -81,17 +77,7 @@ export default function MagazinScreen() {
       >
         <View style={{ height: Math.max(insets.top, 50) + 32 }} />
 
-        <Text
-          style={[
-            styles.title,
-            {
-              color: colors.text.primary,
-              fontFamily: typography.fontFamily.display,
-              fontSize: titleFontSize,
-              lineHeight: titleFontSize * 1.34,
-            },
-          ]}
-        >
+        <Text style={[styles.title, { color: colors.text.primary }]}>
           Magazin
         </Text>
 
@@ -103,7 +89,7 @@ export default function MagazinScreen() {
           <TextInput
             style={[styles.searchInput, { color: colors.text.primary }]}
             placeholder="Suchen"
-            placeholderTextColor={colors.text.tertiary}
+            placeholderTextColor={colors.text.primary}
             value={search}
             onChangeText={setSearch}
           />
@@ -142,14 +128,17 @@ const styles = StyleSheet.create({
   screen: { flex: 1 },
   scroll: { paddingHorizontal: 26 },
   title: {
+    fontFamily: 'PlayfairDisplay_700Bold',
     fontSize: 80,
-    lineHeight: 107,
+    lineHeight: 80,
+    letterSpacing: 0,
     marginBottom: 20,
   },
   subtitle: {
+    fontFamily: 'Roboto-Light',
     fontSize: 17,
-    fontFamily: 'Inter-Regular',
     lineHeight: 23,
+    letterSpacing: 0,
     marginBottom: 33,
   },
   searchBar: {
@@ -163,8 +152,10 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
+    fontFamily: 'Roboto-Light',
     fontSize: 17,
-    fontFamily: 'Inter-Regular',
+    lineHeight: 17,
+    letterSpacing: 0,
   },
   articles: { gap: 35 },
   emptyText: {

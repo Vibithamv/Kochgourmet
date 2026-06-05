@@ -14,8 +14,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { useTheme } from '@/contexts/ThemeContext';
-import { getColors, getTypography } from '@/constants/theme';
-import { Search, SlidersHorizontal, X, Sparkles, ChevronRight } from 'lucide-react-native';
+import { getColors } from '@/constants/theme';
+import { Search, X, Sparkles, ChevronRight } from 'lucide-react-native';
 import RecipeCard, { type Recipe, type CardLayout } from '@/components/RecipeCard';
 import RecipeExpandOverlay from '@/components/RecipeExpandOverlay';
 import { useFavourites } from '@/contexts/FavouritesContext';
@@ -110,7 +110,6 @@ function PromoBanner({ onDismiss, tabBarHeight }: Readonly<{ onDismiss: () => vo
 export default function RezepteScreen() {
   const { theme } = useTheme();
   const colors = getColors(theme);
-  const typography = getTypography(theme);
   const insets = useSafeAreaInsets();
   const { showAlert } = useGlobalAlert();
   const userAccount = userManagement();
@@ -181,11 +180,9 @@ export default function RezepteScreen() {
         )}
         <View style={styles.greeting}>
           <Text style={[styles.greetingName, { color: colors.text.primary }]}>
-            <Text style={{ fontFamily: typography.fontFamily.regular }}>Bonjour </Text>
-            <Text style={{ fontFamily: typography.fontFamily.regular }}>{userName || '...'}</Text>
-            <Text style={{ fontFamily: typography.fontFamily.regular }}> 👋</Text>
+            {`Bonjour ${userName || '...'} 👋`}
           </Text>
-          <Text style={[styles.greetingSubtitle, { color: colors.text.tertiary, fontFamily: typography.fontFamily.regular }]}>
+          <Text style={[styles.greetingSubtitle, { color: colors.text.primary }]}>
             Was willst du heute Kochen?
           </Text>
         </View>
@@ -193,9 +190,9 @@ export default function RezepteScreen() {
 
       {/* Search bar */}
       <View style={styles.searchRow}>
-        <View style={[styles.searchBar, { backgroundColor: colors.background.tertiary }]}>
+        <View style={[styles.searchBar, { backgroundColor: colors.background.secondary }]}>
           <TextInput
-            style={[styles.searchInput, { color: colors.text.primary, fontFamily: typography.fontFamily.regular }]}
+            style={[styles.searchInput, { color: colors.text.primary }]}
             placeholder="Rezeptsuche"
             placeholderTextColor={colors.text.tertiary}
             value={searchQuery}
@@ -204,11 +201,15 @@ export default function RezepteScreen() {
           <Search size={18} color={colors.text.tertiary} />
         </View>
         <TouchableOpacity
-          style={[styles.filterButton, { backgroundColor: colors.primary }]}
+          style={styles.filterButton}
           onPress={() => router.push('/recipe/filter')}
           activeOpacity={0.8}
         >
-          <SlidersHorizontal size={18} color="#fff" />
+          <Image
+            source={require('../../assets/images/rezepte-filter-button.png')}
+            style={styles.filterButtonImage}
+            resizeMode="contain"
+          />
         </TouchableOpacity>
       </View>
 
@@ -244,10 +245,10 @@ export default function RezepteScreen() {
       {/* Recipe grid / empty state */}
       {filteredRecipes.length === 0 ? (
         <View style={styles.emptyState}>
-          <Text style={[styles.emptyTitle, { color: colors.text.primary, fontFamily: typography.fontFamily.bold }]}>
+          <Text style={[styles.emptyTitle, { color: colors.text.primary }]}>
             Nichts gefunden 😱
           </Text>
-          <Text style={[styles.emptySubtitle, { color: colors.text.tertiary, fontFamily: typography.fontFamily.regular }]}>
+          <Text style={[styles.emptySubtitle, { color: colors.text.primary }]}>
             Ändere deine Suchanfrage oder Filter-Einstellungen.
           </Text>
         </View>
@@ -275,6 +276,7 @@ export default function RezepteScreen() {
             <View style={styles.cardWrapper}>
               <RecipeCard
                 recipe={item}
+                variant="rezepte"
                 hidden={expandedRecipe?.recipe.id === item.id}
                 onPressWithLayout={(layout) => setExpandedRecipe({ recipe: item, layout })}
                 onToggleFavourite={() => toggleFavourite(item.id)}
@@ -299,9 +301,9 @@ const styles = StyleSheet.create({
   screen: { flex: 1 },
   header: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingBottom: 0,
     gap: 14,
   },
   avatar: {
@@ -318,21 +320,30 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontFamily: 'Inter-Bold',
   },
-  greeting: { gap: 2 },
+  greeting: {
+    flex: 1,
+    paddingTop: 4,
+    gap: 4,
+  },
   greetingName: {
-    fontSize: 16,
-    letterSpacing: -0.2,
+    fontFamily: 'Roboto-Regular',
+    fontSize: 17,
+    lineHeight: 22,
+    letterSpacing: 0,
   },
   greetingSubtitle: {
-    fontSize: 14,
-    lineHeight: 20,
+    fontFamily: 'Roboto-Light',
+    fontSize: 17,
+    lineHeight: 22,
+    letterSpacing: 0,
   },
   searchRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 20,
     gap: 10,
-    marginBottom: 14,
+    marginTop: 50,
+    marginBottom: 30,
   },
   searchBar: {
     flex: 1,
@@ -342,20 +353,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     gap: 8,
-    minHeight: 40,
+    minHeight: 44,
   },
   searchInput: {
     flex: 1,
-    fontSize: 15,
-    lineHeight: 18,
+    fontFamily: 'Roboto-Light',
+    fontSize: 17,
+    lineHeight: 22,
+    letterSpacing: 0,
     paddingVertical: 0,
   },
   filterButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 46,
+    height: 46,
+  },
+  filterButtonImage: {
+    width: 46,
+    height: 46,
   },
   chipsRow: {
     paddingHorizontal: 20,
@@ -392,12 +406,16 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   emptyTitle: {
-    fontSize: 28,
-    letterSpacing: -0.3,
+    fontFamily: 'PlayfairDisplay_700Bold',
+    fontSize: 35,
+    lineHeight: 35,
+    letterSpacing: 0,
   },
   emptySubtitle: {
-    fontSize: 15,
-    lineHeight: 22,
+    fontFamily: 'Roboto-Light',
+    fontSize: 17,
+    lineHeight: 23,
+    letterSpacing: 0,
   },
   bannerWrap: {
     position: 'absolute',

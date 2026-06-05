@@ -15,7 +15,7 @@ import { replaceLoginClearingAuthStack } from '@/utils/authNavigation';
 import { Eye, EyeOff, X, ChevronRight } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/contexts/ThemeContext';
-import { getColors, getTypography } from '@/constants/theme';
+import { getColors } from '@/constants/theme';
 import { userRegister } from '@/contexts/user_register';
 import { useRegisterPending } from '@/contexts/RegisterPendingContext';
 import { useGlobalAlert } from '@/contexts/AlertContext';
@@ -199,6 +199,7 @@ export default function RegisterScreen() {
         {...inputProps}
         style={[
           styles.pillInput,
+          styles.fieldInput,
           {
             backgroundColor: colors.background.card,
             borderColor: fieldBorder(fieldKey, hasError),
@@ -221,7 +222,7 @@ export default function RegisterScreen() {
       >
         {/* Header */}
         <View style={styles.headerRow}>
-          <Text style={[styles.title, { color: colors.text.primary, fontFamily: getTypography(theme).fontFamily.display }]}>
+          <Text style={[styles.title, { color: colors.text.primary }]}>
             Registrieren
           </Text>
           <TouchableOpacity
@@ -246,7 +247,7 @@ export default function RegisterScreen() {
             value: firstName,
             onChangeText: (text) => { setFirstName(text); setErrors({ ...errors, firstName: '' }); },
             placeholder: t('auth.register.firstName'),
-            placeholderTextColor: colors.text.placeholder,
+            placeholderTextColor: colors.text.primary,
             autoComplete: 'name',
             returnKeyType: 'next',
             onFocus: () => setFocusedField('firstName'),
@@ -265,7 +266,7 @@ export default function RegisterScreen() {
             value: lastName,
             onChangeText: (text) => { setLastName(text); setErrors({ ...errors, lastName: '' }); },
             placeholder: t('auth.register.lastName'),
-            placeholderTextColor: colors.text.placeholder,
+            placeholderTextColor: colors.text.primary,
             autoComplete: 'name',
             returnKeyType: 'next',
             onFocus: () => setFocusedField('lastName'),
@@ -284,7 +285,7 @@ export default function RegisterScreen() {
             value: email,
             onChangeText: (text) => { setEmail(text); setErrors({ ...errors, email: '' }); },
             placeholder: t('auth.register.email'),
-            placeholderTextColor: colors.text.placeholder,
+            placeholderTextColor: colors.text.primary,
             keyboardType: 'email-address',
             autoCapitalize: 'none',
             autoComplete: 'email',
@@ -309,11 +310,11 @@ export default function RegisterScreen() {
           >
             <TextInput
               ref={passwordRef}
-              style={[styles.pillInputInline, { color: colors.text.primary }]}
+              style={[styles.pillInputInline, styles.fieldInput, { color: colors.text.primary }]}
               value={password}
               onChangeText={(text) => { setPassword(text); setErrors({ ...errors, pwField: '' }); }}
               placeholder={t('auth.register.password')}
-              placeholderTextColor={colors.text.placeholder}
+              placeholderTextColor={colors.text.primary}
               secureTextEntry={!showPassword}
               autoComplete="new-password"
               maxLength={SIGNUP_PASSWORD_MAX_LENGTH}
@@ -340,11 +341,11 @@ export default function RegisterScreen() {
           >
             <TextInput
               ref={confirmRef}
-              style={[styles.pillInputInline, { color: colors.text.primary }]}
+              style={[styles.pillInputInline, styles.fieldInput, { color: colors.text.primary }]}
               value={confirmPassword}
               onChangeText={(text) => { setConfirmPassword(text); setErrors({ ...errors, cpwField: '' }); }}
               placeholder={t('auth.register.confirmPassword')}
-              placeholderTextColor={colors.text.placeholder}
+              placeholderTextColor={colors.text.primary}
               secureTextEntry={!showConfirmPassword}
               autoComplete="new-password"
               maxLength={SIGNUP_PASSWORD_MAX_LENGTH}
@@ -379,7 +380,7 @@ export default function RegisterScreen() {
           style={[styles.signupCard, { backgroundColor: colors.background.secondary }]}
         >
           <View style={styles.signupCardLeft}>
-            <Text style={[styles.signupTitle, { color: colors.text.primary, fontFamily: getTypography(theme).fontFamily.display }]}>
+            <Text style={[styles.signupTitle, { color: colors.text.primary }]}>
               {t('auth.register.alreadyHaveAccount')}
             </Text>
             <View style={styles.signupActionRow}>
@@ -423,10 +424,12 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   title: {
-    fontSize: 44,
-    lineHeight: 54,
-    letterSpacing: -0.5,
+    fontFamily: 'PlayfairDisplay_700Bold',
+    fontSize: 35,
+    lineHeight: 35,
+    letterSpacing: 0,
     flex: 1,
+    paddingRight: 12,
   },
   closeBtn: {
     width: 40,
@@ -435,12 +438,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 8,
+    flexShrink: 0,
   },
   subtitle: {
-    fontSize: 16,
-    fontFamily: 'Inter-Regular',
-    lineHeight: 24,
+    fontFamily: 'Roboto-Light',
+    fontSize: 17,
+    lineHeight: 23,
+    letterSpacing: 0,
     marginBottom: 28,
   },
 
@@ -454,6 +458,12 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontFamily: 'Inter-Regular',
     minHeight: 48,
+  },
+  fieldInput: {
+    fontFamily: 'Roboto-Light',
+    fontSize: 16,
+    lineHeight: 16,
+    letterSpacing: 0,
   },
   pillInputWrap: {
     flexDirection: 'row',
@@ -497,8 +507,11 @@ const styles = StyleSheet.create({
   },
   primaryBtnText: {
     color: '#fff',
-    fontSize: 15,
-    fontFamily: 'Inter-SemiBold',
+    fontFamily: 'Roboto-Regular',
+    fontSize: 17,
+    lineHeight: 17,
+    letterSpacing: 0,
+    textAlign: 'center',
   },
 
   // Sign-in card with cheese illustration (image overflows slightly at bottom)
@@ -514,8 +527,10 @@ const styles = StyleSheet.create({
   },
   signupCardLeft: { flex: 1, gap: 14, paddingRight: 120 },
   signupTitle: {
-    fontSize: 24,
+    fontFamily: 'PlayfairDisplay_700Bold',
+    fontSize: 22,
     lineHeight: 30,
+    letterSpacing: 0,
   },
   signupActionRow: {
     flexDirection: 'row',
@@ -523,15 +538,17 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   signupArrow: {
-    width: 26,
-    height: 26,
+    width: 16,
+    height: 16,
     borderRadius: 13,
     alignItems: 'center',
     justifyContent: 'center',
   },
   signupActionText: {
+    fontFamily: 'Roboto-Regular',
     fontSize: 15,
-    fontFamily: 'Inter-SemiBold',
+    lineHeight: 15,
+    letterSpacing: 0,
   },
   signupCheese: {
     position: 'absolute',

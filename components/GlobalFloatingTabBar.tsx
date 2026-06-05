@@ -5,16 +5,19 @@ import { router, usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChefHat, Heart, Menu, Star, TrendingUp } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
-import { getColors, getShadows, getTypography } from '@/constants/theme';
+import { getShadows } from '@/constants/theme';
 import { useTabBarSuppressed } from '@/utils/tabBarStore';
 
 const TABS = [
-  { route: '/',          label: 'Rezepte',   Icon: Star,        match: (p: string) => p === '/' || p.startsWith('/recipe') },
-  { route: '/projects',  label: 'Magazin',   Icon: ChefHat,     match: (p: string) => p.startsWith('/projects') || p.startsWith('/magazin') },
-  { route: '/portfolio', label: 'Favoriten', Icon: Heart,       match: (p: string) => p.startsWith('/portfolio') || p.startsWith('/favoriten') },
-  { route: '/offerings', label: 'Bonus',     Icon: TrendingUp,  match: (p: string) => p.startsWith('/offerings') || p.startsWith('/project') || p.startsWith('/investment') },
-  { route: '/account',   label: 'Menü',      Icon: Menu,        match: (p: string) => p.startsWith('/account') || p === '/auth/kycRequest' || p === '/screens/portfolio' || p === '/screens/projects' },
+  { route: '/',          label: 'Rezepte',   Icon: Star,        filledWhenActive: true,  match: (p: string) => p === '/' || p.startsWith('/recipe') },
+  { route: '/projects',  label: 'Magazin',   Icon: ChefHat,     filledWhenActive: false, match: (p: string) => p.startsWith('/projects') || p.startsWith('/magazin') },
+  { route: '/portfolio', label: 'Favoriten', Icon: Heart,       filledWhenActive: false, match: (p: string) => p.startsWith('/portfolio') || p.startsWith('/favoriten') },
+  { route: '/offerings', label: 'Bonus',     Icon: TrendingUp,  filledWhenActive: false, match: (p: string) => p.startsWith('/offerings') || p.startsWith('/project') || p.startsWith('/investment') },
+  { route: '/account',   label: 'Menü',      Icon: Menu,        filledWhenActive: false, match: (p: string) => p.startsWith('/account') || p === '/auth/kycRequest' || p === '/screens/portfolio' || p === '/screens/projects' },
 ];
+
+const TAB_LABEL_ACTIVE_COLOR = '#EE7051';
+const TAB_LABEL_INACTIVE_COLOR = '#000000';
 
 const HIDDEN_PATHS = new Set([
   '/auth/login', '/auth/register', '/auth/forgotPassword',
@@ -29,8 +32,6 @@ export default function GlobalFloatingTabBar() {
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
-  const colors = getColors(theme);
-  const typography = getTypography(theme);
   const shadows = getShadows(theme);
   const isDark = theme === 'dark' || theme === 'darkGreen';
 
@@ -62,7 +63,7 @@ export default function GlobalFloatingTabBar() {
         <View style={styles.barInner}>
           {TABS.map(tab => {
             const isFocused = activeTab.route === tab.route;
-            const color = isFocused ? colors.primary : colors.text.primary;
+            const color = isFocused ? TAB_LABEL_ACTIVE_COLOR : TAB_LABEL_INACTIVE_COLOR;
 
             return (
               <TouchableOpacity
@@ -73,8 +74,13 @@ export default function GlobalFloatingTabBar() {
                 style={styles.item}
                 activeOpacity={0.7}
               >
-                <tab.Icon size={22} color={color} />
-                <Text style={[styles.label, { color, fontFamily: typography.fontFamily.regular }]}>{tab.label}</Text>
+                <tab.Icon
+                  size={18}
+                  color={color}
+                  strokeWidth={1.5}
+                  fill={tab.filledWhenActive ? color : 'transparent'}
+                />
+                <Text style={[styles.label, { color }]}>{tab.label}</Text>
               </TouchableOpacity>
             );
           })}
@@ -109,7 +115,9 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   label: {
-    fontSize: 10,
-    letterSpacing: 0.1,
+    fontFamily: 'Roboto-Regular',
+    fontSize: 12,
+    lineHeight: 12,
+    letterSpacing: 0,
   },
 });

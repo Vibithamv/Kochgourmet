@@ -7,6 +7,7 @@ import {
   PlayfairDisplay_500Medium,
   PlayfairDisplay_700Bold,
 } from '@expo-google-fonts/playfair-display';
+import { Roboto_300Light, Roboto_400Regular } from '@expo-google-fonts/roboto';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { AuthProvider } from '@/contexts/AuthContext';
@@ -280,6 +281,8 @@ export default function RootLayout() {
     'Inter-Bold': Inter_700Bold,
     PlayfairDisplay_500Medium,
     PlayfairDisplay_700Bold,
+    'Roboto-Light': Roboto_300Light,
+    'Roboto-Regular': Roboto_400Regular,
   });
   const [showSplash, setShowSplash] = useState(false);
   const userAccount = useMemo(() => userManagement(), []);

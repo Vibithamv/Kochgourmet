@@ -63,14 +63,14 @@ export default function MagazinDetailContent({
     switch (section.type) {
       case 'heading':
         return (
-          <Text key={index} style={[styles.sectionHeading, { color: colors.text.primary, fontFamily: typography.fontFamily.regular }]}>
+          <Text key={index} style={[styles.sectionHeading, { color: colors.text.primary }]}>
             {section.content}
           </Text>
         );
 
       case 'text':
         return (
-          <Text key={index} style={[styles.bodyText, { color: colors.text.primary, fontFamily: typography.fontFamily.regular }]}>
+          <Text key={index} style={[styles.bodyContent, { color: colors.text.primary }]}>
             {section.content}
           </Text>
         );
@@ -89,10 +89,7 @@ export default function MagazinDetailContent({
         return (
           <View key={index} style={[styles.quoteBlock, { backgroundColor: colors.background.secondary }]}>
             <Text style={[styles.quoteMarks, { color: colors.primary }]}>"</Text>
-            <Text style={[styles.quoteText, {
-              color: colors.text.primary,
-              fontFamily: typography.fontFamily.display,
-            }]}>
+            <Text style={[styles.quoteText, { color: colors.text.primary }]}>
               {section.content}
             </Text>
             <View style={styles.quoteAuthor}>
@@ -114,9 +111,9 @@ export default function MagazinDetailContent({
               return (
                 <View key={item} style={styles.listItem}>
                   <Text style={[styles.listBullet, { color: colors.text.primary }]}>•</Text>
-                  <Text style={[styles.listItemText, { color: colors.text.primary }]}>
-                    <Text style={{ fontFamily: typography.fontFamily.semiBold }}>{first}</Text>
-                    <Text style={{ fontFamily: typography.fontFamily.regular }}>{rest}</Text>
+                  <Text style={[styles.bodyContent, styles.listItemText, { color: colors.text.primary }]}>
+                    <Text style={styles.listItemLead}>{first}</Text>
+                    {rest}
                   </Text>
                 </View>
               );
@@ -154,13 +151,10 @@ export default function MagazinDetailContent({
 
         {/* Title + intro */}
         <View style={[styles.header, { paddingTop: 20 }]}>
-          <Text style={[styles.title, {
-            color: colors.text.primary,
-            fontFamily: typography.fontFamily.display,
-          }]}>
+          <Text style={[styles.title, { color: colors.text.primary }]}>
             {article.title}
           </Text>
-          <Text style={[styles.intro, { color: colors.text.primary, fontFamily: typography.fontFamily.regular }]}>
+          <Text style={[styles.bodyContent, { color: colors.text.primary }]}>
             {article.intro}
           </Text>
         </View>
@@ -181,6 +175,7 @@ export default function MagazinDetailContent({
                 <View key={recipe.id} style={styles.recipeCard}>
                   <RecipeCard
                     recipe={recipe}
+                    variant="rezepte"
                     onPress={() => router.push(`/recipe/${recipe.id}`)}
                     onToggleFavourite={() => toggleFavourite(recipe.id)}
                   />
@@ -237,14 +232,17 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   title: {
-    fontSize: 28,
-    lineHeight: 36,
-    letterSpacing: -0.3,
+    fontFamily: 'PlayfairDisplay_700Bold',
+    fontSize: 35,
+    lineHeight: 35,
+    letterSpacing: 0,
     marginBottom: 4,
   },
-  intro: {
-    fontSize: 15,
-    lineHeight: 24,
+  bodyContent: {
+    fontFamily: 'Roboto-Light',
+    fontSize: 17,
+    lineHeight: 26,
+    letterSpacing: 0,
   },
 
   floatingActions: {
@@ -292,14 +290,12 @@ const styles = StyleSheet.create({
     gap: 20,
   },
   sectionHeading: {
-    fontSize: 20,
-    lineHeight: 24,
+    fontFamily: 'Roboto-Regular',
+    fontSize: 22,
+    lineHeight: 27,
+    letterSpacing: 0,
     marginTop: 12,
     marginBottom: 4,
-  },
-  bodyText: {
-    fontSize: 15,
-    lineHeight: 24,
   },
   sectionImage: {
     width: '100%',
@@ -321,17 +317,25 @@ const styles = StyleSheet.create({
     marginBottom: -8,
   },
   quoteText: {
-    fontSize: 20,
-    lineHeight: 30,
+    fontFamily: 'PlayfairDisplay_700Bold',
+    fontSize: 35,
+    lineHeight: 45,
+    letterSpacing: 0,
   },
   quoteAuthor: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    marginTop: 4,
+    marginTop: 10,
   },
   quoteAvatar: { width: 32, height: 32, borderRadius: 16 },
-  quoteAuthorLabel: { fontSize: 11, fontFamily: 'Inter-SemiBold', letterSpacing: 0.5 },
+  quoteAuthorLabel: {
+    fontFamily: 'Roboto-Regular',
+    fontSize: 15,
+    lineHeight: 15,
+    letterSpacing: 0,
+    textTransform: 'uppercase',
+  },
 
   // List
   listBlock: { gap: 12 },
@@ -347,8 +351,9 @@ const styles = StyleSheet.create({
   },
   listItemText: {
     flex: 1,
-    fontSize: 16,
-    lineHeight: 24,
+  },
+  listItemLead: {
+    fontFamily: 'Roboto-Regular',
   },
 
   // Product card
@@ -362,7 +367,13 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   productImage: { width: 64, height: 64, borderRadius: 8 },
-  productName: { flex: 1, fontSize: 14, fontFamily: 'Inter-SemiBold' },
+  productName: {
+    flex: 1,
+    fontFamily: 'Roboto-Regular',
+    fontSize: 17,
+    lineHeight: 30,
+    letterSpacing: 0,
+  },
 
   // Related recipes
   relatedSection: {

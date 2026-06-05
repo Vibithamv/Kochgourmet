@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Clock, Star, Heart, Share2, ChevronDown, Minus, Plus, Check } from 'lucide-react-native';
+import HeroSteamIcon, { heroSteamOverlayStyle, HERO_STEAM_ICON_OVERHANG } from '@/components/HeroSteamIcon';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getColors, getTypography } from '@/constants/theme';
 import { getRecipeDetail } from '@/utils/mockRecipeDetails';
@@ -92,7 +93,7 @@ export default function RecipeDetailContent({
   return (
     <View style={[styles.fill, { backgroundColor: colors.background.secondary }]}>
       <ScrollView
-        style={styles.fill}
+        style={[styles.fill, { backgroundColor: colors.background.secondary }]}
         showsVerticalScrollIndicator={false}
         bounces
         refreshControl={
@@ -106,40 +107,51 @@ export default function RecipeDetailContent({
       >
         {/* Hero image — full bleed */}
         {showHeroImage && (
-          <Image source={{ uri: recipe.imageUrl }} style={styles.heroImage} resizeMode="cover" />
+          <View style={[styles.heroWrap, { backgroundColor: colors.background.secondary }]}>
+            <Image source={{ uri: recipe.imageUrl }} style={styles.heroImage} resizeMode="cover" />
+            <View style={heroSteamOverlayStyle.icon}>
+              <HeroSteamIcon color={colors.primary} />
+            </View>
+          </View>
         )}
 
         <View style={styles.content}>
 
           {/* Title */}
-          <Text style={[styles.title, { color: colors.text.primary, fontFamily: typography.fontFamily.display }]}>
+          <Text style={[styles.title, { color: colors.text.primary }]}>
             {recipe.title}
           </Text>
 
           {/* Meta row */}
           <View style={styles.metaRow}>
-            <View style={styles.metaItem}>
-              <Clock size={13} color={colors.text.tertiary} />
-              <Text style={[styles.metaText, { color: colors.text.tertiary }]}>
-                {recipe.bakeDurationMinutes} Min Gesamt
-              </Text>
-            </View>
-            <View style={styles.metaItem}>
-              <Clock size={13} color={colors.text.tertiary} />
-              <Text style={[styles.metaText, { color: colors.text.tertiary }]}>
-                {recipe.prepDurationMinutes} Min Arbeit
-              </Text>
-            </View>
-            {rating > 0 && (
+            <View style={styles.metaItems}>
               <View style={styles.metaItem}>
-                <Star size={13} color={colors.text.tertiary} />
-                <Text style={[styles.metaText, { color: colors.text.tertiary }]}>{rating}</Text>
+                <Clock size={14} color={colors.text.primary} />
+                <Text style={[styles.metaText, { color: colors.text.primary }]}>
+                  {recipe.bakeDurationMinutes} Min Gesamt
+                </Text>
               </View>
-            )}
-            <TouchableOpacity onPress={() => toggleFavourite(recipeId)} hitSlop={8}>
+              <View style={styles.metaItem}>
+                <Clock size={14} color={colors.text.primary} />
+                <Text style={[styles.metaText, { color: colors.text.primary }]}>
+                  {recipe.prepDurationMinutes} Min Arbeit
+                </Text>
+              </View>
+              {rating > 0 && (
+                <View style={styles.metaItem}>
+                  <Star size={14} color={colors.text.primary} />
+                  <Text style={[styles.metaText, { color: colors.text.primary }]}>{rating}</Text>
+                </View>
+              )}
+            </View>
+            <TouchableOpacity
+              style={styles.metaHeartBtn}
+              onPress={() => toggleFavourite(recipeId)}
+              hitSlop={8}
+            >
               <Heart
                 size={16}
-                color={isFavourite ? colors.primary : colors.text.tertiary}
+                color={isFavourite ? colors.primary : colors.text.primary}
                 fill={isFavourite ? colors.primary : 'transparent'}
               />
             </TouchableOpacity>
@@ -148,10 +160,10 @@ export default function RecipeDetailContent({
           {/* Nutrition table — borderless rows with dividers between items only */}
           <View style={styles.nutritionTable}>
             <View style={[styles.nutritionRow, styles.nutritionRowDivider, { borderBottomColor: colors.border.primary }]}>
-              <Text style={[styles.nutritionLabel, { color: colors.text.tertiary }]}>
+              <Text style={[styles.nutritionLabel, { color: colors.text.primary }]}>
                 Nährwerte pro
               </Text>
-              <Text style={[styles.nutritionValue, { color: colors.text.tertiary }]}>
+              <Text style={[styles.nutritionValue, { color: colors.text.primary }]}>
                 100 g
               </Text>
             </View>
@@ -173,16 +185,14 @@ export default function RecipeDetailContent({
           {/* Author */}
           <View style={styles.authorRow}>
             <Image source={{ uri: recipe.author.avatarUrl }} style={styles.authorAvatar} />
-            <Text style={[styles.authorName, { color: colors.text.primary, fontFamily: typography.fontFamily.display }]}>
+            <Text style={[styles.authorName, { color: colors.text.primary }]}>
               {recipe.author.name}
             </Text>
           </View>
 
-          <View style={[styles.divider, { backgroundColor: colors.border.primary }]} />
-
           {/* Zutaten header with +/- servings */}
           <View style={styles.zutatenHeader}>
-            <Text style={[styles.displaySectionTitle, { color: colors.text.primary, fontFamily: typography.fontFamily.display }]}>
+            <Text style={[styles.zutatenTitle, { color: colors.text.primary }]}>
               Zutaten
             </Text>
             <View style={styles.servingsControl}>
@@ -208,11 +218,11 @@ export default function RecipeDetailContent({
 
           {/* Preparation style dropdown trigger */}
           <TouchableOpacity
-            style={[styles.zubereitungSelector, { borderColor: colors.border.primary }]}
+            style={[styles.zubereitungSelector, { borderBottomColor: colors.border.primary }]}
             onPress={() => setShowPrepDropdown(true)}
             activeOpacity={0.7}
           >
-            <Text style={[styles.zubereitungText, { color: colors.text.primary, fontFamily: typography.fontFamily.display }]}>
+            <Text style={[styles.zubereitungText, { color: colors.text.primary }]}>
               {prepStyle}
             </Text>
             <ChevronDown size={16} color={colors.text.tertiary} />
@@ -240,10 +250,8 @@ export default function RecipeDetailContent({
             </View>
           ))}
 
-          <View style={[styles.divider, { backgroundColor: colors.border.primary }]} />
-
           {/* Steps */}
-          <Text style={[styles.displaySectionTitle, { color: colors.text.primary, fontFamily: typography.fontFamily.display, marginBottom: 16 }]}>
+          <Text style={[styles.zutatenTitle, { color: colors.text.primary, marginTop: 20, marginBottom: 16 }]}>
             Zubereitung
           </Text>
           {recipe.steps.map(step => (
@@ -258,7 +266,7 @@ export default function RecipeDetailContent({
           ))}
 
           {/* Guten Appetit */}
-          <Text style={[styles.appetit, { color: colors.text.primary, fontFamily: typography.fontFamily.display }]}>
+          <Text style={[styles.appetit, { color: colors.text.primary }]}>
             Guten Appetit 👏
           </Text>
 
@@ -325,29 +333,78 @@ export default function RecipeDetailContent({
 
 const styles = StyleSheet.create({
   fill: { flex: 1 },
+  heroWrap: {
+    position: 'relative',
+    width: '100%',
+    paddingBottom: HERO_STEAM_ICON_OVERHANG,
+  },
   heroImage: { width: '100%', height: 280 },
   content: { paddingHorizontal: 20, paddingTop: 20 },
 
-  title: { fontSize: 28, letterSpacing: -0.3, marginBottom: 12, lineHeight: 36 },
+  title: {
+    fontFamily: 'PlayfairDisplay_700Bold',
+    fontSize: 35,
+    lineHeight: 35,
+    letterSpacing: 0,
+    marginBottom: 12,
+  },
 
-  metaRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 20 },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  metaItems: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 12,
+    flex: 1,
+    flexShrink: 1,
+  },
   metaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  metaText: { fontSize: 12, fontFamily: 'Inter-Regular' },
+  metaHeartBtn: {
+    marginLeft: 12,
+    flexShrink: 0,
+  },
+  metaText: {
+    fontFamily: 'Roboto-Light',
+    fontSize: 15,
+    lineHeight: 15,
+    letterSpacing: 0,
+  },
 
   nutritionTable: { marginBottom: 20 },
   nutritionRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 14,
+    paddingVertical: 3,
   },
-  nutritionRowDivider: { borderBottomWidth: StyleSheet.hairlineWidth },
-  nutritionLabel: { fontSize: 14, fontFamily: 'Inter-Regular' },
-  nutritionValue: { fontSize: 14, fontFamily: 'Inter-Regular', textAlign: 'right' },
+  nutritionRowDivider: { borderBottomWidth: 1 },
+  nutritionLabel: {
+    fontFamily: 'Roboto-Light',
+    fontSize: 16,
+    lineHeight: 30,
+    letterSpacing: 0,
+  },
+  nutritionValue: {
+    fontFamily: 'Roboto-Light',
+    fontSize: 16,
+    lineHeight: 30,
+    letterSpacing: 0,
+    textAlign: 'right',
+  },
 
-  authorRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 },
+  authorRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 50 },
   authorAvatar: { width: 36, height: 36, borderRadius: 18 },
-  authorName: { fontSize: 16, letterSpacing: -0.2 },
+  authorName: {
+    fontFamily: 'PlayfairDisplay_500Medium',
+    fontSize: 20,
+    lineHeight: 20,
+    letterSpacing: 0,
+  },
 
   floatingActions: {
     position: 'absolute',
@@ -373,7 +430,13 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 6,
   },
-  closeBtnText: { fontSize: 14, fontFamily: 'Inter-SemiBold' },
+  closeBtnText: {
+    fontFamily: 'Roboto-Light',
+    fontSize: 17,
+    lineHeight: 17,
+    letterSpacing: 0,
+    textAlign: 'center',
+  },
   shareBtn: {
     width: 44,
     height: 44,
@@ -388,28 +451,83 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
 
-  divider: { height: 1, marginVertical: 20 },
-
   zutatenHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
-  displaySectionTitle: { fontSize: 28, lineHeight: 36, letterSpacing: -0.3 },
+  zutatenTitle: {
+    fontFamily: 'PlayfairDisplay_700Bold',
+    fontSize: 30,
+    lineHeight: 42,
+    letterSpacing: 0,
+  },
   servingsControl: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   servingsDot: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  servingsText: { fontSize: 14, fontFamily: 'Inter-Medium' },
+  servingsText: {
+    fontFamily: 'Roboto-Light',
+    fontSize: 17,
+    lineHeight: 17,
+    letterSpacing: 0,
+  },
 
-  zubereitungSelector: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingVertical: 12, borderWidth: 1, borderRadius: 10, marginBottom: 20 },
-  zubereitungText: { fontSize: 14, letterSpacing: -0.2 },
+  zubereitungSelector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    marginBottom: 20,
+  },
+  zubereitungText: {
+    fontFamily: 'Roboto-Light',
+    fontSize: 17,
+    lineHeight: 17,
+    letterSpacing: 0,
+  },
 
   ingredientSection: { marginBottom: 20 },
-  ingredientSectionTitle: { fontSize: 15, fontFamily: 'Inter-SemiBold', marginBottom: 10, lineHeight: 22 },
-  ingredientRow: { flexDirection: 'row', gap: 16, paddingVertical: 6 },
-  ingredientAmount: { fontSize: 15, fontFamily: 'Inter-Regular', width: 72, lineHeight: 22 },
-  ingredientName: { fontSize: 15, fontFamily: 'Inter-Regular', lineHeight: 22 },
+  ingredientSectionTitle: {
+    fontFamily: 'Roboto-Regular',
+    fontSize: 17,
+    lineHeight: 17,
+    letterSpacing: 0,
+    marginBottom: 10,
+    marginTop: 10,
+  },
+  ingredientRow: { flexDirection: 'row', gap: 16, paddingVertical: 10 },
+  ingredientAmount: {
+    fontFamily: 'Roboto-Light',
+    fontSize: 17,
+    lineHeight: 17,
+    letterSpacing: 0,
+    width: 72,
+  },
+  ingredientName: {
+    fontFamily: 'Roboto-Light',
+    fontSize: 17,
+    lineHeight: 17,
+    letterSpacing: 0,
+  },
 
   stepBlock: { marginBottom: 24 },
-  stepLabel: { fontSize: 15, fontFamily: 'Inter-SemiBold', marginBottom: 8, lineHeight: 22 },
-  stepText: { fontSize: 15, fontFamily: 'Inter-Regular', lineHeight: 24 },
+  stepLabel: {
+    fontFamily: 'Roboto-Regular',
+    fontSize: 17,
+    lineHeight: 26,
+    letterSpacing: 0,
+    marginBottom: 8,
+  },
+  stepText: {
+    fontFamily: 'Roboto-Light',
+    fontSize: 17,
+    lineHeight: 26,
+    letterSpacing: 0,
+  },
 
-  appetit: { fontSize: 32, marginTop: 12, lineHeight: 40 },
+  appetit: {
+    fontFamily: 'PlayfairDisplay_700Bold',
+    fontSize: 35,
+    lineHeight: 45,
+    letterSpacing: 0,
+    marginTop: 20,
+  },
 
   // Bottom sheet
   modalOverlay: { flex: 1, backgroundColor: 'transparent', justifyContent: 'flex-end' },

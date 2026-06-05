@@ -15,7 +15,7 @@ import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Eye, EyeOff, X, ChevronRight } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
-import { getColors, getTypography } from '@/constants/theme';
+import { getColors } from '@/constants/theme';
 import { useTranslation } from 'react-i18next';
 import LanguageSelector from '@/components/LanguageSelector';
 import { useGlobalAlert } from '@/contexts/AlertContext';
@@ -482,7 +482,7 @@ export default function LoginScreen() {
       >
         {/* Header row */}
         <View style={styles.headerRow}>
-          <Text style={[styles.title, { color: colors.text.primary, fontFamily: getTypography(theme).fontFamily.display }]}>
+          <Text style={[styles.title, { color: colors.text.primary }]}>
             Einloggen
           </Text>
           {router.canGoBack() && (
@@ -506,6 +506,7 @@ export default function LoginScreen() {
           <TextInput
             style={[
               styles.pillInput,
+              styles.fieldInput,
               {
                 backgroundColor: colors.background.card,
                 borderColor: emailBorder,
@@ -518,7 +519,7 @@ export default function LoginScreen() {
               if (errors.email) setErrors({ ...errors, email: '' });
             }}
             placeholder={t('auth.login.email')}
-            placeholderTextColor={colors.text.placeholder}
+            placeholderTextColor={colors.text.primary}
             keyboardType="email-address"
             autoCapitalize="none"
             autoComplete="email"
@@ -545,14 +546,14 @@ export default function LoginScreen() {
           >
             <TextInput
               ref={passwordRef}
-              style={[styles.pillInputInline, { color: colors.text.primary }]}
+              style={[styles.pillInputInline, styles.fieldInput, { color: colors.text.primary }]}
               value={password}
               onChangeText={(text) => {
                 setPassword(text);
                 if (errors.pwField) setErrors({ ...errors, pwField: '' });
               }}
               placeholder={t('auth.login.password')}
-              placeholderTextColor={colors.text.placeholder}
+              placeholderTextColor={colors.text.primary}
               secureTextEntry={!showPassword}
               autoComplete="password"
               returnKeyType="done"
@@ -589,9 +590,14 @@ export default function LoginScreen() {
             activeOpacity={0.85}
             style={[styles.primaryBtn, { backgroundColor: colors.primary, opacity: loading ? 0.6 : 1 }]}
           >
-            {loading
-              ? <ActivityIndicator color="#fff" />
-              : <Text style={styles.primaryBtnText}>{t('auth.login.signIn')}</Text>}
+            <View style={styles.primaryBtnInner}>
+              <Text style={[styles.primaryBtnText, loading && styles.primaryBtnTextHidden]}>
+                {t('auth.login.signIn')}
+              </Text>
+              {loading ? (
+                <ActivityIndicator color="#fff" style={styles.primaryBtnLoader} />
+              ) : null}
+            </View>
           </TouchableOpacity>
           <TouchableOpacity onPress={onForgot} style={styles.forgotLink}>
             <Text style={[styles.forgotText, { color: colors.text.primary }]}>
@@ -661,7 +667,7 @@ export default function LoginScreen() {
           style={[styles.signupCard, { backgroundColor: colors.background.secondary }]}
         >
           <View style={styles.signupCardLeft}>
-            <Text style={[styles.signupTitle, { color: colors.text.primary, fontFamily: getTypography(theme).fontFamily.display }]}>
+            <Text style={[styles.signupTitle, { color: colors.text.primary }]}>
               {t('auth.login.noAccount')}
             </Text>
             <View style={styles.signupActionRow}>
@@ -705,10 +711,12 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   title: {
-    fontSize: 48,
-    lineHeight: 60,
-    letterSpacing: -0.5,
+    fontFamily: 'PlayfairDisplay_700Bold',
+    fontSize: 35,
+    lineHeight: 35,
+    letterSpacing: 0,
     flex: 1,
+    paddingRight: 12,
   },
   closeBtn: {
     width: 40,
@@ -717,13 +725,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 8,
+    flexShrink: 0,
   },
   subtitle: {
-    fontSize: 16,
-    fontFamily: 'Inter-Regular',
-    lineHeight: 24,
+    fontFamily: 'Roboto-Light',
+    fontSize: 17,
+    lineHeight: 23,
+    letterSpacing: 0,
     marginBottom: 32,
+    marginTop: 20,
   },
 
   // Fields
@@ -736,6 +746,12 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontFamily: 'Inter-Regular',
     minHeight: 48,
+  },
+  fieldInput: {
+    fontFamily: 'Roboto-Light',
+    fontSize: 16,
+    lineHeight: 16,
+    letterSpacing: 0,
   },
   pillInputWrap: {
     flexDirection: 'row',
@@ -773,8 +789,8 @@ const styles = StyleSheet.create({
   actionRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 16,
-    marginTop: 8,
+    justifyContent: 'space-between',
+    marginBottom: 20,
   },
   primaryBtn: {
     paddingVertical: 14,
@@ -783,15 +799,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  primaryBtnInner: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  primaryBtnTextHidden: {
+    opacity: 0,
+  },
+  primaryBtnLoader: {
+    position: 'absolute',
+  },
   primaryBtnText: {
     color: '#fff',
-    fontSize: 15,
-    fontFamily: 'Inter-SemiBold',
+    fontFamily: 'Roboto-Regular',
+    fontSize: 17,
+    lineHeight: 17,
+    letterSpacing: 0,
+    textAlign: 'center',
   },
-  forgotLink: { flex: 1 },
+  forgotLink: { alignItems: 'flex-end' },
   forgotText: {
-    fontSize: 14,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Roboto-Light',
+    fontSize: 15,
+    lineHeight: 23,
+    letterSpacing: 0,
+    textAlign: 'right',
   },
 
   // OAuth
@@ -826,8 +858,10 @@ const styles = StyleSheet.create({
   },
   signupCardLeft: { flex: 1, gap: 14, paddingRight: 120 },
   signupTitle: {
-    fontSize: 24,
+    fontFamily: 'PlayfairDisplay_700Bold',
+    fontSize: 22,
     lineHeight: 30,
+    letterSpacing: 0,
   },
   signupActionRow: {
     flexDirection: 'row',
@@ -835,15 +869,17 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   signupArrow: {
-    width: 26,
-    height: 26,
+    width: 16,
+    height: 16,
     borderRadius: 13,
     alignItems: 'center',
     justifyContent: 'center',
   },
   signupActionText: {
+    fontFamily: 'Roboto-Regular',
     fontSize: 15,
-    fontFamily: 'Inter-SemiBold',
+    lineHeight: 15,
+    letterSpacing: 0,
   },
   signupCheese: {
     position: 'absolute',

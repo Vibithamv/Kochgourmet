@@ -22,6 +22,7 @@ import { whitelistManagement } from '@/hooks/whitelistManagement';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useGlobalAlert } from '@/contexts/AlertContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { replaceLoginClearingAuthStack } from '@/utils/authNavigation';
 import { LogOut } from 'lucide-react-native';
 import { userManagement } from '@/hooks/userManagement';
 import { useFocusEffect } from '@react-navigation/native';
@@ -77,7 +78,7 @@ export default function WhitelistRequestScreen() {
 
   const handleLogout = async () => {
     await signOut();
-    router.replace('/auth/login');
+    replaceLoginClearingAuthStack();
   };
 
   return (

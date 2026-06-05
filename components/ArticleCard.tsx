@@ -56,5 +56,10 @@ const styles = StyleSheet.create({
   hidden: { opacity: 0 },
   card: { gap: 15 },
   image: { width: '100%', height: 252, borderRadius: 15 },
-  title: { fontSize: 16, fontFamily: 'Inter-Regular', lineHeight: 21 },
+  title: {
+    fontFamily: 'Roboto-Regular',
+    fontSize: 16,
+    lineHeight: 21,
+    letterSpacing: 0,
+  },
 });

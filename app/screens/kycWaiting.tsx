@@ -11,6 +11,7 @@ import { useTranslation } from "react-i18next";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { platformValidation } from "@/hooks/platformValidation";
 import { whitelistManagement } from "@/hooks/whitelistManagement";
+import { replaceLoginClearingAuthStack } from '@/utils/authNavigation';
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function KycResponseWaiting() {
@@ -110,8 +111,8 @@ export default function KycResponseWaiting() {
   };
 
   const handleLogout = async () => {
-    await signOut(); // or the correct logout method you have
-    router.replace('/auth/login');
+    await signOut();
+    replaceLoginClearingAuthStack();
   };
 
   return (

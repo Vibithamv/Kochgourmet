@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
-import { CheckCircle } from 'lucide-react-native';
+import { CheckCircle, LogOut } from 'lucide-react-native';
 import {
   getColors,
   Typography,
@@ -22,6 +22,8 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useTranslation } from 'react-i18next';
 import { kycRequest } from '@/hooks/kycRequest';
 import { useGlobalAlert } from '@/contexts/AlertContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { replaceLoginClearingAuthStack } from '@/utils/authNavigation';
 import { useFocusEffect } from '@react-navigation/native';
 import { useKycPostVerificationFlow } from '@/hooks/useKycPostVerificationFlow';
 
@@ -33,6 +35,7 @@ export default function VerifyIdentityScreen() {
   const { name, id } = useLocalSearchParams();
   const request = kycRequest();
   const { showAlert } = useGlobalAlert();
+  const { signOut } = useAuth();
   const [loading, setLoading] = React.useState(false);
   const [kycStatus, setKycStatus] = React.useState<string | null>(null);
   // `fetchActiveAccountKycStatus` reads the status without redirecting,
@@ -84,6 +87,11 @@ export default function VerifyIdentityScreen() {
     }
   };
 
+  const handleLogout = async () => {
+    await signOut();
+    replaceLoginClearingAuthStack();
+  };
+
   // Derive content from kycStatus so the JSX has no nested ternaries.
   const isKycSettled = kycStatus === 'CONFIRMED' || kycStatus === 'PENDING';
   let titleText: string;
@@ -105,6 +113,23 @@ export default function VerifyIdentityScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.background.primary }]}>
+      <TouchableOpacity
+        style={[
+          styles.logoutBtn,
+          { top: insets.top + 10, backgroundColor: colors.background.secondary },
+        ]}
+        onPress={() =>
+          showAlert(t('common.logout'), t('common.logoutMsg'), {
+            buttonText: t('common.logout'),
+            buttonCallback: () => {
+              void handleLogout();
+            },
+            secondaryButtonText: t('common.cancel'),
+          })
+        }
+      >
+        <LogOut size={22} color={colors.text.primary} />
+      </TouchableOpacity>
       <ScrollView
         contentContainerStyle={[
           styles.container,
@@ -158,6 +183,14 @@ export default function VerifyIdentityScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
+  },
+  logoutBtn: {
+    position: 'absolute',
+    right: 20,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    zIndex: 999,
   },
   container: {
     flexGrow: 1,

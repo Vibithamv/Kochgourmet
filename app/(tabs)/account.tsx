@@ -10,7 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { ChevronRight, ChevronDown, ChevronUp } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
-import { getColors, getTypography } from '@/constants/theme';
+import { getColors } from '@/constants/theme';
 import { useGlobalAlert } from '@/contexts/AlertContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { replaceLoginClearingAuthStack } from '@/utils/authNavigation';
@@ -42,7 +42,6 @@ const BONUS_SUBMENU_ITEMS: MenuItem[] = [
 export default function MenuScreen() {
   const { theme } = useTheme();
   const colors = getColors(theme);
-  const typography = getTypography(theme);
   const insets = useSafeAreaInsets();
   const { showAlert } = useGlobalAlert();
   const { signOut } = useAuth();
@@ -104,10 +103,7 @@ export default function MenuScreen() {
       >
         <View style={{ height: Math.max(insets.top, 44) + 24 }} />
 
-        <Text style={[styles.title, {
-          color: colors.text.primary,
-          fontFamily: typography.fontFamily.display,
-        }]}>
+        <Text style={[styles.title, { color: colors.text.primary }]}>
           Menü
         </Text>
 
@@ -160,9 +156,10 @@ const styles = StyleSheet.create({
   screen: { flex: 1 },
   scroll: { paddingHorizontal: 26 },
   title: {
-    fontSize: 56,
-    lineHeight: 68,
-    letterSpacing: -1,
+    fontFamily: 'PlayfairDisplay_700Bold',
+    fontSize: 35,
+    lineHeight: 35,
+    letterSpacing: 0,
     marginBottom: 24,
   },
   list: {},
@@ -177,14 +174,16 @@ const styles = StyleSheet.create({
     paddingVertical: 18,
   },
   rowLabel: {
-    fontSize: 19,
-    fontFamily: 'Inter-Regular',
-    letterSpacing: 0.1,
+    fontFamily: 'Roboto-Light',
+    fontSize: 17,
+    lineHeight: 17,
+    letterSpacing: 0,
   },
   submenuLabel: {
+    fontFamily: 'Roboto-Light',
     fontSize: 17,
-    fontFamily: 'Inter-Regular',
-    letterSpacing: 0.1,
+    lineHeight: 17,
+    letterSpacing: 0,
   },
   divider: {
     height: StyleSheet.hairlineWidth,

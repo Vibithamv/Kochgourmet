@@ -66,7 +66,7 @@
   "auth": {
     "login": {
       "title": "Welcome to your portfolio",
-      "email": "Email",
+      "email": "Email Address",
       "password": "Password",
       "signIn": "Sign In",
       "signingIn": "Signing In...",
@@ -85,7 +85,7 @@
       "signInWithFacebook": "Continue with Facebook"
     },
     "forgotPassword": {
-      "email": "Email",
+      "email": "Email Address",
       "resetPassword": "Reset Password",
       "resettingPassword": "Resetting Password...",
       "submit": "Submit",
@@ -112,7 +112,7 @@
       "fullName": "Full Name",
       "firstName": "First Name",
       "lastName": "Last Name",
-      "email": "Email",
+      "email": "Email Address",
       "password": "Password",
       "confirmPassword": "Confirm Password",
       "createAccount": "Create Account",
@@ -291,7 +291,35 @@
     "passwordLabel": "Password",
     "lastChanged": "Last changed 30 days ago",
     "sessionExpired": "Session Expired",
-    "loginAgain": "Please login again..."
+    "loginAgain": "Please login again...",
+    "profileScreen": {
+      "anrede": "Salutation",
+      "anredeChoose": "Choose salutation",
+      "vorname": "First name",
+      "nachname": "Last name",
+      "strasse": "Street",
+      "plz": "ZIP",
+      "ort": "City",
+      "land": "Country",
+      "telefonnummer": "Phone number",
+      "cancel": "Cancel",
+      "save": "Save",
+      "newsletter": "Newsletter",
+      "newsletterDesc": "Get our recipe recommendations daily or weekly. 😋",
+      "weeklyNewsletter": "Weekly newsletter",
+      "dailyNewsletter": "Daily newsletter",
+      "loginData": "Login details",
+      "loginDataDesc": "Change your email address, username, or password.",
+      "email": "Email address",
+      "username": "Username",
+      "password": "Password",
+      "deleteAccount": "Delete account",
+      "deleteAccountDesc": "Do you really want to delete your account? 🥺",
+      "deleteAccountBtn": "Delete account",
+      "deleteAccountConfirmTitle": "Delete account",
+      "deleteAccountConfirmMsg": "Are you sure you want to permanently delete your account?",
+      "deleteAccountDemo": "Account deletion is not available in demo mode."
+    }
   },
   "account": {
     "title": "Account",

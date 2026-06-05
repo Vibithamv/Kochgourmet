@@ -2,28 +2,46 @@ import React from 'react';
 import {
   View,
   Text,
-  Image,
   FlatList,
   TouchableOpacity,
   StyleSheet,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
-import { ChevronLeft, Clock, Heart, Minus } from 'lucide-react-native';
+import { ChevronLeft, Minus } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
-import { getColors, getTypography } from '@/constants/theme';
+import { getColors } from '@/constants/theme';
 import { useFolders, type FolderThumb } from '@/contexts/FoldersContext';
+import { useFavourites } from '@/contexts/FavouritesContext';
 import { getRecipeDetail } from '@/utils/mockRecipeDetails';
+import RecipeCard, { type Recipe } from '@/components/RecipeCard';
 
 const TAB_BAR_HEIGHT = 90;
+
+function folderThumbToRecipe(thumb: FolderThumb, recipes: Recipe[]): Recipe {
+  const detail = getRecipeDetail(thumb.recipeId);
+  const fromList = recipes.find(r => r.id === thumb.recipeId);
+  const durationMinutes = detail.bakeDurationMinutes > 0
+    ? detail.bakeDurationMinutes
+    : detail.prepDurationMinutes;
+
+  return {
+    id: thumb.recipeId,
+    title: detail.title,
+    imageUrl: thumb.uri,
+    durationMinutes,
+    rating: fromList?.rating ?? 5,
+    isFavourite: fromList?.isFavourite ?? true,
+  };
+}
 
 export default function FolderDetailScreen() {
   const { theme } = useTheme();
   const colors = getColors(theme);
-  const typography = getTypography(theme);
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { getFolder, removeRecipeFromFolder } = useFolders();
+  const { recipes, toggleFavourite } = useFavourites();
 
   const folder = getFolder(id);
 
@@ -50,7 +68,6 @@ export default function FolderDetailScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.background.primary }]}>
-      {/* Header */}
       <View style={[styles.header, { paddingTop: Math.max(insets.top, 44) + 16 }]}>
         <TouchableOpacity
           style={[styles.backCircle, { borderColor: colors.border.primary }]}
@@ -60,7 +77,7 @@ export default function FolderDetailScreen() {
         >
           <ChevronLeft size={20} color={colors.text.primary} />
         </TouchableOpacity>
-        <Text style={[styles.title, { color: colors.text.primary, fontFamily: typography.fontFamily.display }]}>
+        <Text style={[styles.title, { color: colors.text.primary }]}>
           {folder.title}
         </Text>
       </View>
@@ -85,9 +102,9 @@ export default function FolderDetailScreen() {
           renderItem={({ item }) => (
             <FolderRecipeCard
               thumb={item}
-              folderId={folder.id}
+              recipes={recipes}
               onRemove={() => removeRecipeFromFolder(folder.id, item.recipeId, item.uri)}
-              colors={colors}
+              onToggleFavourite={toggleFavourite}
             />
           )}
         />
@@ -98,51 +115,35 @@ export default function FolderDetailScreen() {
 
 interface FolderRecipeCardProps {
   readonly thumb: FolderThumb;
-  readonly folderId: string;
+  readonly recipes: Recipe[];
   readonly onRemove: () => void;
-  readonly colors: ReturnType<typeof getColors>;
+  readonly onToggleFavourite: (id: string) => void;
 }
 
-function FolderRecipeCard({ thumb, onRemove, colors }: FolderRecipeCardProps) {
-  const recipe = getRecipeDetail(thumb.recipeId);
-  const duration = recipe.bakeDurationMinutes > 0
-    ? recipe.bakeDurationMinutes
-    : recipe.prepDurationMinutes;
+function FolderRecipeCard({ thumb, recipes, onRemove, onToggleFavourite }: FolderRecipeCardProps) {
+  const { theme } = useTheme();
+  const colors = getColors(theme);
+  const recipe = folderThumbToRecipe(thumb, recipes);
 
   return (
     <View style={styles.cardWrapper}>
-      <TouchableOpacity
-        style={[styles.card, { backgroundColor: colors.background.card }]}
-        onPress={() => router.push(`/recipe/${thumb.recipeId}`)}
-        activeOpacity={0.85}
-      >
-        <View style={styles.imageWrap}>
-          <Image source={{ uri: thumb.uri }} style={styles.image} resizeMode="cover" />
-          <TouchableOpacity
-            style={styles.minusBtn}
-            onPress={onRemove}
-            hitSlop={8}
-            activeOpacity={0.7}
-          >
-            <Minus size={14} color={colors.text.primary} strokeWidth={2.5} />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.body}>
-          <Text style={[styles.cardTitle, { color: colors.text.primary }]} numberOfLines={2}>
-            {recipe.title}
-          </Text>
-          <View style={styles.metaRow}>
-            <View style={styles.metaItem}>
-              <Clock size={13} color="#525252" />
-              <Text style={[styles.metaText, { color: '#525252' }]}>{duration} Min</Text>
-            </View>
-            <View style={styles.heartIcon}>
-              <Heart size={18} color={colors.primary} fill={colors.primary} />
-            </View>
-          </View>
-        </View>
-      </TouchableOpacity>
+      <View style={styles.cardShell}>
+        <RecipeCard
+          recipe={recipe}
+          variant="rezepte"
+          showRating={false}
+          onPress={() => router.push(`/recipe/${recipe.id}`)}
+          onToggleFavourite={() => onToggleFavourite(recipe.id)}
+        />
+        <TouchableOpacity
+          style={styles.minusBtn}
+          onPress={onRemove}
+          hitSlop={8}
+          activeOpacity={0.7}
+        >
+          <Minus size={14} color={colors.text.primary} strokeWidth={2.5} />
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -165,28 +166,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   title: {
-    fontSize: 36,
-    lineHeight: 44,
-    letterSpacing: -0.5,
+    fontFamily: 'PlayfairDisplay_700Bold',
+    fontSize: 35,
+    lineHeight: 35,
+    letterSpacing: 0,
     flex: 1,
   },
 
-  grid: { paddingHorizontal: 20, gap: 16 },
+  grid: { paddingHorizontal: 20, gap: 12 },
   gridRow: { gap: 12 },
   cardWrapper: { flex: 1 },
-
-  card: {
-    flex: 1,
-    borderRadius: 14,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  imageWrap: { position: 'relative' },
-  image: { width: '100%', aspectRatio: 1 },
+  cardShell: { flex: 1, position: 'relative' },
   minusBtn: {
     position: 'absolute',
     top: 8,
@@ -197,36 +187,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     alignItems: 'center',
     justifyContent: 'center',
+    zIndex: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.15,
     shadowRadius: 3,
     elevation: 3,
   },
-  body: {
-    flex: 1,
-    padding: 12,
-    gap: 10,
-    justifyContent: 'space-between',
-  },
-  cardTitle: {
-    fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
-    lineHeight: 19,
-    minHeight: 38, // two lines so titles always reserve equal vertical space
-  },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  metaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  metaText: { fontSize: 13, fontFamily: 'Inter-Regular' },
-  heartIcon: { padding: 2 },
 
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   emptyText: { fontSize: 15, fontFamily: 'Inter-Regular' },

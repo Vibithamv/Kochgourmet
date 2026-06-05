@@ -66,7 +66,7 @@
   "auth": {
     "login": {
       "title": "Willkommen in deinem Portfolio",
-      "email": "E-Mail",
+      "email": "E-Mail Adresse",
       "password": "Passwort",
       "signIn": "Anmelden",
       "signingIn": "Anmeldung läuft...",
@@ -90,7 +90,7 @@
       "fullName": "Vollständiger Name",
       "firstName": "Vorname",
       "lastName": "Nachname",
-      "email": "E-Mail",
+      "email": "E-Mail Adresse",
       "password": "Passwort",
       "confirmPassword": "Passwort bestätigen",
       "createAccount": "Konto erstellen",
@@ -111,7 +111,7 @@
       "verifyEmailDescription": "Wir haben einen Bestätigungscode an {{email}} gesendet."
     },
     "forgotPassword": {
-      "email": "E-Mail",
+      "email": "E-Mail Adresse",
       "resetPassword": "Passwort zurücksetzen",
       "resettingPassword": "Passwort wird zurückgesetzt...",
       "submit": "Absenden",
@@ -199,7 +199,35 @@
     "passwordLabel": "Passwort",
     "lastChanged": "Zuletzt vor 30 Tagen geändert",
     "sessionExpired": "Sitzung abgelaufen",
-    "loginAgain": "Bitte melden Sie sich erneut an..."
+    "loginAgain": "Bitte melden Sie sich erneut an...",
+    "profileScreen": {
+      "anrede": "Anrede",
+      "anredeChoose": "Anrede wählen",
+      "vorname": "Vorname",
+      "nachname": "Nachname",
+      "strasse": "Straße",
+      "plz": "PLZ",
+      "ort": "Ort",
+      "land": "Land",
+      "telefonnummer": "Telefonnummer",
+      "cancel": "Abbrechen",
+      "save": "Speichern",
+      "newsletter": "Newsletter",
+      "newsletterDesc": "Lass dir unsere Rezept Empfehlungen täglich oder wöchentlich zuschicken. 😋",
+      "weeklyNewsletter": "Wöchentlicher Newsletter",
+      "dailyNewsletter": "Täglicher Newsletter",
+      "loginData": "Login Daten",
+      "loginDataDesc": "Ändere deine E-Mail Adresse, Benutzernamen oder dein Passwort.",
+      "email": "E-Mail Adresse",
+      "username": "Benutzername",
+      "password": "Passwort",
+      "deleteAccount": "Konto löschen",
+      "deleteAccountDesc": "Willst du wirklich dein Konto löschen? 🥺",
+      "deleteAccountBtn": "Konto löschen",
+      "deleteAccountConfirmTitle": "Konto löschen",
+      "deleteAccountConfirmMsg": "Möchtest du dein Konto wirklich endgültig löschen?",
+      "deleteAccountDemo": "Konto-Löschung im Demo-Modus nicht aktiv."
+    }
   },
   "projects": {
     "title": "Investment Projekte",

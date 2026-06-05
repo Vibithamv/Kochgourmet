@@ -27,7 +27,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Plus, Pencil } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
-import { getColors, getTypography } from '@/constants/theme';
+import { getColors } from '@/constants/theme';
 import { useFavourites } from '@/contexts/FavouritesContext';
 import { useFolders } from '@/contexts/FoldersContext';
 
@@ -38,7 +38,6 @@ type FavouritesTab = 'rezepte' | 'ordner';
 export default function FavoritenScreen() {
   const { theme } = useTheme();
   const colors = getColors(theme);
-  const typography = getTypography(theme);
   const insets = useSafeAreaInsets();
 
   const { favourites, toggleFavourite } = useFavourites();
@@ -92,10 +91,7 @@ export default function FavoritenScreen() {
     <View style={[styles.screen, { backgroundColor: colors.background.primary }]}>
       {/* Header — Playfair title + circular "+" button */}
       <View style={[styles.header, { paddingTop: Math.max(insets.top, 44) + 16 }]}>
-        <Text style={[styles.title, {
-          color: colors.text.primary,
-          fontFamily: typography.fontFamily.display,
-        }]}>
+        <Text style={[styles.title, { color: colors.text.primary }]}>
           Favoriten
         </Text>
         <TouchableOpacity
@@ -119,7 +115,6 @@ export default function FavoritenScreen() {
             >
               <Text style={[styles.tabLabel, {
                 color: isActive ? colors.text.primary : colors.text.tertiary,
-                fontFamily: isActive ? 'Inter-SemiBold' : 'Inter-Regular',
               }]}>
                 {tab === 'rezepte' ? 'Rezepte' : 'Ordner'}
               </Text>
@@ -163,7 +158,7 @@ export default function FavoritenScreen() {
                   </Text>
                 </View>
                 <TouchableOpacity
-                  style={[styles.folderEdit, { borderColor: colors.border.primary, backgroundColor: colors.background.card }]}
+                  style={[styles.folderEdit, { borderColor: colors.border.primary }]}
                   onPress={() => openRename({ kind: 'all' })}
                   activeOpacity={0.7}
                 >
@@ -225,7 +220,7 @@ export default function FavoritenScreen() {
                   </Text>
                 </View>
                 <TouchableOpacity
-                  style={[styles.folderEdit, { borderColor: colors.border.primary, backgroundColor: colors.background.card }]}
+                  style={[styles.folderEdit, { borderColor: colors.border.primary }]}
                   onPress={() => openRename({ kind: 'folder', id: folder.id })}
                   activeOpacity={0.7}
                 >
@@ -319,13 +314,14 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
   },
   title: {
-    fontSize: 42,
-    lineHeight: 52,
-    letterSpacing: -0.5,
+    fontFamily: 'PlayfairDisplay_700Bold',
+    fontSize: 45,
+    lineHeight: 45,
+    letterSpacing: 0,
   },
   addButton: {
-    width: 44,
-    height: 44,
+    width: 45,
+    height: 45,
     borderRadius: 22,
     borderWidth: 1,
     alignItems: 'center',
@@ -345,7 +341,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   tabLabel: {
+    fontFamily: 'Roboto-Light',
     fontSize: 17,
+    lineHeight: 27,
+    letterSpacing: 0,
   },
   tabUnderline: {
     height: 2,
@@ -377,13 +376,16 @@ const styles = StyleSheet.create({
   },
   folderTitleWrap: { flex: 1, gap: 4 },
   folderTitle: {
-    fontSize: 20,
-    fontFamily: 'Inter-Bold',
-    letterSpacing: -0.3,
+    fontFamily: 'Roboto-Regular',
+    fontSize: 17,
+    lineHeight: 21,
+    letterSpacing: 0,
   },
   folderCount: {
-    fontSize: 13,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Roboto-Light',
+    fontSize: 15,
+    lineHeight: 21,
+    letterSpacing: 0,
   },
   folderEdit: {
     width: 32,

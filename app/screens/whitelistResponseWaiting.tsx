@@ -8,6 +8,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { whitelistManagement } from "@/hooks/whitelistManagement";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useGlobalAlert } from "@/contexts/AlertContext";
+import { replaceLoginClearingAuthStack } from '@/utils/authNavigation';
 import { useAuth } from "@/contexts/AuthContext";
 import { useTranslation } from "react-i18next";
 
@@ -57,8 +58,8 @@ export default function WhitelistResponseWaiting() {
   };
 
   const handleLogout = async () => {
-    await signOut(); // or the correct logout method you have
-    router.replace('/auth/login');
+    await signOut();
+    replaceLoginClearingAuthStack();
   };
 
   return (

@@ -14,7 +14,7 @@ import { replaceLoginClearingAuthStack } from '@/utils/authNavigation';
 import { Eye, EyeOff, X, ChevronRight } from 'lucide-react-native';
 import ConfirmationCodeInput, { CONFIRMATION_CODE_LENGTH } from '@/components/ConfirmationCodeInput';
 import { useTheme } from '@/contexts/ThemeContext';
-import { getColors, getTypography } from '@/constants/theme';
+import { getColors } from '@/constants/theme';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import LanguageSelector from '@/components/LanguageSelector';
@@ -78,12 +78,13 @@ function EmailStep({ t, email, setEmail, errors, setErrors, generalError, loadin
         <TextInput
           style={[
             styles.pillInput,
+            styles.fieldInput,
             { backgroundColor: colors.background.card, borderColor, color: colors.text.primary },
           ]}
           value={email}
           onChangeText={(text) => { setEmail(text); setErrors((p) => ({ ...p, email: '' })); }}
           placeholder={t('auth.forgotPassword.email')}
-          placeholderTextColor={colors.text.placeholder}
+          placeholderTextColor={colors.text.primary}
           keyboardType="email-address"
           autoCapitalize="none"
           autoComplete="email"
@@ -151,11 +152,12 @@ function ResetStep({
         <TextInput
           style={[
             styles.pillInput,
-            { backgroundColor: colors.background.card, borderColor: colors.border.primary, color: colors.text.tertiary },
+            styles.fieldInput,
+            { backgroundColor: colors.background.card, borderColor: colors.border.primary, color: colors.text.primary },
           ]}
           value={email}
           editable={false}
-          placeholderTextColor={colors.text.placeholder}
+          placeholderTextColor={colors.text.primary}
         />
       </View>
 
@@ -323,7 +325,7 @@ export default function ForgotPassword() {
       >
         {/* Header */}
         <View style={styles.headerRow}>
-          <Text style={[styles.title, { color: colors.text.primary, fontFamily: getTypography(theme).fontFamily.display }]}>
+          <Text style={[styles.title, { color: colors.text.primary }]}>
             {t('auth.forgotPassword.resetPassword')}
           </Text>
           <TouchableOpacity
@@ -380,7 +382,7 @@ export default function ForgotPassword() {
           style={[styles.signupCard, { backgroundColor: colors.background.secondary }]}
         >
           <View style={styles.signupCardLeft}>
-            <Text style={[styles.signupTitle, { color: colors.text.primary, fontFamily: getTypography(theme).fontFamily.display }]}>
+            <Text style={[styles.signupTitle, { color: colors.text.primary }]}>
               {t('auth.forgotPassword.rememberPassword')}
             </Text>
             <View style={styles.signupActionRow}>
@@ -424,10 +426,12 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   title: {
-    fontSize: 38,
-    lineHeight: 48,
-    letterSpacing: -0.5,
+    fontFamily: 'PlayfairDisplay_700Bold',
+    fontSize: 35,
+    lineHeight: 35,
+    letterSpacing: 0,
     flex: 1,
+    paddingRight: 12,
   },
   closeBtn: {
     width: 40,
@@ -436,12 +440,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 8,
+    flexShrink: 0,
   },
   subtitle: {
-    fontSize: 16,
-    fontFamily: 'Inter-Regular',
-    lineHeight: 24,
+    fontFamily: 'Roboto-Light',
+    fontSize: 17,
+    lineHeight: 23,
+    letterSpacing: 0,
+    marginTop: 20,
     marginBottom: 28,
   },
 
@@ -455,6 +461,12 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontFamily: 'Inter-Regular',
     minHeight: 48,
+  },
+  fieldInput: {
+    fontFamily: 'Roboto-Light',
+    fontSize: 16,
+    lineHeight: 16,
+    letterSpacing: 0,
   },
   pillInputWrap: {
     flexDirection: 'row',
@@ -506,8 +518,11 @@ const styles = StyleSheet.create({
   },
   primaryBtnText: {
     color: '#fff',
-    fontSize: 15,
-    fontFamily: 'Inter-SemiBold',
+    fontFamily: 'Roboto-Regular',
+    fontSize: 17,
+    lineHeight: 17,
+    letterSpacing: 0,
+    textAlign: 'center',
   },
 
   // Sign-in card with cheese illustration (image overflows slightly at bottom)
@@ -523,8 +538,10 @@ const styles = StyleSheet.create({
   },
   signupCardLeft: { flex: 1, gap: 14, paddingRight: 120 },
   signupTitle: {
-    fontSize: 24,
+    fontFamily: 'PlayfairDisplay_700Bold',
+    fontSize: 22,
     lineHeight: 30,
+    letterSpacing: 0,
   },
   signupActionRow: {
     flexDirection: 'row',
@@ -532,15 +549,17 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   signupArrow: {
-    width: 26,
-    height: 26,
+    width: 16,
+    height: 16,
     borderRadius: 13,
     alignItems: 'center',
     justifyContent: 'center',
   },
   signupActionText: {
+    fontFamily: 'Roboto-Regular',
     fontSize: 15,
-    fontFamily: 'Inter-SemiBold',
+    lineHeight: 15,
+    letterSpacing: 0,
   },
   signupCheese: {
     position: 'absolute',

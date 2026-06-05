@@ -139,7 +139,7 @@ export default function RecipeExpandOverlay({
           <View style={styles.bodyArea}>
             <Animated.View style={[styles.cardPreview, cardPreviewStyle]}>
               <Text
-                style={[styles.previewTitle, { color: colors.text.secondary }]}
+                style={[styles.previewTitle, { color: colors.text.primary }]}
                 numberOfLines={2}
               >
                 {recipe.title}
@@ -184,7 +184,12 @@ const styles = StyleSheet.create({
   image: { width: '100%', height: '100%' },
   bodyArea: { flex: 1, overflow: 'hidden' },
   cardPreview: { ...StyleSheet.absoluteFillObject, padding: 10, gap: 6 },
-  previewTitle: { fontSize: 13, fontFamily: 'Inter-SemiBold', lineHeight: 18 },
+  previewTitle: {
+    fontFamily: 'Roboto-Regular',
+    fontSize: 16,
+    lineHeight: 21,
+    letterSpacing: 0,
+  },
   previewMeta: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   metaItem: { flexDirection: 'row', alignItems: 'center', gap: 3 },
   previewMetaText: { fontSize: 12, fontFamily: 'Inter-Regular' },

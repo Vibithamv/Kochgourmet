@@ -7,16 +7,18 @@ import {
   StyleSheet,
   Switch,
   FlatList,
+  Platform,
+  Image,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import {
-  ChevronRight, ChevronLeft, ChevronDown, ChevronUp, Check, Info,
+  ChevronRight, ChevronLeft, ChevronDown, ChevronUp, Check,
   Soup, Beef, Salad, Cookie, Sandwich, Apple, CakeSlice,
-  Droplet, Flame, Egg, CookingPot, Wine, Pizza,
+  Droplet, Flame, Egg, CookingPot, Wine, Pizza, Star,
 } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
-import { getColors, getTypography } from '@/constants/theme';
+import { getColors } from '@/constants/theme';
 
 // ─── Filter definitions ─────────────────────────────────────────────────────
 
@@ -39,27 +41,29 @@ const KATEGORIEN: { name: string; sub: string[]; icon: LucideIcon }[] = [
   { name: 'Käse', sub: [], icon: Pizza },
 ];
 
-const COUNTRIES: { flag: string; name: string }[] = [
-  { flag: '🇺🇸', name: 'Amerika' },
-  { flag: '🇦🇱', name: 'Albanien' },
-  { flag: '🇨🇳', name: 'China' },
-  { flag: '🇩🇪', name: 'Deutsch' },
-  { flag: '🇫🇷', name: 'Frankreich' },
-  { flag: '🇬🇷', name: 'Griechenland' },
-  { flag: '🌍', name: 'International' },
-  { flag: '🇮🇳', name: 'Indien' },
-  { flag: '🇮🇱', name: 'Israel' },
-  { flag: '🇮🇹', name: 'Italien' },
-  { flag: '🇯🇵', name: 'Japan' },
-  { flag: '🇰🇷', name: 'Korea' },
-  { flag: '🇲🇦', name: 'Maroko' },
-  { flag: '🇦🇹', name: 'Österreich' },
-  { flag: '🇨🇭', name: 'Schweiz' },
-  { flag: '🇪🇸', name: 'Spanien' },
-  { flag: '🇹🇭', name: 'Thailand' },
-  { flag: '🇹🇷', name: 'Türkei' },
-  { flag: '🇻🇳', name: 'Vietnam' },
+const COUNTRIES: { code: string; name: string }[] = [
+  { code: 'us', name: 'Amerika' },
+  { code: 'al', name: 'Albanien' },
+  { code: 'cn', name: 'China' },
+  { code: 'de', name: 'Deutsch' },
+  { code: 'fr', name: 'Frankreich' },
+  { code: 'gr', name: 'Griechenland' },
+  { code: 'international', name: 'International' },
+  { code: 'in', name: 'Indien' },
+  { code: 'il', name: 'Israel' },
+  { code: 'it', name: 'Italien' },
+  { code: 'jp', name: 'Japan' },
+  { code: 'kr', name: 'Korea' },
+  { code: 'ma', name: 'Maroko' },
+  { code: 'at', name: 'Österreich' },
+  { code: 'ch', name: 'Schweiz' },
+  { code: 'es', name: 'Spanien' },
+  { code: 'th', name: 'Thailand' },
+  { code: 'tr', name: 'Türkei' },
+  { code: 'vn', name: 'Vietnam' },
 ];
+
+const FLAG_SIZE = 20;
 
 /** Flat filter screens — each row opens a list of selectable demo options. */
 type FilterKey = 'thema' | 'ernaehrung' | 'saisonal' | 'zubereitung' | 'schwierigkeit' | 'menuefolge' | 'zeit';
@@ -95,6 +99,26 @@ const FLAT_FILTERS: Record<FilterKey, { label: string; options: string[] }> = {
   },
 };
 
+/** Design size for "Exakte Treffer" switch on the main filter screen */
+const EXACT_MATCH_SWITCH_SIZE = {
+  width: 26.755584716796875,
+  height: 12.468358993530273,
+} as const;
+
+const NATIVE_SWITCH_SIZE = Platform.select({
+  ios: { width: 51, height: 31 },
+  android: { width: 48, height: 28 },
+  default: { width: 51, height: 31 },
+});
+
+/** Uniform scale keeps the native switch proportional (avoids vertical crop). */
+const EXACT_MATCH_SWITCH_SCALE = EXACT_MATCH_SWITCH_SIZE.width / NATIVE_SWITCH_SIZE.width;
+
+const EXACT_MATCH_SWITCH_LAYOUT = {
+  width: NATIVE_SWITCH_SIZE.width * EXACT_MATCH_SWITCH_SCALE,
+  height: NATIVE_SWITCH_SIZE.height * EXACT_MATCH_SWITCH_SCALE,
+};
+
 const FILTER_ROW_ORDER: { label: string; key: 'kategorien' | 'laenderkuechen' | FilterKey }[] = [
   { label: 'Kategorien', key: 'kategorien' },
   { label: 'Thema', key: 'thema' },
@@ -122,7 +146,7 @@ interface ActionButtonsProps {
 
 function ActionButtons({ colors, bottomInset, onCancel, onApply }: ActionButtonsProps) {
   return (
-    <View style={[styles.actions, { borderTopColor: colors.border.primary, paddingBottom: Math.max(bottomInset, 16) + 90 }]}>
+    <View style={[styles.actions, { paddingBottom: Math.max(bottomInset, 16) + 90 }]}>
       <TouchableOpacity
         style={[styles.cancelBtn, { borderColor: colors.border.primary }]}
         onPress={onCancel}
@@ -144,12 +168,36 @@ function ActionButtons({ colors, bottomInset, onCancel, onApply }: ActionButtons
 interface SubHeaderProps {
   readonly title: string;
   readonly colors: ColorsType;
-  readonly displayFontFamily: string;
   readonly topInset: number;
   readonly onBack: () => void;
 }
 
-function SubHeader({ title, colors, displayFontFamily, topInset, onBack }: SubHeaderProps) {
+interface CircularFlagProps {
+  readonly code: string;
+  readonly colors: ColorsType;
+}
+
+function CircularFlag({ code, colors }: CircularFlagProps) {
+  if (code === 'international') {
+    return (
+      <View style={[styles.flagCircle, { backgroundColor: colors.primary }]}>
+        <Star size={14} color="#fff" fill="#fff" />
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.flagCircle}>
+      <Image
+        source={{ uri: `https://flagcdn.com/w80/${code}.png` }}
+        style={styles.flagImage}
+        resizeMode="cover"
+      />
+    </View>
+  );
+}
+
+function SubHeader({ title, colors, topInset, onBack }: SubHeaderProps) {
   return (
     <View style={[styles.header, { paddingTop: Math.max(topInset, 44) + 16 }]}>
       <TouchableOpacity
@@ -160,7 +208,10 @@ function SubHeader({ title, colors, displayFontFamily, topInset, onBack }: SubHe
       >
         <ChevronLeft size={20} color={colors.text.primary} />
       </TouchableOpacity>
-      <Text style={[styles.titleDisplay, { color: colors.text.primary, fontFamily: displayFontFamily }]}>
+      <Text
+        style={[styles.titleDisplay, styles.subHeaderTitle, { color: colors.text.primary }]}
+        numberOfLines={2}
+      >
         {title}
       </Text>
     </View>
@@ -172,7 +223,6 @@ function SubHeader({ title, colors, displayFontFamily, topInset, onBack }: SubHe
 export default function FilterScreen() {
   const { theme } = useTheme();
   const colors = getColors(theme);
-  const typography = getTypography(theme);
   const insets = useSafeAreaInsets();
 
   const [screen, setScreen] = useState<ScreenMode>('main');
@@ -229,7 +279,6 @@ export default function FilterScreen() {
     return flatSelections[key].length;
   };
 
-  const displayFont = typography.fontFamily.display;
   const actionsProps = {
     colors,
     bottomInset: insets.bottom,
@@ -238,7 +287,6 @@ export default function FilterScreen() {
   };
   const subHeaderProps = {
     colors,
-    displayFontFamily: displayFont,
     topInset: insets.top,
     onBack: goMain,
   };
@@ -248,17 +296,22 @@ export default function FilterScreen() {
     return (
       <View style={[styles.screen, { backgroundColor: colors.background.primary }]}>
         <View style={[styles.header, { paddingTop: Math.max(insets.top, 44) + 16 }]}>
-          <Text style={[styles.titleDisplay, { color: colors.text.primary, fontFamily: displayFont }]}>
+          <Text style={[styles.titleDisplay, { color: colors.text.primary }]}>
             Filter
           </Text>
         </View>
         <ScrollView contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false}>
-          {FILTER_ROW_ORDER.map(row => {
+          {FILTER_ROW_ORDER.map((row, index) => {
             const badge = countFor(row.key);
+            const isLastRow = index === FILTER_ROW_ORDER.length - 1;
             return (
               <TouchableOpacity
                 key={row.key}
-                style={[styles.row, { borderBottomColor: colors.border.primary }]}
+                style={[
+                  styles.row,
+                  { borderBottomColor: colors.border.primary },
+                  isLastRow && styles.rowNoBorder,
+                ]}
                 onPress={() => setScreen(row.key)}
                 activeOpacity={0.7}
               >
@@ -274,23 +327,29 @@ export default function FilterScreen() {
               </TouchableOpacity>
             );
           })}
-          <View style={[styles.toggleRow, { borderBottomColor: colors.border.primary }]}>
-            <Switch
-              value={exactMatch}
-              onValueChange={setExactMatch}
-              trackColor={{ false: colors.border.primary, true: colors.primary }}
-              thumbColor="#fff"
-            />
-            <Text style={[styles.rowLabel, styles.toggleLabel, { color: colors.text.primary }]}>
-              Exakte Treffer
-            </Text>
-            <TouchableOpacity
-              style={[styles.infoCircle, { borderColor: colors.border.primary }]}
-              hitSlop={8}
-              activeOpacity={0.6}
-            >
-              <Info size={12} color={colors.text.tertiary} />
-            </TouchableOpacity>
+          <View style={styles.toggleRow}>
+            <View style={styles.exactMatchSwitchWrap}>
+              <View style={styles.exactMatchSwitchScale}>
+                <Switch
+                  value={exactMatch}
+                  onValueChange={setExactMatch}
+                  trackColor={{ false: colors.border.primary, true: colors.primary }}
+                  thumbColor="#fff"
+                />
+              </View>
+            </View>
+            <View style={styles.toggleLabelRow}>
+              <Text style={[styles.rowLabel, { color: colors.text.primary }]}>
+                Exakte Treffer
+              </Text>
+              <TouchableOpacity
+                style={[styles.infoCircle, { borderColor: colors.border.secondary }]}
+                hitSlop={8}
+                activeOpacity={0.6}
+              >
+                <Text style={[styles.infoIconLetter, { color: colors.text.primary }]}>i</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </ScrollView>
         <ActionButtons {...actionsProps} />
@@ -373,7 +432,7 @@ export default function FilterScreen() {
               onPress={() => toggleCountry(item.name)}
               activeOpacity={0.7}
             >
-              <Text style={styles.flag}>{item.flag}</Text>
+              <CircularFlag code={item.code} colors={colors} />
               <Text style={[styles.rowLabel, { color: colors.text.primary, flex: 1 }]}>{item.name}</Text>
               {selectedCountries.includes(item.name) && (
                 <View style={[styles.checkCircle, { backgroundColor: colors.primary }]}>
@@ -436,9 +495,14 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
   },
   titleDisplay: {
-    fontSize: 42,
-    lineHeight: 50,
-    letterSpacing: -0.6,
+    fontFamily: 'PlayfairDisplay_700Bold',
+    fontSize: 35,
+    lineHeight: 42,
+    letterSpacing: 0,
+  },
+  subHeaderTitle: {
+    flex: 1,
+    flexShrink: 1,
   },
   backCircle: {
     width: 36,
@@ -455,12 +519,21 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   infoCircle: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
     borderWidth: 1,
+    marginLeft: 10,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: 'transparent',
+  },
+  infoIconLetter: {
+    fontFamily: 'Roboto-Regular',
+    fontSize: 11,
+    lineHeight: 13,
+    letterSpacing: 0,
+    marginTop: -0.5,
   },
   listContent: {
     paddingHorizontal: 20,
@@ -471,6 +544,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  rowNoBorder: {
+    borderBottomWidth: 0,
   },
   catRow: {
     flexDirection: 'row',
@@ -498,19 +574,35 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
     gap: 12,
   },
-  toggleLabel: {
-    flex: 1,
+  toggleLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flexShrink: 1,
+  },
+  exactMatchSwitchWrap: {
+    width: EXACT_MATCH_SWITCH_LAYOUT.width,
+    height: EXACT_MATCH_SWITCH_LAYOUT.height,
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'visible',
+  },
+  exactMatchSwitchScale: {
+    transform: [{ scale: EXACT_MATCH_SWITCH_SCALE }],
   },
   rowLabel: {
-    fontSize: 15,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Roboto-Light',
+    fontSize: 17,
+    lineHeight: 25.5,
+    letterSpacing: 0,
   },
   subLabel: {
-    fontSize: 14,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Roboto-Light',
+    fontSize: 16,
+    lineHeight: 35,
+    letterSpacing: 0,
   },
   rowRight: {
     flexDirection: 'row',
@@ -537,36 +629,52 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  flag: {
-    fontSize: 22,
+  flagCircle: {
+    width: FLAG_SIZE,
+    height: FLAG_SIZE,
+    borderRadius: FLAG_SIZE / 2,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  flagImage: {
+    width: FLAG_SIZE,
+    height: FLAG_SIZE,
   },
   actions: {
     flexDirection: 'row',
     paddingHorizontal: 20,
     paddingTop: 16,
     gap: 12,
-    borderTopWidth: StyleSheet.hairlineWidth,
   },
   cancelBtn: {
-    flex: 1,
-    paddingVertical: 14,
+    flex: 2,
+    height: 45,
     borderRadius: 9999,
     borderWidth: 1,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   cancelText: {
-    fontSize: 15,
-    fontFamily: 'Inter-SemiBold',
+    fontFamily: 'Roboto-Light',
+    fontSize: 17,
+    lineHeight: 22,
+    letterSpacing: 0,
+    textAlign: 'center',
   },
   applyBtn: {
-    flex: 1,
-    paddingVertical: 14,
+    flex: 3,
+    height: 45,
     borderRadius: 9999,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   applyText: {
     color: '#fff',
-    fontSize: 15,
-    fontFamily: 'Inter-SemiBold',
+    fontFamily: 'Roboto-Regular',
+    fontSize: 17,
+    lineHeight: 22,
+    letterSpacing: 0,
+    textAlign: 'center',
   },
 });
