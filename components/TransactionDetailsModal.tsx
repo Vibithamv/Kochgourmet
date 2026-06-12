@@ -188,7 +188,7 @@ export default function TransactionDetailsModal({
         title: {
           flex: 1,
           fontSize: typo.fontSize.xl,
-          fontFamily: typo.fontFamily.bold,
+          fontFamily: 'PlayfairDisplay_700Bold',
           letterSpacing: typo.letterSpacing.normal,
         },
         closeButton: {
@@ -220,12 +220,12 @@ export default function TransactionDetailsModal({
         },
         detailLabel: {
           fontSize: typo.fontSize.sm,
-          fontFamily: typo.fontFamily.regular,
+          fontFamily: 'Roboto-Light',
           marginBottom: Spacing.xs,
         },
         detailValue: {
           fontSize: typo.fontSize.lg,
-          fontFamily: typo.fontFamily.semiBold,
+          fontFamily: 'Roboto-Regular',
           letterSpacing: typo.letterSpacing.normal,
         },
         bankSection: {
@@ -233,12 +233,12 @@ export default function TransactionDetailsModal({
         },
         bankTitle: {
           fontSize: typo.fontSize.lg,
-          fontFamily: typo.fontFamily.bold,
+          fontFamily: 'PlayfairDisplay_700Bold',
           marginBottom: Spacing.sm,
         },
         bankHint: {
           fontSize: typo.fontSize.sm,
-          fontFamily: typo.fontFamily.regular,
+          fontFamily: 'Roboto-Light',
           lineHeight: Math.round(typo.fontSize.sm * typo.lineHeight.relaxed),
           marginBottom: Spacing.lg,
         },
@@ -247,12 +247,12 @@ export default function TransactionDetailsModal({
         },
         bankLabel: {
           fontSize: typo.fontSize.sm,
-          fontFamily: typo.fontFamily.regular,
+          fontFamily: 'Roboto-Light',
           marginBottom: Spacing.xs,
         },
         bankValue: {
           fontSize: typo.fontSize.base,
-          fontFamily: typo.fontFamily.regular,
+          fontFamily: 'Roboto-Regular',
         },
         bankShimmerRow: {
           marginBottom: Spacing.lg,

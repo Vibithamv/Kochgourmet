@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -10,13 +10,23 @@ import {
   RefreshControl,
   Modal,
   Pressable,
+  Platform,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
 } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Clock, Star, Heart, Share2, ChevronDown, Minus, Plus, Check } from 'lucide-react-native';
 import HeroSteamIcon, { heroSteamOverlayStyle, HERO_STEAM_ICON_OVERHANG } from '@/components/HeroSteamIcon';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getColors, getTypography } from '@/constants/theme';
 import { getRecipeDetail } from '@/utils/mockRecipeDetails';
+import {
+  getStatusBarStripHeight,
+  getHeroStatusBarStripBackground,
+  isHeroAtTop,
+} from '@/utils/statusBarLayout';
+import { useDetailScreenStatusBar } from '@/hooks/useStatusBarStyle';
 import { useFavourites } from '@/contexts/FavouritesContext';
 
 const PREP_STYLES = [
@@ -26,6 +36,8 @@ const PREP_STYLES = [
 ];
 
 const AMOUNT_REGEX = /^(\d+([.,]\d+)?)/;
+
+export const RECIPE_HERO_IMAGE_HEIGHT = 280;
 
 /** Scale a quantity string proportionally. "80 g" × 1.5 → "120 g". */
 function scaleAmount(raw: string, factor: number): string {
@@ -44,6 +56,10 @@ export interface RecipeDetailContentProps {
   readonly onClose: () => void;
   readonly showHeroImage?: boolean;
   readonly floatingActionsBottom?: number;
+  readonly overlayContentPadding?: boolean;
+  readonly manageStatusBar?: boolean;
+  readonly deferStatusBarToParent?: boolean;
+  readonly onScrollOffsetChange?: (offsetY: number) => void;
 }
 
 export default function RecipeDetailContent({
@@ -51,11 +67,16 @@ export default function RecipeDetailContent({
   onClose,
   showHeroImage = true,
   floatingActionsBottom,
+  overlayContentPadding = false,
+  manageStatusBar = false,
+  deferStatusBarToParent = false,
+  onScrollOffsetChange,
 }: RecipeDetailContentProps) {
   const { theme } = useTheme();
   const colors = getColors(theme);
   const typography = getTypography(theme);
   const insets = useSafeAreaInsets();
+  const statusBarStripHeight = getStatusBarStripHeight(insets.top);
   const actionsBottom = floatingActionsBottom ?? Math.max(insets.bottom, 12) + 90;
 
   const recipe = getRecipeDetail(recipeId);
@@ -63,6 +84,33 @@ export default function RecipeDetailContent({
   const [prepStyle, setPrepStyle] = useState(PREP_STYLES[0]);
   const [showPrepDropdown, setShowPrepDropdown] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [scrollY, setScrollY] = useState(0);
+
+  const ownsStatusBar = manageStatusBar && !deferStatusBarToParent;
+  const tracksScroll = ownsStatusBar || deferStatusBarToParent || Boolean(onScrollOffsetChange);
+  const heroAtTop = isHeroAtTop(scrollY, showHeroImage, RECIPE_HERO_IMAGE_HEIGHT);
+  const statusBarStripBackground = getHeroStatusBarStripBackground(
+    colors,
+    scrollY,
+    showHeroImage,
+    RECIPE_HERO_IMAGE_HEIGHT,
+  );
+
+  const statusBarConfig = useDetailScreenStatusBar(
+    ownsStatusBar,
+    theme,
+    heroAtTop,
+    statusBarStripBackground,
+  );
+
+  const handleScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const y = event.nativeEvent.contentOffset.y;
+      setScrollY(y);
+      onScrollOffsetChange?.(y);
+    },
+    [onScrollOffsetChange],
+  );
 
   const { recipes, toggleFavourite } = useFavourites();
   const recipeFromList = recipes.find(r => r.id === recipeId);
@@ -92,10 +140,33 @@ export default function RecipeDetailContent({
 
   return (
     <View style={[styles.fill, { backgroundColor: colors.background.secondary }]}>
+      {ownsStatusBar && (
+        <>
+          <StatusBar
+            style={statusBarConfig.expo}
+            {...(Platform.OS === 'android'
+              ? { backgroundColor: statusBarStripBackground }
+              : {})}
+          />
+          <View
+            pointerEvents="none"
+            style={[
+              styles.statusBarOverlay,
+              {
+                height: statusBarStripHeight,
+                backgroundColor: statusBarStripBackground,
+              },
+            ]}
+          />
+        </>
+      )}
+
       <ScrollView
         style={[styles.fill, { backgroundColor: colors.background.secondary }]}
         showsVerticalScrollIndicator={false}
         bounces
+        onScroll={tracksScroll ? handleScroll : undefined}
+        scrollEventThrottle={16}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -110,12 +181,17 @@ export default function RecipeDetailContent({
           <View style={[styles.heroWrap, { backgroundColor: colors.background.secondary }]}>
             <Image source={{ uri: recipe.imageUrl }} style={styles.heroImage} resizeMode="cover" />
             <View style={heroSteamOverlayStyle.icon}>
-              <HeroSteamIcon color={colors.primary} />
+              <HeroSteamIcon />
             </View>
           </View>
         )}
 
-        <View style={styles.content}>
+        <View
+          style={[
+            styles.content,
+            overlayContentPadding ? styles.contentOverlayHandoff : styles.contentDefault,
+          ]}
+        >
 
           {/* Title */}
           <Text style={[styles.title, { color: colors.text.primary }]}>
@@ -333,13 +409,22 @@ export default function RecipeDetailContent({
 
 const styles = StyleSheet.create({
   fill: { flex: 1 },
+  statusBarOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 30,
+  },
   heroWrap: {
     position: 'relative',
     width: '100%',
     paddingBottom: HERO_STEAM_ICON_OVERHANG,
   },
-  heroImage: { width: '100%', height: 280 },
-  content: { paddingHorizontal: 20, paddingTop: 20 },
+  heroImage: { width: '100%', height: RECIPE_HERO_IMAGE_HEIGHT },
+  content: { paddingHorizontal: 20 },
+  contentDefault: { paddingTop: 20 },
+  contentOverlayHandoff: { paddingTop: 10 },
 
   title: {
     fontFamily: 'PlayfairDisplay_700Bold',
@@ -491,13 +576,14 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     marginTop: 10,
   },
-  ingredientRow: { flexDirection: 'row', gap: 16, paddingVertical: 10 },
+  ingredientRow: { flexDirection: 'row', gap: 10, paddingVertical: 10, alignItems: 'flex-start' },
   ingredientAmount: {
     fontFamily: 'Roboto-Light',
     fontSize: 17,
     lineHeight: 17,
     letterSpacing: 0,
-    width: 72,
+    width: 108,
+    flexShrink: 0,
   },
   ingredientName: {
     fontFamily: 'Roboto-Light',

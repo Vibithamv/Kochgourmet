@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal, FlatList } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Sun, Moon, Leaf, Check } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/contexts/ThemeContext';
 import {
   getColors,
@@ -12,44 +13,48 @@ import {
 } from '@/constants/theme';
 import { suppressTabBar, restoreTabBar } from '@/utils/tabBarStore';
 
-interface ThemeOption {
-  mode: ThemeMode;
-  name: string;
-  description: string;
-  icon: React.ReactNode;
-}
-
-const themeOptions: ThemeOption[] = [
-  {
-    mode: 'light',
-    name: 'Light Mode',
-    description: 'Clean and bright interface',
-    icon: <Sun size={20} color="#EE7B5F" />,
-  },
-  {
-    mode: 'dark',
-    name: 'Dark Mode',
-    description: 'Easy on the eyes',
-    icon: <Moon size={20} color="#C9BEB5" />,
-  },
-  {
-    mode: 'darkGreen',
-    name: 'Forest Mode',
-    description: 'Nature-inspired dark theme',
-    icon: <Leaf size={20} color="#6BA888" />,
-  },
-];
-
 interface ThemeToggleProps {
   style?: any;
 }
 
+interface ThemeOption {
+  mode: ThemeMode;
+  nameKey: string;
+  descriptionKey: string;
+  icon: React.ReactNode;
+}
+
 export default function ThemeToggle({ style }: Readonly<ThemeToggleProps>) {
+  const { t } = useTranslation();
   const { theme, setTheme } = useTheme();
   const [modalVisible, setModalVisible] = useState(false);
   const insets = useSafeAreaInsets();
 
   const colors = getColors(theme);
+
+  const themeOptions: ThemeOption[] = useMemo(
+    () => [
+      {
+        mode: 'light',
+        nameKey: 'account.themeLight',
+        descriptionKey: 'account.themeLightDesc',
+        icon: <Sun size={20} color="#EE7B5F" />,
+      },
+      {
+        mode: 'dark',
+        nameKey: 'account.themeDark',
+        descriptionKey: 'account.themeDarkDesc',
+        icon: <Moon size={20} color="#C9BEB5" />,
+      },
+      {
+        mode: 'darkGreen',
+        nameKey: 'account.themeForest',
+        descriptionKey: 'account.themeForestDesc',
+        icon: <Leaf size={20} color="#6BA888" />,
+      },
+    ],
+    [],
+  );
 
   const getCurrentTheme = () => {
     return themeOptions.find(option => option.mode === theme) || themeOptions[0];
@@ -72,7 +77,7 @@ export default function ThemeToggle({ style }: Readonly<ThemeToggleProps>) {
           activeOpacity={0.7}
         >
           <Text style={[styles.title, { color: colors.text.primary }]}>
-            {getCurrentTheme().name}
+            {t(getCurrentTheme().nameKey)}
           </Text>
         </TouchableOpacity>
       </View>
@@ -86,7 +91,7 @@ export default function ThemeToggle({ style }: Readonly<ThemeToggleProps>) {
         <View style={[styles.modalOverlay, { backgroundColor: colors.background.overlay }]}>
           <View style={[styles.modalContent, { backgroundColor: colors.background.primary, paddingBottom: Math.max(insets.bottom, 16) }]}>
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: colors.text.primary }]}>Choose Theme</Text>
+              <Text style={[styles.modalTitle, { color: colors.text.primary }]}>{t('account.chooseTheme')}</Text>
               <TouchableOpacity
                 style={[styles.closeButton, { backgroundColor: colors.background.secondary }]}
                 onPress={closeModal}
@@ -108,8 +113,8 @@ export default function ThemeToggle({ style }: Readonly<ThemeToggleProps>) {
                       {item.icon}
                     </View>
                     <View style={styles.themeInfo}>
-                      <Text style={[styles.themeName, { color: colors.text.primary }]}>{item.name}</Text>
-                      <Text style={[styles.themeDescription, { color: colors.text.secondary }]}>{item.description}</Text>
+                      <Text style={[styles.themeName, { color: colors.text.primary }]}>{t(item.nameKey)}</Text>
+                      <Text style={[styles.themeDescription, { color: colors.text.secondary }]}>{t(item.descriptionKey)}</Text>
                     </View>
                   </View>
                   {theme === item.mode && (
@@ -134,7 +139,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: Typography.fontSize.base,
-    fontFamily: Typography.fontFamily.regular,
+    fontFamily: 'Roboto-Light',
   },
   modalOverlay: {
     flex: 1,
@@ -156,7 +161,7 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: Typography.fontSize.xl,
-    fontFamily: Typography.fontFamily.bold,
+    fontFamily: 'PlayfairDisplay_700Bold',
   },
   closeButton: {
     width: 30,
@@ -167,7 +172,7 @@ const styles = StyleSheet.create({
   },
   closeButtonText: {
     fontSize: Typography.fontSize.xl,
-    fontWeight: 'bold',
+    fontFamily: 'Roboto-Regular',
   },
   themeOption: {
     flexDirection: 'row',
@@ -195,11 +200,11 @@ const styles = StyleSheet.create({
   },
   themeName: {
     fontSize: Typography.fontSize.lg,
-    fontFamily: Typography.fontFamily.semiBold,
+    fontFamily: 'Roboto-Regular',
     marginBottom: 2,
   },
   themeDescription: {
     fontSize: Typography.fontSize.base,
-    fontFamily: Typography.fontFamily.regular,
+    fontFamily: 'Roboto-Light',
   },
 });

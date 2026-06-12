@@ -7,11 +7,9 @@ import {
   StyleSheet,
   Keyboard,
   ActivityIndicator,
-  Image,
   BackHandler,
 } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
-import { LinearGradient } from 'expo-linear-gradient';
 import { router, useNavigation } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { ArrowLeft } from 'lucide-react-native';
@@ -30,8 +28,6 @@ export default function RegisterConfirmScreen() {
   const { t } = useTranslation();
   const { theme } = useTheme();
   const colors = getColors(theme);
-  const isDark = theme === 'dark' || theme === 'darkGreen';
-  const primaryBtnTextColor = isDark ? '#0D1117' : '#FFFFFF';
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const { pending, setPending } = useRegisterPending();
@@ -150,94 +146,81 @@ export default function RegisterConfirmScreen() {
   };
 
   return (
-    <LinearGradient
-      colors={
-        isDark
-          ? ['#0D1117', '#14181F', '#1A1F28']
-          : [colors.background.secondary, colors.background.primary, colors.background.secondary]
-      }
-      style={{ flex: 1 }}
-    >
+    <View style={[styles.screen, { backgroundColor: colors.background.primary }]}>
+      <View style={[styles.topBar, { top: Math.max(insets.top, 12) + 8 }]}>
+        <TouchableOpacity
+          style={[styles.backBtn, { borderColor: colors.border.primary }]}
+          onPress={handleBack}
+          hitSlop={8}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel={t('auth.confirmationCode.cancel')}
+        >
+          <ArrowLeft size={18} color={colors.text.primary} />
+        </TouchableOpacity>
+      </View>
+
       <KeyboardAwareScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            paddingTop: Math.max(insets.top, 12) + 64,
+            paddingBottom: Math.max(insets.bottom, 24) + 16,
+          },
+        ]}
         enableOnAndroid
         keyboardShouldPersistTaps="handled"
         extraScrollHeight={keyboardHeight}
         enableAutomaticScroll
       >
-        <View style={[styles.topBar, { paddingTop: Math.max(insets.top, 12) }]}>
-          <TouchableOpacity
-            style={[styles.backButton, { backgroundColor: colors.background.secondary }]}
-            onPress={handleBack}
-            accessibilityRole="button"
-            accessibilityLabel={t('auth.confirmationCode.cancel')}
-          >
-            <ArrowLeft size={24} color={colors.text.primary} />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: colors.text.primary }]} numberOfLines={1}>
+        <View style={styles.content}>
+          <Text style={[styles.title, { color: colors.text.primary }]}>
             {t('auth.confirmationCode.title')}
           </Text>
-          <View style={styles.headerSpacer} />
-        </View>
 
-        <View style={styles.hero}>
-          <Image
-            source={require('../../assets/images/kochgourmet-logo.png')}
-            style={styles.logo}
-            resizeMode="contain"
-          />
-          <Text style={[styles.screenTitle, { color: colors.text.primary }]}>{t('auth.confirmationCode.title')}</Text>
-          <Text style={[styles.subtitle, { color: colors.text.secondary }]}>
+          <Text style={[styles.subtitle, { color: colors.text.primary }]}>
             {t('auth.register.verifyEmailDescription', { email: pending.email })}
           </Text>
-        </View>
 
-        <View style={[styles.card, { backgroundColor: colors.background.card, borderColor: colors.border.primary }]}>
-          <Text style={[styles.label, { color: colors.text.primary }]}>
-            {t('auth.forgotPassword.confirmationCode')}
-          </Text>
+          <View style={styles.fieldGroup}>
+            <Text style={[styles.label, { color: colors.text.primary }]}>
+              {t('auth.forgotPassword.confirmationCode')}
+            </Text>
 
-          <ConfirmationCodeInput
-            value={code}
-            onChangeText={handleCodeChange}
-            hasError={!!errorKey}
-            inputRef={codeInputRef}
-          />
+            <ConfirmationCodeInput
+              value={code}
+              onChangeText={handleCodeChange}
+              hasError={!!errorKey}
+              inputRef={codeInputRef}
+            />
 
-          {errorKey ? <Text style={[styles.errorText, { color: colors.error }]}>{t(errorKey)}</Text> : null}
+            {errorKey ? (
+              <Text style={[styles.errorText, { color: colors.error }]}>{t(errorKey)}</Text>
+            ) : null}
+          </View>
 
-          <TouchableOpacity onPress={handleConfirm} disabled={loadingConfirm} activeOpacity={0.85} style={styles.primaryBtnWrap}>
-            <LinearGradient
-              colors={
-                loadingConfirm
-                  ? isDark
-                    ? ['#3A4030', '#3A4030']
-                    : [colors.interactive.disabled, colors.interactive.disabled]
-                  : [colors.primary, colors.primaryDark]
-              }
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.button}
-            >
-              {loadingConfirm ? (
-                <ActivityIndicator size="small" color={primaryBtnTextColor} />
-              ) : (
-                <Text style={[styles.buttonText, { color: primaryBtnTextColor }]}>
-                  {t('auth.confirmationCode.confirm')}
-                </Text>
-              )}
-            </LinearGradient>
+          <TouchableOpacity
+            onPress={handleConfirm}
+            disabled={loadingConfirm}
+            activeOpacity={0.85}
+            style={[styles.primaryBtn, { backgroundColor: colors.primary, opacity: loadingConfirm ? 0.6 : 1 }]}
+          >
+            {loadingConfirm ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.primaryBtnText}>{t('auth.confirmationCode.confirm')}</Text>
+            )}
           </TouchableOpacity>
 
           <TouchableOpacity
             onPress={handleResend}
             disabled={loadingResend || loadingConfirm}
-            activeOpacity={0.75}
+            activeOpacity={0.7}
             style={[
-              styles.resendButton,
+              styles.resendBtn,
               {
-                backgroundColor: colors.background.secondary,
+                borderColor: colors.border.primary,
                 opacity: loadingResend || loadingConfirm ? 0.5 : 1,
               },
             ]}
@@ -245,7 +228,9 @@ export default function RegisterConfirmScreen() {
             {loadingResend ? (
               <ActivityIndicator size="small" color={colors.text.primary} />
             ) : (
-              <Text style={[styles.resendText, { color: colors.text.primary }]}>{t('auth.confirmationCode.resend')}</Text>
+              <Text style={[styles.resendText, { color: colors.text.primary }]}>
+                {t('auth.confirmationCode.resend')}
+              </Text>
             )}
           </TouchableOpacity>
 
@@ -254,112 +239,107 @@ export default function RegisterConfirmScreen() {
           </View>
         </View>
       </KeyboardAwareScrollView>
-    </LinearGradient>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  screen: { flex: 1 },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: 40,
+    justifyContent: 'center',
+    paddingHorizontal: 26,
   },
   topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingBottom: 8,
+    position: 'absolute',
+    left: 26,
+    zIndex: 10,
   },
-  backButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
+  content: {
+    width: '100%',
+    maxWidth: 400,
+    alignSelf: 'center',
+    alignItems: 'center',
+  },
+  title: {
+    fontFamily: 'PlayfairDisplay_700Bold',
+    fontSize: 35,
+    lineHeight: 35,
+    letterSpacing: 0,
+    textAlign: 'center',
+    width: '100%',
+    marginBottom: 12,
+  },
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  headerTitle: {
-    flex: 1,
-    fontSize: 17,
-    fontFamily: 'Inter-SemiBold',
-    textAlign: 'center',
-    letterSpacing: -0.2,
-  },
-  headerSpacer: {
-    width: 44,
-  },
-  hero: {
-    alignItems: 'center',
-    paddingTop: 8,
-    paddingBottom: 24,
-    paddingHorizontal: 24,
-  },
-  logo: {
-    width: '88%',
-    maxWidth: 200,
-    height: undefined,
-    aspectRatio: 527 / 77,
-    alignSelf: 'center',
-    marginBottom: 10,
-  },
-  screenTitle: {
-    fontSize: 22,
-    fontFamily: 'Inter-Bold',
-    letterSpacing: -0.4,
-    textAlign: 'center',
+    flexShrink: 0,
   },
   subtitle: {
-    fontSize: 14,
-    fontFamily: 'Inter-Regular',
-    marginTop: 10,
+    fontFamily: 'Roboto-Light',
+    fontSize: 17,
+    lineHeight: 23,
+    letterSpacing: 0,
     textAlign: 'center',
-    lineHeight: 20,
+    width: '100%',
+    marginBottom: 28,
   },
-  card: {
-    marginHorizontal: 20,
-    borderRadius: 24,
-    padding: 28,
-    borderWidth: 1,
-  },
+  fieldGroup: { width: '100%', marginBottom: 8 },
   label: {
-    fontSize: 13,
-    fontFamily: 'Inter-Medium',
-    marginBottom: 12,
-    letterSpacing: 0.1,
+    fontFamily: 'Roboto-Light',
+    fontSize: 16,
+    lineHeight: 16,
+    letterSpacing: 0,
+    textAlign: 'center',
+    width: '100%',
+    marginBottom: 14,
   },
   errorText: {
+    fontFamily: 'Roboto-Light',
     fontSize: 12,
-    fontFamily: 'Inter-Regular',
+    lineHeight: 16,
+    textAlign: 'center',
     marginTop: 8,
   },
-  primaryBtnWrap: {
-    marginTop: 20,
-  },
-  button: {
-    borderRadius: 12,
-    paddingVertical: 15,
+  primaryBtn: {
+    width: '100%',
+    paddingVertical: 14,
+    borderRadius: 9999,
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: 20,
   },
-  buttonText: {
-    fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
-    letterSpacing: 0.2,
+  primaryBtnText: {
+    color: '#fff',
+    fontFamily: 'Roboto-Regular',
+    fontSize: 17,
+    lineHeight: 17,
+    letterSpacing: 0,
+    textAlign: 'center',
   },
-  resendButton: {
-    marginTop: 14,
-    minHeight: 50,
+  resendBtn: {
+    width: '100%',
+    marginTop: 12,
     paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: 12,
+    borderRadius: 9999,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
   resendText: {
-    fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
-    letterSpacing: 0.2,
+    fontFamily: 'Roboto-Light',
+    fontSize: 17,
+    lineHeight: 17,
+    letterSpacing: 0,
+    textAlign: 'center',
   },
   languageContainer: {
-    marginTop: 24,
+    marginTop: 32,
     alignItems: 'center',
+    width: '100%',
   },
 });

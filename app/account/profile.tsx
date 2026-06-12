@@ -153,7 +153,7 @@ export default function ProfileScreen() {
         },
         photoBlock: {
           alignItems: 'center',
-          marginTop: 45,
+          marginTop: 8,
           paddingTop: 30,
           paddingBottom: 4,
           gap: 0,
@@ -548,16 +548,16 @@ export default function ProfileScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.background.primary }]}>
-      {/* <View style={[styles.header, { paddingTop: Math.max(insets.top, 44) + 12 }]}>
+      <View style={[styles.header, { paddingTop: Math.max(insets.top, 44) + 12 }]}>
         <TouchableOpacity
-          style={[styles.backCircle, { borderColor: colors.border.primary }]}
+          style={[styles.backCircle, { borderColor: colors.border.primary, backgroundColor: colors.background.card }]}
           onPress={() => router.back()}
           hitSlop={8}
           activeOpacity={0.7}
         >
           <ArrowLeft size={20} color={colors.text.primary} />
         </TouchableOpacity>
-      </View> */}
+      </View>
 
       <KeyboardAwareScrollView
         ref={kasvRef}

@@ -65,7 +65,8 @@
   },
   "auth": {
     "login": {
-      "title": "Welcome to your portfolio",
+      "title": "Sign In",
+      "subtitle": "Sign in to access more features of our app.",
       "email": "Email Address",
       "password": "Password",
       "signIn": "Sign In",
@@ -130,7 +131,16 @@
       "enterPassword": "Please enter password",
       "enterConfirmPassword": "Please enter confirm password",
       "passwordsDontMatch": "Passwords do not match",
-      "verifyEmailDescription": "We sent a verification code to {{email}}."
+      "verifyEmailDescription": "We sent a verification code to {{email}}.",
+      "passwordRequirementsTitle": "Password requirements",
+      "passwordRequirementsIntro": "Your password must meet the following requirements:",
+      "passwordReqMinLength": "At least 8 characters",
+      "passwordReqMaxLength": "Maximum 20 characters",
+      "passwordReqUppercase": "At least one uppercase letter (A–Z)",
+      "passwordReqLowercase": "At least one lowercase letter (a–z)",
+      "passwordReqNumber": "At least one number (0–9)",
+      "passwordReqSpecialChar": "At least one special character (e.g. !@#$%)",
+      "passwordReqNoSpaces": "No spaces"
     },
     "confirmationCode": {
       "title": "Enter Confirmation Code",
@@ -346,6 +356,16 @@
     "selectLanguage": "Select your preferred language",
     "theme": "Theme",
     "themeDescription": "Appearance settings",
+    "privacyPolicy": "Privacy Policy",
+    "legalNotice": "Legal Notice",
+    "investment": "Investment",
+    "chooseTheme": "Choose Theme",
+    "themeLight": "Light Mode",
+    "themeLightDesc": "Clean and bright interface",
+    "themeDark": "Dark Mode",
+    "themeDarkDesc": "Easy on the eyes",
+    "themeForest": "Forest Mode",
+    "themeForestDesc": "Nature-inspired dark theme",
     "switchAccount": "Switch Account",
     "accountSwitched": "Account Switched",
     "nowUsing": "Now using",
@@ -865,8 +885,36 @@
       "high": "High"
     }
   },
+  "magazinScreen": {
+    "subtitle": "Expand your cooking knowledge or find tips and tricks around cooking.",
+    "searchPlaceholder": "Search",
+    "emptyArticles": "No articles found."
+  },
+  "bonusScreen": {
+    "subtitle": "Your bonuses & tokens"
+  },
+  "favoritenScreen": {
+    "rename": "Rename",
+    "delete": "Delete",
+    "deleteFolderTitle": "Are you sure you want to delete “{{name}}”?",
+    "deleteFolderMessage_one": "All {{count}} recipe in this folder will be removed from your favorites.",
+    "deleteFolderMessage_other": "All {{count}} recipes in this folder will be removed from your favorites.",
+    "tabRecipes": "Recipes",
+    "tabFolders": "Folders",
+    "allFavourites": "All favourites",
+    "noFavouritesYet": "No favourites saved yet",
+    "recipeCount_one": "{{count}} recipe",
+    "recipeCount_other": "{{count}} recipes",
+    "renameFolder": "Rename folder",
+    "renameList": "Rename list",
+    "namePlaceholder": "Enter name"
+  },
   "notifications": {
     "pushTitle": "Notification",
-    "pushBodyFallback": "You have a new update."
+    "pushBodyFallback": "You have a new update.",
+    "permissionTitle": "Notifications",
+    "permissionMessage": "Allow KOCHGOURMET to send you notifications?",
+    "permissionAllow": "Allow",
+    "permissionDeny": "Not now"
   }
 }

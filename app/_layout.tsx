@@ -1,13 +1,12 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Stack, useRouter, type Router } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
 import { Alert, AppState, LogBox, Platform } from 'react-native';
 import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
 import {
   PlayfairDisplay_500Medium,
   PlayfairDisplay_700Bold,
 } from '@expo-google-fonts/playfair-display';
-import { Roboto_300Light, Roboto_400Regular } from '@expo-google-fonts/roboto';
+import { Roboto_300Light, Roboto_400Regular, Roboto_500Medium } from '@expo-google-fonts/roboto';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { AuthProvider } from '@/contexts/AuthContext';
@@ -37,6 +36,7 @@ import { whitelistManagement } from '@/hooks/whitelistManagement';
 import { FcmNotificationBridge } from '@/components/FcmNotificationBridge';
 import CustomSplash from '@/components/CustomSplash';
 import GlobalFloatingTabBar from '@/components/GlobalFloatingTabBar';
+import { ThemedStatusBar } from '@/components/ThemedStatusBar';
 import { persistPlatformSignInOptionsFromValidateResponse } from '@/constants/platformSignInOptions';
 
 void SplashScreen.preventAutoHideAsync();
@@ -283,6 +283,7 @@ export default function RootLayout() {
     PlayfairDisplay_700Bold,
     'Roboto-Light': Roboto_300Light,
     'Roboto-Regular': Roboto_400Regular,
+    'Roboto-Medium': Roboto_500Medium,
   });
   const [showSplash, setShowSplash] = useState(false);
   const userAccount = useMemo(() => userManagement(), []);
@@ -357,7 +358,7 @@ export default function RootLayout() {
                       <Stack.Screen name="+not-found" />
                     </Stack>
                     <GlobalFloatingTabBar />
-                    <StatusBar style="auto" />
+                    <ThemedStatusBar />
                     <CustomSplash visible={showSplash} />
                   </FoldersProvider>
                 </FavouritesProvider>

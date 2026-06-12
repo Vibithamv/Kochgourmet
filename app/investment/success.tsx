@@ -144,7 +144,7 @@ export default function InvestmentSuccessScreen() {
       },
       headerTitle: {
         fontSize: typo.fontSize.xl,
-        fontFamily: typo.fontFamily.bold,
+        fontFamily: 'Roboto-Regular',
         letterSpacing: typo.letterSpacing.normal,
         textAlign: 'center',
       },
@@ -166,7 +166,7 @@ export default function InvestmentSuccessScreen() {
       },
       body: {
         fontSize: typo.fontSize.base,
-        fontFamily: typo.fontFamily.regular,
+        fontFamily: 'Roboto-Light',
         textAlign: 'center',
         lineHeight: bodyLh,
         marginBottom: Spacing['2xl'],
@@ -198,12 +198,12 @@ export default function InvestmentSuccessScreen() {
       },
       nextStepsEyebrow: {
         fontSize: typo.fontSize.base,
-        fontFamily: typo.fontFamily.semiBold,
+        fontFamily: 'Roboto-Light',
         letterSpacing: typo.letterSpacing.normal,
       },
       nextStepsTitle: {
         fontSize: typo.fontSize.xl,
-        fontFamily: typo.fontFamily.bold,
+        fontFamily: 'PlayfairDisplay_700Bold',
         letterSpacing: typo.letterSpacing.normal,
         marginBottom: Spacing.lg,
       },
@@ -217,18 +217,18 @@ export default function InvestmentSuccessScreen() {
       detailLabel: {
         flex: 1,
         fontSize: typo.fontSize.base,
-        fontFamily: typo.fontFamily.semiBold,
+        fontFamily: 'Roboto-Regular',
         letterSpacing: typo.letterSpacing.normal,
       },
       detailValue: {
         flex: 1,
         fontSize: typo.fontSize.base,
-        fontFamily: typo.fontFamily.regular,
+        fontFamily: 'Roboto-Light',
         textAlign: 'right',
       },
       referenceNote: {
         fontSize: typo.fontSize.base,
-        fontFamily: typo.fontFamily.regular,
+        fontFamily: 'Roboto-Light',
         lineHeight: bodyLh,
         marginTop: Spacing.md,
         textAlign: 'left',
@@ -244,13 +244,13 @@ export default function InvestmentSuccessScreen() {
       },
       ctaText: {
         fontSize: typo.fontSize.lg,
-        fontFamily: typo.fontFamily.semiBold,
+        fontFamily: 'Roboto-Regular',
       },
     });
   }, [theme]);
 
   return (
-    <View style={[stylesMemo.container, { backgroundColor: colors.background.secondary }]}>
+    <View style={[stylesMemo.container, { backgroundColor: colors.background.primary }]}>
       <View
         style={[
           stylesMemo.header,

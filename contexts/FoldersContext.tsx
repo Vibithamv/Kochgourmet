@@ -121,6 +121,7 @@ interface FoldersContextType {
   folders: Folder[];
   getFolder: (id: string) => Folder | undefined;
   renameFolder: (id: string, title: string) => void;
+  deleteFolder: (id: string) => void;
   removeRecipeFromFolder: (folderId: string, recipeId: string, thumbUri: string) => void;
 }
 
@@ -142,6 +143,10 @@ export function FoldersProvider({ children }: FoldersProviderProps) {
     setFolders(prev => prev.map(f => f.id === id ? { ...f, title: trimmed } : f));
   }, []);
 
+  const deleteFolder = useCallback((id: string) => {
+    setFolders(prev => prev.filter(f => f.id !== id));
+  }, []);
+
   const removeRecipeFromFolder = useCallback((folderId: string, recipeId: string, thumbUri: string) => {
     setFolders(prev => prev.map(f => {
       if (f.id !== folderId) return f;
@@ -151,8 +156,8 @@ export function FoldersProvider({ children }: FoldersProviderProps) {
   }, []);
 
   const value = useMemo(
-    () => ({ folders, getFolder, renameFolder, removeRecipeFromFolder }),
-    [folders, getFolder, renameFolder, removeRecipeFromFolder]
+    () => ({ folders, getFolder, renameFolder, deleteFolder, removeRecipeFromFolder }),
+    [folders, getFolder, renameFolder, deleteFolder, removeRecipeFromFolder]
   );
 
   return (

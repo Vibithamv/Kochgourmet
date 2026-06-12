@@ -26,7 +26,7 @@ const languages: Language[] = [
 ];
 
 export default function LanguageSelector() {
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
   const { theme } = useTheme();
   const colors = getColors(theme);
   const insets = useSafeAreaInsets();
@@ -75,7 +75,7 @@ export default function LanguageSelector() {
           }]}>
             {/* Header */}
             <View style={[styles.sheetHeader, { borderBottomColor: colors.border.primary }]}>
-              <Text style={[styles.sheetTitle, { color: colors.text.primary }]}>Language</Text>
+              <Text style={[styles.sheetTitle, { color: colors.text.primary }]}>{t('account.language')}</Text>
               <TouchableOpacity
                 style={[styles.closeBtn, { backgroundColor: colors.background.secondary }]}
                 onPress={closeModal}
@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
   },
   triggerText: {
     fontSize: Typography.fontSize.xs,
-    fontFamily: 'Inter-Medium',
+    fontFamily: 'Roboto-Regular',
     letterSpacing: 0.5,
   },
   overlay: {
@@ -158,7 +158,7 @@ const styles = StyleSheet.create({
   },
   sheetTitle: {
     fontSize: Typography.fontSize.base,
-    fontFamily: 'Inter-SemiBold',
+    fontFamily: 'PlayfairDisplay_700Bold',
     letterSpacing: 0.1,
   },
   closeBtn: {
@@ -177,11 +177,11 @@ const styles = StyleSheet.create({
   },
   optionName: {
     fontSize: Typography.fontSize.base,
-    fontFamily: 'Inter-Medium',
+    fontFamily: 'Roboto-Regular',
     marginBottom: 2,
   },
   optionNative: {
     fontSize: Typography.fontSize.sm,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Roboto-Light',
   },
 });

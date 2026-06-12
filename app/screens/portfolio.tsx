@@ -35,7 +35,6 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/contexts/ThemeContext';
 import {
   getColors,
-  getTypography,
   Typography,
   Spacing,
   BorderRadius,
@@ -570,15 +569,15 @@ const PortfolioScreen = React.memo(() => {
 
   const chartConfig = React.useMemo(
     () => ({
-      backgroundColor: colors.background.card,
-      backgroundGradientFrom: colors.background.card,
-      backgroundGradientTo: colors.background.card,
+      backgroundColor: colors.background.primary,
+      backgroundGradientFrom: colors.background.primary,
+      backgroundGradientTo: colors.background.primary,
       decimalPlaces: performanceYDecimals,
       color: (opacity = 1) => `rgba(${primaryRgb}, ${opacity})`,
       labelColor: (opacity = 1) => (theme === 'light' ? '#6B7280' : '#94A3B8'),
       style: { borderRadius: 0 },
       propsForLabels: {
-        fontFamily: Typography.fontFamily.medium,
+        fontFamily: 'Roboto-Light',
         fontSize: 9,
       },
       propsForBackgroundLines: {
@@ -847,7 +846,7 @@ const PortfolioScreen = React.memo(() => {
 
   return (
     <>
-    <View style={[styles.container, { backgroundColor: colors.background.secondary }]}>
+    <View style={[styles.container, { backgroundColor: colors.background.primary }]}>
       <View
         style={[
           styles.header,
@@ -866,10 +865,7 @@ const PortfolioScreen = React.memo(() => {
             <Text
               style={[
                 styles.headerTitle,
-                {
-                  color: colors.text.primary,
-                  fontFamily: getTypography(theme).fontFamily.display,
-                },
+                { color: colors.text.primary },
               ]}
             >
               {t('portfolio.title')}
@@ -888,7 +884,7 @@ const PortfolioScreen = React.memo(() => {
     <ScrollView
       style={[
         styles.listBody,
-        { backgroundColor: colors.background.secondary },
+        { backgroundColor: colors.background.primary },
       ]}
       refreshControl={
         <RefreshControl
@@ -910,7 +906,7 @@ const PortfolioScreen = React.memo(() => {
                 style={[
                   styles.overviewCard,
                   {
-                    backgroundColor: colors.background.card,
+                    backgroundColor: colors.background.primary,
                     borderColor: colors.border.primary,
                   },
                 ]}
@@ -958,7 +954,7 @@ const PortfolioScreen = React.memo(() => {
               style={[
                 styles.performanceCard,
                 {
-                  backgroundColor: colors.background.card,
+                  backgroundColor: colors.background.primary,
                   borderColor: colors.border.primary,
                 },
               ]}
@@ -993,7 +989,7 @@ const PortfolioScreen = React.memo(() => {
                     style={[
                       styles.periodDropdown,
                       {
-                        backgroundColor: colors.background.secondary,
+                        backgroundColor: colors.background.primary,
                         borderColor: colors.border.primary,
                       },
                     ]}
@@ -1050,7 +1046,7 @@ const PortfolioScreen = React.memo(() => {
               style={[
                 styles.transactionsCard,
                 {
-                  backgroundColor: colors.background.card,
+                  backgroundColor: colors.background.primary,
                   borderColor: colors.border.primary,
                 },
               ]}
@@ -1406,12 +1402,13 @@ const createStyles = (colors: any) =>
     },
     headerTitle: {
       fontSize: Typography.fontSize['2xl'],
+      fontFamily: 'PlayfairDisplay_700Bold',
       letterSpacing: -0.3,
       marginBottom: 2,
     },
     headerSubtitle: {
       fontSize: Typography.fontSize.sm,
-      fontFamily: 'Inter-Regular',
+      fontFamily: 'Roboto-Light',
     },
 
     // Overview Section
@@ -1438,19 +1435,19 @@ const createStyles = (colors: any) =>
     },
     overviewLabel: {
       fontSize: Typography.fontSize.sm,
-      fontFamily: Typography.fontFamily.medium,
+      fontFamily: 'Roboto-Regular',
       marginLeft: Spacing.xs,
       letterSpacing: -0.1,
     },
     overviewValue: {
       fontSize: Typography.fontSize.xl,
-      fontFamily: Typography.fontFamily.bold,
+      fontFamily: 'Roboto-Regular',
       letterSpacing: -0.3,
       marginBottom: Spacing.xs,
     },
     overviewChange: {
       fontSize: Typography.fontSize.sm,
-      fontFamily: Typography.fontFamily.regular,
+      fontFamily: 'Roboto-Light',
     },
 
     // Performance Chart Card
@@ -1474,7 +1471,7 @@ const createStyles = (colors: any) =>
     },
     performanceLabel: {
       fontSize: Typography.fontSize.lg,
-      fontFamily: Typography.fontFamily.semiBold,
+      fontFamily: 'Roboto-Regular',
       marginLeft: Spacing.sm,
       letterSpacing: -0.2,
     },
@@ -1491,7 +1488,7 @@ const createStyles = (colors: any) =>
     },
     periodDropdownText: {
       fontSize: Typography.fontSize.sm,
-      fontFamily: Typography.fontFamily.semiBold,
+      fontFamily: 'Roboto-Regular',
       marginRight: Spacing.xs,
       letterSpacing: -0.1,
     },
@@ -1525,7 +1522,7 @@ const createStyles = (colors: any) =>
     },
     modalTitle: {
       fontSize: Typography.fontSize.xl,
-      fontFamily: Typography.fontFamily.bold,
+      fontFamily: 'PlayfairDisplay_700Bold',
     },
     closeButton: {
       width: 30,
@@ -1536,7 +1533,7 @@ const createStyles = (colors: any) =>
     },
     closeButtonText: {
       fontSize: Typography.fontSize.xl,
-      fontWeight: 'bold',
+      fontFamily: 'Roboto-Regular',
     },
     periodOption: {
       flexDirection: 'row',
@@ -1548,7 +1545,7 @@ const createStyles = (colors: any) =>
     },
     periodOptionText: {
       fontSize: Typography.fontSize.lg,
-      fontFamily: Typography.fontFamily.semiBold,
+      fontFamily: 'Roboto-Regular',
       letterSpacing: -0.1,
     },
 
@@ -1586,13 +1583,13 @@ const createStyles = (colors: any) =>
     },
     reportTitle: {
       fontSize: Typography.fontSize.lg,
-      fontFamily: Typography.fontFamily.semiBold,
+      fontFamily: 'Roboto-Regular',
       marginBottom: 2,
       letterSpacing: -0.1,
     },
     reportDescription: {
       fontSize: Typography.fontSize.sm,
-      fontFamily: Typography.fontFamily.regular,
+      fontFamily: 'Roboto-Light',
     },
     chartContainer: {
       alignItems: 'center',
@@ -1617,13 +1614,13 @@ const createStyles = (colors: any) =>
     },
     sectionTitle: {
       fontSize: Typography.fontSize.xl,
-      fontFamily: Typography.fontFamily.bold,
+      fontFamily: 'PlayfairDisplay_700Bold',
       letterSpacing: -0.2,
       marginBottom: 2,
     },
     sectionSubtitle: {
       fontSize: Typography.fontSize.sm,
-      fontFamily: Typography.fontFamily.regular,
+      fontFamily: 'Roboto-Light',
     },
     actionButton: {
       width: 36,
@@ -1664,32 +1661,32 @@ const createStyles = (colors: any) =>
     },
     transactionDescription: {
       fontSize: Typography.fontSize.base,
-      fontFamily: Typography.fontFamily.medium,
+      fontFamily: 'Roboto-Regular',
       letterSpacing: -0.1,
       marginBottom: 2,
     },
     transactionDate: {
       fontSize: Typography.fontSize.sm,
-      fontFamily: Typography.fontFamily.regular,
+      fontFamily: 'Roboto-Light',
     },
     transactionRight: {
       alignItems: 'flex-end',
     },
     transactionAmount: {
       fontSize: Typography.fontSize.base,
-      fontFamily: Typography.fontFamily.semiBold,
+      fontFamily: 'Roboto-Regular',
       letterSpacing: -0.2,
       marginBottom: 2,
     },
     transactionAmountCurrency: {
       fontSize: Typography.fontSize.sm,
-      fontFamily: Typography.fontFamily.medium,
+      fontFamily: 'Roboto-Regular',
       letterSpacing: -0.1,
       marginBottom: 2,
     },
     transactionStatus: {
       fontSize: Typography.fontSize.xs,
-      fontFamily: Typography.fontFamily.regular,
+      fontFamily: 'Roboto-Light',
       textTransform: 'uppercase',
       letterSpacing: 0.5,
     },

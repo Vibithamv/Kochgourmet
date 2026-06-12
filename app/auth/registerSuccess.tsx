@@ -1,6 +1,5 @@
 import React, { useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image, BackHandler, ScrollView } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { Check } from 'lucide-react-native';
@@ -8,7 +7,6 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getColors } from '@/constants/theme';
 import { replaceLoginClearingAuthStack } from '@/utils/authNavigation';
-import LanguageSelector from '@/components/LanguageSelector';
 
 export default function RegisterSuccessScreen() {
   const { t } = useTranslation();
@@ -30,14 +28,7 @@ export default function RegisterSuccessScreen() {
   );
 
   return (
-    <LinearGradient
-      colors={
-        theme === 'dark' || theme === 'darkGreen'
-          ? ['#0D1117', '#14181F', '#1A1F28']
-          : [colors.background.secondary, colors.background.primary, colors.background.secondary]
-      }
-      style={styles.root}
-    >
+    <View style={[styles.root, { backgroundColor: colors.background.primary }]}>
       <ScrollView
         contentContainerStyle={[
           styles.scrollContent,
@@ -63,24 +54,23 @@ export default function RegisterSuccessScreen() {
           >
             <Check size={40} color={colors.success} strokeWidth={2.5} />
           </View>
-          <Text style={[styles.title, { color: colors.text.primary }]}>{t('auth.register.successScreenTitle')}</Text>
-          <Text style={[styles.body, { color: colors.text.secondary }]}>{t('auth.register.registerSuccess')}</Text>
+          <Text style={[styles.title, { color: colors.text.primary }]}>
+            {t('auth.register.successScreenTitle')}
+          </Text>
+          <Text style={[styles.body, { color: colors.text.primary }]}>
+            {t('auth.register.registerSuccess')}
+          </Text>
 
-          <View style={styles.buttonWrap}>
-            <TouchableOpacity onPress={goLogin} activeOpacity={0.85}>
-              <LinearGradient
-                colors={[colors.primary, colors.primaryDark]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.button}
-              >
-                <Text style={[styles.buttonText, { color: colors.text.onPrimary }]}>{t('auth.login.signIn')}</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            onPress={goLogin}
+            activeOpacity={0.85}
+            style={[styles.primaryBtn, { backgroundColor: colors.primary }]}
+          >
+            <Text style={styles.primaryBtnText}>{t('auth.login.signIn')}</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
-    </LinearGradient>
+    </View>
   );
 }
 
@@ -91,7 +81,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
-    paddingHorizontal: 24,
+    paddingHorizontal: 26,
   },
   centerBlock: {
     width: '100%',
@@ -116,37 +106,35 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   title: {
-    fontSize: 24,
-    fontFamily: 'Inter-Bold',
-    letterSpacing: -0.4,
+    fontFamily: 'PlayfairDisplay_700Bold',
+    fontSize: 35,
+    lineHeight: 35,
+    letterSpacing: 0,
     textAlign: 'center',
     marginBottom: 12,
   },
   body: {
-    fontSize: 15,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Roboto-Light',
+    fontSize: 17,
+    lineHeight: 23,
+    letterSpacing: 0,
     textAlign: 'center',
-    lineHeight: 22,
     paddingHorizontal: 8,
   },
-  buttonWrap: {
+  primaryBtn: {
     width: '100%',
     marginTop: 28,
-  },
-  button: {
-    borderRadius: 12,
-    paddingVertical: 15,
+    paddingVertical: 14,
+    borderRadius: 9999,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  buttonText: {
-    fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
-    letterSpacing: 0.2,
-  },
-  languageContainer: {
-    marginTop: 28,
-    alignItems: 'center',
-    width: '100%',
+  primaryBtnText: {
+    color: '#fff',
+    fontFamily: 'Roboto-Regular',
+    fontSize: 17,
+    lineHeight: 17,
+    letterSpacing: 0,
+    textAlign: 'center',
   },
 });

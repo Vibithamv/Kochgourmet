@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { Search } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getColors } from '@/constants/theme';
@@ -37,6 +38,7 @@ const ARTICLES: ArticleListItem[] = [
 const TAB_BAR_HEIGHT = 90;
 
 export default function MagazinScreen() {
+  const { t } = useTranslation();
   const { theme } = useTheme();
   const colors = getColors(theme);
   const insets = useSafeAreaInsets();
@@ -77,18 +79,23 @@ export default function MagazinScreen() {
       >
         <View style={{ height: Math.max(insets.top, 50) + 32 }} />
 
-        <Text style={[styles.title, { color: colors.text.primary }]}>
-          Magazin
+        <Text
+          style={[styles.title, { color: colors.text.primary }]}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.72}
+        >
+          {t('common.tabs.magazin')}
         </Text>
 
         <Text style={[styles.subtitle, { color: colors.text.primary }]}>
-          Erweitere dein Kochwissen oder finden Tipps und Tricks rund ums Thema Kochen.
+          {t('magazinScreen.subtitle')}
         </Text>
 
         <View style={[styles.searchBar, { backgroundColor: colors.background.secondary }]}>
           <TextInput
             style={[styles.searchInput, { color: colors.text.primary }]}
-            placeholder="Suchen"
+            placeholder={t('magazinScreen.searchPlaceholder')}
             placeholderTextColor={colors.text.primary}
             value={search}
             onChangeText={setSearch}
@@ -99,7 +106,7 @@ export default function MagazinScreen() {
         <View style={styles.articles}>
           {filteredArticles.length === 0 && (
             <Text style={[styles.emptyText, { color: colors.text.tertiary }]}>
-              Keine Artikel gefunden.
+              {t('magazinScreen.emptyArticles')}
             </Text>
           )}
           {filteredArticles.map(article => (
@@ -130,7 +137,7 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: 'PlayfairDisplay_700Bold',
     fontSize: 80,
-    lineHeight: 80,
+    lineHeight: 84,
     letterSpacing: 0,
     marginBottom: 20,
   },

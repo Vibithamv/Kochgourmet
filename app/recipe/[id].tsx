@@ -12,7 +12,7 @@ export default function RecipeDetailScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.background.secondary }]}>
-      <RecipeDetailContent recipeId={id} onClose={() => router.back()} showHeroImage />
+      <RecipeDetailContent recipeId={id} onClose={() => router.back()} showHeroImage manageStatusBar />
     </View>
   );
 }

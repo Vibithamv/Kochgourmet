@@ -4,16 +4,17 @@ import { BlurView } from 'expo-blur';
 import { router, usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChefHat, Heart, Menu, Star, TrendingUp } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getShadows } from '@/constants/theme';
 import { useTabBarSuppressed } from '@/utils/tabBarStore';
 
 const TABS = [
-  { route: '/',          label: 'Rezepte',   Icon: Star,        filledWhenActive: true,  match: (p: string) => p === '/' || p.startsWith('/recipe') },
-  { route: '/projects',  label: 'Magazin',   Icon: ChefHat,     filledWhenActive: false, match: (p: string) => p.startsWith('/projects') || p.startsWith('/magazin') },
-  { route: '/portfolio', label: 'Favoriten', Icon: Heart,       filledWhenActive: false, match: (p: string) => p.startsWith('/portfolio') || p.startsWith('/favoriten') },
-  { route: '/offerings', label: 'Bonus',     Icon: TrendingUp,  filledWhenActive: false, match: (p: string) => p.startsWith('/offerings') || p.startsWith('/project') || p.startsWith('/investment') },
-  { route: '/account',   label: 'Menü',      Icon: Menu,        filledWhenActive: false, match: (p: string) => p.startsWith('/account') || p === '/auth/kycRequest' || p === '/screens/portfolio' || p === '/screens/projects' },
+  { route: '/',          labelKey: 'common.tabs.rezepte',   Icon: Star,        filledWhenActive: true,  match: (p: string) => p === '/' || p.startsWith('/recipe') },
+  { route: '/projects',  labelKey: 'common.tabs.magazin',   Icon: ChefHat,     filledWhenActive: false, match: (p: string) => p.startsWith('/projects') || p.startsWith('/magazin') },
+  { route: '/portfolio', labelKey: 'common.tabs.favoriten', Icon: Heart,       filledWhenActive: false, match: (p: string) => p.startsWith('/portfolio') || p.startsWith('/favoriten') },
+  { route: '/offerings', labelKey: 'common.tabs.token',     Icon: TrendingUp,  filledWhenActive: false, match: (p: string) => p.startsWith('/offerings') || p.startsWith('/project') || p.startsWith('/investment') },
+  { route: '/account',   labelKey: 'common.tabs.menu',      Icon: Menu,        filledWhenActive: false, match: (p: string) => p.startsWith('/account') || p === '/auth/kycRequest' || p === '/screens/portfolio' || p === '/screens/projects' },
 ];
 
 const TAB_LABEL_ACTIVE_COLOR = '#EE7051';
@@ -28,16 +29,24 @@ const HIDDEN_PATHS = new Set([
   '/+not-found',
 ]);
 
+function shouldHideTabBar(pathname: string): boolean {
+  if (HIDDEN_PATHS.has(pathname)) return true;
+  if (pathname.startsWith('/project/')) return true;
+  if (pathname.startsWith('/investment/')) return true;
+  return false;
+}
+
 export default function GlobalFloatingTabBar() {
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const { theme } = useTheme();
   const shadows = getShadows(theme);
   const isDark = theme === 'dark' || theme === 'darkGreen';
 
   const suppressed = useTabBarSuppressed();
 
-  if (HIDDEN_PATHS.has(pathname)) return null;
+  if (shouldHideTabBar(pathname)) return null;
   if (suppressed) return null;
 
   const activeTab = TABS.find(t => t.match(pathname)) ?? TABS[0];
@@ -63,7 +72,11 @@ export default function GlobalFloatingTabBar() {
         <View style={styles.barInner}>
           {TABS.map(tab => {
             const isFocused = activeTab.route === tab.route;
-            const color = isFocused ? TAB_LABEL_ACTIVE_COLOR : TAB_LABEL_INACTIVE_COLOR;
+            const color = isFocused
+              ? TAB_LABEL_ACTIVE_COLOR
+              : isDark
+                ? '#FFFFFF'
+                : TAB_LABEL_INACTIVE_COLOR;
 
             return (
               <TouchableOpacity
@@ -80,7 +93,7 @@ export default function GlobalFloatingTabBar() {
                   strokeWidth={1.5}
                   fill={tab.filledWhenActive ? color : 'transparent'}
                 />
-                <Text style={[styles.label, { color }]}>{tab.label}</Text>
+                <Text style={[styles.label, { color }]}>{t(tab.labelKey)}</Text>
               </TouchableOpacity>
             );
           })}

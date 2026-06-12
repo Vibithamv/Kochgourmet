@@ -12,7 +12,7 @@ export default function MagazinDetailScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.background.secondary }]}>
-      <MagazinDetailContent articleId={id} onClose={() => router.back()} showHeroImage />
+      <MagazinDetailContent articleId={id} onClose={() => router.back()} showHeroImage manageStatusBar />
     </View>
   );
 }

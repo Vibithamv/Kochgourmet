@@ -165,11 +165,11 @@ export default function OfferingTokenSlider({
         },
         headerLabel: {
           fontSize: typo.fontSize.base,
-          fontFamily: typo.fontFamily.regular,
+          fontFamily: 'Roboto-Light',
         },
         headerValue: {
           fontSize: typo.fontSize.base,
-          fontFamily: typo.fontFamily.semiBold,
+          fontFamily: 'Roboto-Regular',
         },
         trackHitArea: {
           height: 44,
@@ -203,7 +203,7 @@ export default function OfferingTokenSlider({
         },
         scaleLabel: {
           fontSize: typo.fontSize.xs,
-          fontFamily: typo.fontFamily.regular,
+          fontFamily: 'Roboto-Light',
         },
         metricsBlock: {
           gap: Spacing.md,
@@ -215,11 +215,11 @@ export default function OfferingTokenSlider({
         },
         metricLabel: {
           fontSize: typo.fontSize.sm,
-          fontFamily: typo.fontFamily.regular,
+          fontFamily: 'Roboto-Light',
         },
         metricValue: {
           fontSize: typo.fontSize.sm,
-          fontFamily: typo.fontFamily.semiBold,
+          fontFamily: 'Roboto-Regular',
         },
       }),
     [typo]

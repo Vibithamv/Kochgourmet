@@ -24,6 +24,12 @@ import {
   registerPasswordFieldErrorI18nKey,
   type RegisterPasswordFieldErrorCode,
 } from '@/app/auth/registerPasswordFieldErrors';
+import {
+  formatPasswordRequirementsAlertMessage,
+  getUnmetPasswordRequirementCodes,
+  isPasswordRequirementsError,
+  isPasswordRequirementsMet,
+} from '@/utils/passwordValidation';
 import type { TFunction } from 'i18next';
 
 type FieldErrors = { [key: string]: string };
@@ -59,13 +65,28 @@ type ShowAlertFn = (
   options?: { buttonText?: string; buttonCallback?: () => void; secondaryButtonText?: string }
 ) => void;
 
-function alertRegisterFailure(message: string, t: TFunction, showAlert: ShowAlertFn): void {
+function alertRegisterFailure(
+  message: string,
+  password: string,
+  t: TFunction,
+  showAlert: ShowAlertFn
+): void {
   if (message === 'User already exists') {
     showAlert(t('common.alert'), t('auth.register.userAlreadyExists'), {
       buttonText: 'Login',
       buttonCallback: () => replaceLoginClearingAuthStack(),
       secondaryButtonText: 'Cancel',
     });
+    return;
+  }
+  if (isPasswordRequirementsError(message)) {
+    const unmet = getUnmetPasswordRequirementCodes(password);
+    showAlert(
+      t('auth.register.passwordRequirementsTitle'),
+      unmet.length > 0
+        ? formatPasswordRequirementsAlertMessage(unmet, t)
+        : t('profile.validationError')
+    );
     return;
   }
   showAlert(t('common.alert'), message || t('auth.register.registerFailed'));
@@ -160,6 +181,15 @@ export default function RegisterScreen() {
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;
 
+    if (!isPasswordRequirementsMet(password)) {
+      const unmet = getUnmetPasswordRequirementCodes(password);
+      showAlert(
+        t('auth.register.passwordRequirementsTitle'),
+        formatPasswordRequirementsAlertMessage(unmet, t)
+      );
+      return;
+    }
+
     // With keyboardShouldPersistTaps="handled", tapping Create Account does not blur the
     // active field — keystrokes would keep going to the form behind the OTP dialog.
     Keyboard.dismiss();
@@ -176,7 +206,7 @@ export default function RegisterScreen() {
       });
       return;
     }
-    alertRegisterFailure(registerResult.error.error.message, t, showAlert);
+    alertRegisterFailure(registerResult.error?.error?.message ?? '', password, t, showAlert);
   };
 
   const onClose = () => {
@@ -223,7 +253,7 @@ export default function RegisterScreen() {
         {/* Header */}
         <View style={styles.headerRow}>
           <Text style={[styles.title, { color: colors.text.primary }]}>
-            Registrieren
+            {t('auth.register.title')}
           </Text>
           <TouchableOpacity
             style={[styles.closeBtn, { borderColor: colors.border.primary }]}
@@ -520,16 +550,17 @@ const styles = StyleSheet.create({
     marginBottom: 30,
     borderRadius: 16,
     paddingVertical: 44,
-    paddingHorizontal: 24,
+    paddingLeft: 16,
+    paddingRight: 24,
     flexDirection: 'row',
     alignItems: 'center',
     overflow: 'visible',
   },
-  signupCardLeft: { flex: 1, gap: 14, paddingRight: 120 },
+  signupCardLeft: { flex: 1, gap: 14, maxWidth: '78%', zIndex: 1 },
   signupTitle: {
     fontFamily: 'PlayfairDisplay_700Bold',
     fontSize: 22,
-    lineHeight: 30,
+    lineHeight: 28,
     letterSpacing: 0,
   },
   signupActionRow: {
@@ -552,10 +583,11 @@ const styles = StyleSheet.create({
   },
   signupCheese: {
     position: 'absolute',
-    right: 12,
+    right: 1,
     top: 8,
     width: 130,
     height: 200,
+    zIndex: 0,
   },
 
   // Language

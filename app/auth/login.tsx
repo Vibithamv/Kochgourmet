@@ -33,7 +33,7 @@ import {
   loginPasswordFieldErrorI18nKey,
   type LoginPasswordFieldErrorCode,
 } from '@/app/auth/loginPasswordFieldErrors';
-import { logFcmTokenOnSuccessfulLogin } from '@/utils/logFcmToken';
+import { promptPushNotificationsAfterLogin } from '@/utils/logFcmToken';
 import NetworkService from '@/services/NetworkService';
 import { API_HEADER_CONFIG } from '@/config/apiHeaderConfig';
 import { GOOGLE_OAUTH_REDIRECT_URI } from '@/app/auth/googleOAuthConfig';
@@ -284,7 +284,7 @@ export default function LoginScreen() {
           router.replace('/auth/login');
           return;
         }
-        void logFcmTokenOnSuccessfulLogin();
+        await promptPushNotificationsAfterLogin({ showAlert, t });
         const result = await userAccount.getUser();
         console.log('result...user...',
           JSON.stringify(result.data.data, null, 2)
@@ -341,7 +341,7 @@ export default function LoginScreen() {
       }
       setEmail('');
       setPassword('');
-      void logFcmTokenOnSuccessfulLogin();
+      await promptPushNotificationsAfterLogin({ showAlert, t });
       await navigateAfterLoginSuccess(
         response.data.data,
         checkVisibilityStatus,
@@ -483,7 +483,7 @@ export default function LoginScreen() {
         {/* Header row */}
         <View style={styles.headerRow}>
           <Text style={[styles.title, { color: colors.text.primary }]}>
-            Einloggen
+            {t('auth.login.title')}
           </Text>
           {router.canGoBack() && (
             <TouchableOpacity
@@ -498,7 +498,7 @@ export default function LoginScreen() {
         </View>
 
         <Text style={[styles.subtitle, { color: colors.text.primary }]}>
-          Melde dich an, um weitere Features unserer App zu verwenden.
+          {t('auth.login.subtitle')}
         </Text>
 
         {/* Email */}
@@ -713,7 +713,7 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: 'PlayfairDisplay_700Bold',
     fontSize: 35,
-    lineHeight: 35,
+    lineHeight: 45,
     letterSpacing: 0,
     flex: 1,
     paddingRight: 12,
@@ -851,16 +851,17 @@ const styles = StyleSheet.create({
     marginBottom: 30, // small breathing room for the dripping cheese overflow
     borderRadius: 16,
     paddingVertical: 44,
-    paddingHorizontal: 24,
+    paddingLeft: 16,
+    paddingRight: 24,
     flexDirection: 'row',
     alignItems: 'center',
     overflow: 'visible',
   },
-  signupCardLeft: { flex: 1, gap: 14, paddingRight: 120 },
+  signupCardLeft: { flex: 1, gap: 14, maxWidth: '78%', zIndex: 1 },
   signupTitle: {
     fontFamily: 'PlayfairDisplay_700Bold',
     fontSize: 22,
-    lineHeight: 30,
+    lineHeight: 28,
     letterSpacing: 0,
   },
   signupActionRow: {
@@ -883,10 +884,11 @@ const styles = StyleSheet.create({
   },
   signupCheese: {
     position: 'absolute',
-    right: 12,
+    right: 1,
     top: 8, // sits inside the top of the card
     width: 130,
     height: 200, // overflows ~30-40px out the bottom only
+    zIndex: 0,
   },
 
   // Language

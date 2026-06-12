@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Dimensions,
   Pressable,
+  Platform,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -16,16 +17,23 @@ import Animated, {
   Extrapolation,
 } from 'react-native-reanimated';
 import { Clock, Star } from 'lucide-react-native';
+import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getColors } from '@/constants/theme';
 import type { Recipe, CardLayout } from '@/components/RecipeCard';
-import RecipeDetailContent from '@/components/RecipeDetailContent';
+import RecipeDetailContent, { RECIPE_HERO_IMAGE_HEIGHT } from '@/components/RecipeDetailContent';
 import { normalizeCardLayoutForModal } from '@/utils/normalizeCardLayoutForModal';
+import {
+  getStatusBarStripHeight,
+  getHeroStatusBarStripBackground,
+  isHeroAtTop,
+} from '@/utils/statusBarLayout';
+import { useDetailScreenStatusBar } from '@/hooks/useStatusBarStyle';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 
-const HERO_HEIGHT = 280;
+const HERO_HEIGHT = RECIPE_HERO_IMAGE_HEIGHT;
 const CARD_RADIUS = 12;
 
 const EXPAND_SPRING = {
@@ -58,26 +66,58 @@ export default function RecipeExpandOverlay({
   const { theme } = useTheme();
   const colors = getColors(theme);
   const insets = useSafeAreaInsets();
+  const statusBarStripHeight = getStatusBarStripHeight(insets.top);
 
   const progress = useSharedValue(0);
   const [detailInteractive, setDetailInteractive] = useState(false);
+  const [scrollLayoutReady, setScrollLayoutReady] = useState(false);
   const [closing, setClosing] = useState(false);
+  const [scrollY, setScrollY] = useState(0);
 
   const normalizedLayout = normalizeCardLayoutForModal(sourceLayout);
   const sourceImageHeight = normalizedLayout.width * (3 / 4);
+
+  const heroAtTop = detailInteractive
+    ? isHeroAtTop(scrollY, true, HERO_HEIGHT)
+    : true;
+  const statusBarStripBackground = detailInteractive
+    ? getHeroStatusBarStripBackground(colors, scrollY, true, HERO_HEIGHT)
+    : 'transparent';
+
+  const statusBarConfig = useDetailScreenStatusBar(
+    true,
+    theme,
+    heroAtTop,
+    statusBarStripBackground,
+  );
 
   const handleClose = useCallback(() => {
     if (closing) return;
     setClosing(true);
     setDetailInteractive(false);
+    setScrollLayoutReady(false);
     progress.value = withSpring(0, COLLAPSE_SPRING);
   }, [closing, progress]);
 
   useEffect(() => {
     progress.value = withSpring(1, EXPAND_SPRING);
-    const timer = setTimeout(() => setDetailInteractive(true), EXPAND_DETAIL_DELAY_MS);
-    return () => clearTimeout(timer);
+    const layoutTimer = setTimeout(() => setScrollLayoutReady(true), EXPAND_DETAIL_DELAY_MS - 70);
+    const detailTimer = setTimeout(() => setDetailInteractive(true), EXPAND_DETAIL_DELAY_MS);
+    return () => {
+      clearTimeout(layoutTimer);
+      clearTimeout(detailTimer);
+    };
   }, [progress]);
+
+  useEffect(() => {
+    if (!detailInteractive) {
+      setScrollY(0);
+    }
+  }, [detailInteractive]);
+
+  const handleScrollOffsetChange = useCallback((y: number) => {
+    setScrollY(y);
+  }, []);
 
   useEffect(() => {
     if (!closing) return;
@@ -125,49 +165,84 @@ export default function RecipeExpandOverlay({
       onRequestClose={handleClose}
     >
       <View style={styles.root}>
+        <StatusBar
+          style={statusBarConfig.expo}
+          {...(Platform.OS === 'android'
+            ? { backgroundColor: statusBarStripBackground }
+            : {})}
+        />
+        <View
+          pointerEvents="none"
+          style={[
+            styles.statusBarOverlay,
+            {
+              height: statusBarStripHeight,
+              backgroundColor: statusBarStripBackground,
+            },
+          ]}
+        />
+
         <Animated.View
           style={[styles.backdrop, { backgroundColor: colors.background.overlay }, backdropStyle]}
         >
           <Pressable style={StyleSheet.absoluteFill} onPress={handleClose} />
         </Animated.View>
 
-        <Animated.View style={[shellStyle, { backgroundColor: colors.background.card }]}>
-          <Animated.View style={imageStyle}>
+        <Animated.View style={[shellStyle, { backgroundColor: colors.background.primary }]}>
+          <Animated.View
+            style={[
+              imageStyle,
+              (scrollLayoutReady || detailInteractive) && styles.expandHeroAbsolute,
+              detailInteractive && styles.expandHeroHidden,
+            ]}
+            pointerEvents="none"
+          >
             <Image source={{ uri: recipe.imageUrl }} style={styles.image} resizeMode="cover" />
           </Animated.View>
 
-          <View style={styles.bodyArea}>
-            <Animated.View style={[styles.cardPreview, cardPreviewStyle]}>
-              <Text
-                style={[styles.previewTitle, { color: colors.text.primary }]}
-                numberOfLines={2}
-              >
-                {recipe.title}
-              </Text>
-              <View style={styles.previewMeta}>
-                <View style={styles.metaItem}>
-                  <Clock size={13} color={colors.text.tertiary} />
-                  <Text style={[styles.previewMetaText, { color: colors.text.tertiary }]}>
-                    {recipe.durationMinutes} Min
-                  </Text>
+          <View
+            style={[
+              styles.bodyArea,
+              scrollLayoutReady && styles.bodyAreaExpanded,
+              scrollLayoutReady && !detailInteractive && { paddingTop: HERO_HEIGHT },
+            ]}
+          >
+            {!detailInteractive && (
+              <Animated.View style={[styles.cardPreview, cardPreviewStyle]}>
+                <Text
+                  style={[styles.previewTitle, { color: colors.text.primary }]}
+                  numberOfLines={2}
+                >
+                  {recipe.title}
+                </Text>
+                <View style={styles.previewMeta}>
+                  <View style={styles.metaItem}>
+                    <Clock size={13} color={colors.text.tertiary} />
+                    <Text style={[styles.previewMetaText, { color: colors.text.tertiary }]}>
+                      {recipe.durationMinutes} Min
+                    </Text>
+                  </View>
+                  <View style={styles.metaItem}>
+                    <Star size={13} color={colors.text.tertiary} />
+                    <Text style={[styles.previewMetaText, { color: colors.text.tertiary }]}>
+                      {recipe.rating}
+                    </Text>
+                  </View>
                 </View>
-                <View style={styles.metaItem}>
-                  <Star size={13} color={colors.text.tertiary} />
-                  <Text style={[styles.previewMetaText, { color: colors.text.tertiary }]}>
-                    {recipe.rating}
-                  </Text>
-                </View>
-              </View>
-            </Animated.View>
+              </Animated.View>
+            )}
 
             <Animated.View
-              style={detailStyle}
+              style={detailInteractive ? styles.detailExpanded : detailStyle}
               pointerEvents={detailInteractive ? 'auto' : 'none'}
             >
               <RecipeDetailContent
                 recipeId={recipe.id}
                 onClose={handleClose}
-                showHeroImage={false}
+                showHeroImage={detailInteractive}
+                deferStatusBarToParent
+                overlayContentPadding
+                onScrollOffsetChange={handleScrollOffsetChange}
                 floatingActionsBottom={Math.max(insets.bottom, 12) + TAB_BAR_CLEARANCE}
               />
             </Animated.View>
@@ -180,10 +255,36 @@ export default function RecipeExpandOverlay({
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
+  statusBarOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 1000,
+  },
   backdrop: { ...StyleSheet.absoluteFillObject },
   image: { width: '100%', height: '100%' },
+  expandHeroAbsolute: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 2,
+  },
+  expandHeroHidden: { opacity: 0 },
   bodyArea: { flex: 1, overflow: 'hidden' },
-  cardPreview: { ...StyleSheet.absoluteFillObject, padding: 10, gap: 6 },
+  bodyAreaExpanded: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  detailExpanded: {
+    flex: 1,
+  },
+  cardPreview: {
+    ...StyleSheet.absoluteFillObject,
+    paddingTop: 15,
+    paddingHorizontal: 10,
+    gap: 6,
+  },
   previewTitle: {
     fontFamily: 'Roboto-Regular',
     fontSize: 16,

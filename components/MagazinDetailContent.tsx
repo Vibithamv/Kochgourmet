@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   View,
   Text,
@@ -7,13 +7,23 @@ import {
   TouchableOpacity,
   StyleSheet,
   Share,
+  Platform,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
 } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Share2 } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getColors, getTypography } from '@/constants/theme';
 import { getArticleDetail, type ArticleSection } from '@/utils/mockArticleDetails';
+import {
+  getStatusBarStripHeight,
+  getHeroStatusBarStripBackground,
+  isHeroAtTop,
+} from '@/utils/statusBarLayout';
+import { useDetailScreenStatusBar } from '@/hooks/useStatusBarStyle';
 import RecipeCard from '@/components/RecipeCard';
 import { useFavourites } from '@/contexts/FavouritesContext';
 
@@ -30,11 +40,17 @@ function splitLeadingWord(text: string): { readonly first: string; readonly rest
   return { first, rest: trimmed.slice(space) };
 }
 
+export const MAGAZINE_HERO_IMAGE_HEIGHT = 260;
+
 export interface MagazinDetailContentProps {
   readonly articleId: string;
   readonly onClose: () => void;
   readonly showHeroImage?: boolean;
   readonly floatingActionsBottom?: number;
+  readonly overlayContentPadding?: boolean;
+  readonly manageStatusBar?: boolean;
+  readonly deferStatusBarToParent?: boolean;
+  readonly onScrollOffsetChange?: (offsetY: number) => void;
 }
 
 export default function MagazinDetailContent({
@@ -42,13 +58,46 @@ export default function MagazinDetailContent({
   onClose,
   showHeroImage = true,
   floatingActionsBottom,
+  overlayContentPadding = false,
+  manageStatusBar = false,
+  deferStatusBarToParent = false,
+  onScrollOffsetChange,
 }: MagazinDetailContentProps) {
   const { theme } = useTheme();
   const colors = getColors(theme);
   const typography = getTypography(theme);
   const insets = useSafeAreaInsets();
+  const statusBarStripHeight = getStatusBarStripHeight(insets.top);
   const actionsBottom = floatingActionsBottom ?? Math.max(insets.bottom, 12) + 90;
   const article = getArticleDetail(articleId);
+
+  const [scrollY, setScrollY] = useState(0);
+
+  const ownsStatusBar = manageStatusBar && !deferStatusBarToParent;
+  const tracksScroll = ownsStatusBar || deferStatusBarToParent || Boolean(onScrollOffsetChange);
+  const heroAtTop = isHeroAtTop(scrollY, showHeroImage, MAGAZINE_HERO_IMAGE_HEIGHT);
+  const statusBarStripBackground = getHeroStatusBarStripBackground(
+    colors,
+    scrollY,
+    showHeroImage,
+    MAGAZINE_HERO_IMAGE_HEIGHT,
+  );
+
+  const statusBarConfig = useDetailScreenStatusBar(
+    ownsStatusBar,
+    theme,
+    heroAtTop,
+    statusBarStripBackground,
+  );
+
+  const handleScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const y = event.nativeEvent.contentOffset.y;
+      setScrollY(y);
+      onScrollOffsetChange?.(y);
+    },
+    [onScrollOffsetChange],
+  );
 
   const { recipes, toggleFavourite } = useFavourites();
   const relatedRecipes = article.relatedRecipeIds
@@ -140,7 +189,34 @@ export default function MagazinDetailContent({
 
   return (
     <View style={[styles.fill, { backgroundColor: colors.background.secondary }]}>
-      <ScrollView showsVerticalScrollIndicator={false} style={styles.fill}>
+      {ownsStatusBar && (
+        <>
+          <StatusBar
+            style={statusBarConfig.expo}
+            {...(Platform.OS === 'android'
+              ? { backgroundColor: statusBarStripBackground }
+              : {})}
+          />
+          <View
+            pointerEvents="none"
+            style={[
+              styles.statusBarOverlay,
+              {
+                height: statusBarStripHeight,
+                backgroundColor: statusBarStripBackground,
+              },
+            ]}
+          />
+        </>
+      )}
+
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        style={[styles.fill, { backgroundColor: colors.background.secondary }]}
+        onScroll={tracksScroll ? handleScroll : undefined}
+        scrollEventThrottle={16}
+        bounces
+      >
         {showHeroImage && (
           <Image
             source={{ uri: article.heroImageUrl }}
@@ -149,18 +225,19 @@ export default function MagazinDetailContent({
           />
         )}
 
-        {/* Title + intro */}
-        <View style={[styles.header, { paddingTop: 20 }]}>
+        {/* Title, intro + article sections */}
+        <View
+          style={[
+            styles.content,
+            overlayContentPadding ? styles.contentOverlayHandoff : styles.contentDefault,
+          ]}
+        >
           <Text style={[styles.title, { color: colors.text.primary }]}>
             {article.title}
           </Text>
           <Text style={[styles.bodyContent, { color: colors.text.primary }]}>
             {article.intro}
           </Text>
-        </View>
-
-        {/* Article sections */}
-        <View style={[styles.content, { paddingTop: 8 }]}>
           {article.sections.map((section, index) => renderSection(section, index))}
         </View>
 
@@ -171,7 +248,7 @@ export default function MagazinDetailContent({
               Passende Rezepte
             </Text>
             <View style={styles.recipeGrid}>
-              {relatedRecipes.map((recipe, i) => (
+              {relatedRecipes.map(recipe => (
                 <View key={recipe.id} style={styles.recipeCard}>
                   <RecipeCard
                     recipe={recipe}
@@ -219,23 +296,30 @@ export default function MagazinDetailContent({
 
 const styles = StyleSheet.create({
   fill: { flex: 1 },
+  statusBarOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 30,
+  },
 
-  // Hero image — full-bleed, no rounding, sits behind the status bar
   heroImage: {
     width: '100%',
-    height: 260,
+    height: MAGAZINE_HERO_IMAGE_HEIGHT,
   },
-  // Title + intro
-  header: {
+  content: {
     paddingHorizontal: 20,
-    paddingBottom: 8,
-    gap: 12,
+    gap: 20,
   },
+  contentDefault: { paddingTop: 20 },
+  contentOverlayHandoff: { paddingTop: 10 },
   title: {
     fontFamily: 'PlayfairDisplay_700Bold',
     fontSize: 35,
     lineHeight: 35,
     letterSpacing: 0,
+    marginTop: 20,
     marginBottom: 4,
   },
   bodyContent: {
@@ -284,11 +368,6 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
 
-  // Content sections
-  content: {
-    paddingHorizontal: 20,
-    gap: 20,
-  },
   sectionHeading: {
     fontFamily: 'Roboto-Regular',
     fontSize: 22,
@@ -303,7 +382,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
 
-  // Quote
   quoteBlock: {
     borderRadius: 16,
     padding: 20,
@@ -337,7 +415,6 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
 
-  // List
   listBlock: { gap: 12 },
   listItem: {
     flexDirection: 'row',
@@ -356,7 +433,6 @@ const styles = StyleSheet.create({
     fontFamily: 'Roboto-Regular',
   },
 
-  // Product card
   productCard: {
     borderRadius: 12,
     borderWidth: 1,
@@ -375,7 +451,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0,
   },
 
-  // Related recipes
   relatedSection: {
     paddingHorizontal: 20,
     paddingTop: 24,

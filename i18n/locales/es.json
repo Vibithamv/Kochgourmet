@@ -6,8 +6,12 @@
     "comingSoon": "Próximamente",
     "error": "Error",
     "tabs": {
+      "rezepte": "Recetas",
+      "token": "Bonus",
+      "magazin": "Revista",
+      "favoriten": "Favoritos",
+      "menu": "Menú",
       "start": "Inicio",
-      "token": "Token",
       "portfolio": "Portafolio",
       "account": "Cuenta"
     },
@@ -44,7 +48,8 @@
   },
   "auth": {
     "login": {
-      "title": "Bienvenido a tu portafolio",
+      "title": "Iniciar sesión",
+      "subtitle": "Inicia sesión para acceder a más funciones de nuestra app.",
       "email": "Correo electrónico",
       "password": "Contraseña",
       "signIn": "Iniciar sesión",
@@ -87,7 +92,16 @@
       "enterPassword": "Por favor, ingrese la contraseña",
       "enterConfirmPassword": "Por favor, confirme la contraseña",
       "passwordsDontMatch": "Las contraseñas no coinciden",
-      "verifyEmailDescription": "Enviamos un código de verificación a {{email}}."
+      "verifyEmailDescription": "Enviamos un código de verificación a {{email}}.",
+      "passwordRequirementsTitle": "Requisitos de contraseña",
+      "passwordRequirementsIntro": "Tu contraseña debe cumplir los siguientes requisitos:",
+      "passwordReqMinLength": "Al menos 8 caracteres",
+      "passwordReqMaxLength": "Máximo 20 caracteres",
+      "passwordReqUppercase": "Al menos una letra mayúscula (A–Z)",
+      "passwordReqLowercase": "Al menos una letra minúscula (a–z)",
+      "passwordReqNumber": "Al menos un número (0–9)",
+      "passwordReqSpecialChar": "Al menos un carácter especial (p. ej. !@#$%)",
+      "passwordReqNoSpaces": "Sin espacios"
     },
     "forgotPassword": {
       "email": "Correo electrónico",
@@ -267,6 +281,16 @@
     "selectLanguage": "Selecciona tu idioma preferido",
     "theme": "Tema",
     "themeDescription": "Configuración de apariencia",
+    "privacyPolicy": "Privacidad",
+    "legalNotice": "Aviso legal",
+    "investment": "Inversión",
+    "chooseTheme": "Elegir tema",
+    "themeLight": "Modo claro",
+    "themeLightDesc": "Interfaz limpia y luminosa",
+    "themeDark": "Modo oscuro",
+    "themeDarkDesc": "Cómodo para la vista",
+    "themeForest": "Modo bosque",
+    "themeForestDesc": "Tema oscuro inspirado en la naturaleza",
     "switchAccount": "Cambiar cuenta",
     "accountSwitched": "Cuenta cambiada",
     "nowUsing": "Ahora usando",
@@ -826,8 +850,36 @@
       "high": "Alta"
     }
   },
+  "magazinScreen": {
+    "subtitle": "Amplía tus conocimientos culinarios o encuentra trucos y consejos sobre cocina.",
+    "searchPlaceholder": "Buscar",
+    "emptyArticles": "No se encontraron artículos."
+  },
+  "bonusScreen": {
+    "subtitle": "Tus bonos y tokens"
+  },
+  "favoritenScreen": {
+    "rename": "Renombrar",
+    "delete": "Eliminar",
+    "deleteFolderTitle": "¿Seguro que quieres eliminar «{{name}}»?",
+    "deleteFolderMessage_one": "Se eliminará {{count}} receta de tus favoritos en esta carpeta.",
+    "deleteFolderMessage_other": "Se eliminarán las {{count}} recetas de tus favoritos en esta carpeta.",
+    "tabRecipes": "Recetas",
+    "tabFolders": "Carpetas",
+    "allFavourites": "Todos los favoritos",
+    "noFavouritesYet": "Aún no hay favoritos guardados",
+    "recipeCount_one": "{{count}} receta",
+    "recipeCount_other": "{{count}} recetas",
+    "renameFolder": "Renombrar carpeta",
+    "renameList": "Renombrar lista",
+    "namePlaceholder": "Introducir nombre"
+  },
   "notifications": {
     "pushTitle": "Notificación",
-    "pushBodyFallback": "Tienes una nueva actualización."
+    "pushBodyFallback": "Tienes una nueva actualización.",
+    "permissionTitle": "Notificaciones",
+    "permissionMessage": "¿Permitir que KOCHGOURMET te envíe notificaciones?",
+    "permissionAllow": "Permitir",
+    "permissionDeny": "Ahora no"
   }
 }

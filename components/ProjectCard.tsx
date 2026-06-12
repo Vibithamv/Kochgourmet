@@ -385,8 +385,8 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: Typography.fontSize.sm,
-    fontFamily: Typography.fontFamily.semiBold,
-    letterSpacing: -0.1,
+    fontFamily: 'Roboto-Regular',
+    letterSpacing: 0,
     marginLeft: 5,
   },
   returnBadge: {
@@ -419,12 +419,11 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   projectTitle: {
-    fontSize: Typography.fontSize.xl,
-    fontFamily: Typography.fontFamily.bold,
-    letterSpacing: -0.3,
+    fontSize: 17,
+    fontFamily: 'Roboto-Regular',
+    letterSpacing: 0,
     marginBottom: Spacing.xs,
-    lineHeight: 22,
-    color: '#F2F2F2',
+    lineHeight: 21,
   },
   locationRow: {
     flexDirection: 'row',
@@ -438,12 +437,11 @@ const styles = StyleSheet.create({
     color: '#6B7280', // Always use gray text for location
   },
   projectDescription: {
-    fontSize: Typography.fontSize.base,
-    fontFamily: Typography.fontFamily.regular,
-    lineHeight: 20,
+    fontSize: 17,
+    fontFamily: 'Roboto-Light',
+    lineHeight: 23,
     marginBottom: Spacing.lg,
-    letterSpacing: -0.1,
-    color: '#8F96A3',
+    letterSpacing: 0,
   },
   metricsRow: {
     flexDirection: 'row',
@@ -464,19 +462,17 @@ const styles = StyleSheet.create({
   },
   metricValue: {
     fontSize: Typography.fontSize.sm,
-    fontFamily: Typography.fontFamily.semiBold,
-    letterSpacing: -0.2,
+    fontFamily: 'Roboto-Regular',
+    letterSpacing: 0,
     marginBottom: 2,
     textAlign: 'center',
-    color: '#C8CDD6',
   },
   metricLabel: {
     fontSize: Typography.fontSize.xs,
-    fontFamily: Typography.fontFamily.regular,
-    letterSpacing: -0.1,
+    fontFamily: 'Roboto-Light',
+    letterSpacing: 0,
     textAlign: 'center',
     lineHeight: 12,
-    color: '#636B78',
   },
   progressSection: {
     marginBottom: Spacing.lg,
@@ -536,9 +532,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#2A2F38',
   },
   investButtonText: {
-    fontSize: Typography.fontSize.base,
-    fontFamily: Typography.fontFamily.semiBold,
-    color: '#0D1117',
+    fontSize: 17,
+    fontFamily: 'Roboto-Regular',
+    letterSpacing: 0,
+    lineHeight: 17,
   },
   investButtonTextDisabled: {
     color: '#636B78',

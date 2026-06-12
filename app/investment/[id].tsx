@@ -22,7 +22,6 @@ import {
 import { useTranslation } from 'react-i18next';
 import {
   getColors,
-  Typography,
   Shadows,
 } from '@/constants/theme';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -592,7 +591,7 @@ export default function InvestmentScreen() {
         )}
       />
 
-      <View style={[styles.investmentDetails, { backgroundColor: colors.background.primary, borderColor: colors.border.primary, borderWidth: 1 }]}>
+      <View style={[styles.investmentDetails, { backgroundColor: colors.background.card, borderColor: colors.border.primary, borderWidth: 1 }]}>
         <Text style={[styles.detailsTitle, { color: colors.text.primary }]}>
           {project?.offeringType === OFFERING_ACCESS_TRADITIONAL
             ? t('investment.details')
@@ -782,7 +781,7 @@ export default function InvestmentScreen() {
 
     return (
     <ScrollView style={styles.stepContent} showsVerticalScrollIndicator={false}>
-      <View style={[styles.summarySection, { backgroundColor: colors.background.primary, borderColor: colors.border.primary }]}>
+      <View style={[styles.summarySection, { backgroundColor: colors.background.card, borderColor: colors.border.primary }]}>
         <Text style={[styles.summaryTitle, { color: colors.text.primary }]}>
           {project?.offeringType === OFFERING_ACCESS_TRADITIONAL
             ? t('investment.overviewShort')
@@ -830,7 +829,7 @@ export default function InvestmentScreen() {
         </View>
       </View>
 
-      <View style={[styles.investorSection, { backgroundColor: colors.background.primary, borderColor: colors.border.primary }]}>
+      <View style={[styles.investorSection, { backgroundColor: colors.background.card, borderColor: colors.border.primary }]}>
         <Text style={[styles.investorTitle, { color: colors.text.primary }]}>
           {t('investment.investorDetails')}
         </Text>
@@ -866,7 +865,7 @@ export default function InvestmentScreen() {
         </View> */}
       </View>
 
-      <View style={[styles.orderSummary, { backgroundColor: colors.background.primary, borderColor: colors.border.primary }]}>
+      <View style={[styles.orderSummary, { backgroundColor: colors.background.card, borderColor: colors.border.primary }]}>
         <Text style={[styles.orderTitle, { color: colors.text.primary }]}>{t('investment.orderSummary')}</Text>
 
         {investmentDetailsPropertyLine.kind === 'merged' ? (
@@ -930,7 +929,7 @@ export default function InvestmentScreen() {
         <View
           style={[
             styles.investorSection,
-            { backgroundColor: colors.background.primary, borderColor: colors.border.primary },
+            { backgroundColor: colors.background.card, borderColor: colors.border.primary },
           ]}
         >
           <Text style={[styles.investorTitle, { color: colors.text.primary }]}>
@@ -1024,7 +1023,7 @@ export default function InvestmentScreen() {
       <View
         style={[
           styles.errorContainer,
-          { backgroundColor: colors.background.secondary },
+          { backgroundColor: colors.background.primary },
         ]}
       >
         <Text style={[styles.errorText, { color: colors.text.primary }]}>
@@ -1046,7 +1045,7 @@ export default function InvestmentScreen() {
     <View
       style={[
         styles.container,
-        { backgroundColor: colors.background.secondary },
+        { backgroundColor: colors.background.primary },
       ]}
     >
       {/* Header */}
@@ -1139,7 +1138,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 16,
-    fontFamily: Typography.fontFamily.medium,
+    fontFamily: 'Roboto-Light',
     marginTop: 16,
   },
   errorContainer: {
@@ -1150,7 +1149,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 18,
-    fontFamily: Typography.fontFamily.semiBold,
+    fontFamily: 'Roboto-Regular',
     marginBottom: 24,
     textAlign: 'center',
   },
@@ -1161,7 +1160,7 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     fontSize: 16,
-    fontFamily: Typography.fontFamily.semiBold,
+    fontFamily: 'Roboto-Regular',
   },
   header: {
     flexDirection: 'row',
@@ -1183,12 +1182,12 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    fontFamily: Typography.fontFamily.bold,
+    fontFamily: 'Roboto-Regular',
     textAlign: 'center',
   },
   headerSubtitle: {
     fontSize: 14,
-    fontFamily: Typography.fontFamily.regular,
+    fontFamily: 'Roboto-Light',
     textAlign: 'center',
     marginTop: 2,
   },
@@ -1202,7 +1201,7 @@ const styles = StyleSheet.create({
   },
   stepText: {
     fontSize: 14,
-    fontFamily: Typography.fontFamily.medium,
+    fontFamily: 'Roboto-Light',
     marginBottom: 8,
     textAlign: 'center',
   },
@@ -1229,7 +1228,9 @@ const styles = StyleSheet.create({
   },
   stepTitle: {
     fontSize: 24,
-    fontFamily: Typography.fontFamily.bold,
+    fontFamily: 'PlayfairDisplay_700Bold',
+    letterSpacing: 0,
+    lineHeight: 30,
     marginTop: 0,
     marginBottom: 8,
     textAlign: 'center',
@@ -1247,7 +1248,7 @@ const styles = StyleSheet.create({
   },
   documentText: {
     fontSize: 14,
-    fontFamily: Typography.fontFamily.regular,
+    fontFamily: 'Roboto-Light',
     marginTop: 8,
   },
   investmentDetails: {
@@ -1261,10 +1262,15 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderWidth: 1,
   },
-  title: { fontSize: 16, fontWeight: "600", alignSelf: 'center' },
+  title: {
+    fontSize: 16,
+    fontFamily: 'Roboto-Regular',
+    letterSpacing: 0,
+    alignSelf: 'center',
+  },
   detailsTitle: {
     fontSize: 18,
-    fontFamily: Typography.fontFamily.bold,
+    fontFamily: 'Roboto-Regular',
     marginBottom: 20,
   },
   detailRow: {
@@ -1275,11 +1281,11 @@ const styles = StyleSheet.create({
   },
   detailLabel: {
     fontSize: 14,
-    fontFamily: Typography.fontFamily.regular,
+    fontFamily: 'Roboto-Light',
   },
   detailValue: {
     fontSize: 14,
-    fontFamily: Typography.fontFamily.semiBold,
+    fontFamily: 'Roboto-Regular',
   },
   tokenSelector: {
     flexDirection: 'row',
@@ -1296,7 +1302,7 @@ const styles = StyleSheet.create({
   },
   tokenValue: {
     fontSize: 16,
-    fontFamily: Typography.fontFamily.bold,
+    fontFamily: 'Roboto-Regular',
     marginHorizontal: 16,
   },
   totalRow: {
@@ -1306,11 +1312,11 @@ const styles = StyleSheet.create({
   },
   totalLabel: {
     fontSize: 16,
-    fontFamily: Typography.fontFamily.bold,
+    fontFamily: 'Roboto-Regular',
   },
   totalValue: {
     fontSize: 18,
-    fontFamily: Typography.fontFamily.bold,
+    fontFamily: 'Roboto-Regular',
   },
   formSection: {
     marginBottom: 32,
@@ -1320,14 +1326,14 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontSize: 14,
-    fontFamily: Typography.fontFamily.semiBold,
+    fontFamily: 'Roboto-Regular',
     marginBottom: 8,
   },
   input: {
     borderRadius: 12,
     padding: 16,
     fontSize: 16,
-    fontFamily: Typography.fontFamily.regular,
+    fontFamily: 'Roboto-Light',
     borderWidth: 1,
   },
   multilineInput: {
@@ -1347,7 +1353,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
     fontSize: 16,
-    fontFamily: Typography.fontFamily.regular,
+    fontFamily: 'Roboto-Light',
   },
   signatureSection: {
     marginBottom: 20,
@@ -1366,7 +1372,7 @@ const styles = StyleSheet.create({
   },
   clearButtonText: {
     fontSize: 12,
-    fontFamily: Typography.fontFamily.semiBold,
+    fontFamily: 'Roboto-Regular',
   },
   agreementSection: {
     marginBottom: 32,
@@ -1389,7 +1395,7 @@ const styles = StyleSheet.create({
   agreementText: {
     flex: 1,
     fontSize: 14,
-    fontFamily: Typography.fontFamily.regular,
+    fontFamily: 'Roboto-Light',
     lineHeight: 20,
   },
   signDocumentButton: {
@@ -1402,7 +1408,7 @@ const styles = StyleSheet.create({
   },
   signDocumentText: {
     fontSize: 16,
-    fontFamily: Typography.fontFamily.semiBold,
+    fontFamily: 'Roboto-Regular',
     marginLeft: 8,
   },
   summarySection: {
@@ -1413,7 +1419,7 @@ const styles = StyleSheet.create({
   },
   summaryTitle: {
     fontSize: 18,
-    fontFamily: Typography.fontFamily.bold,
+    fontFamily: 'Roboto-Regular',
     marginBottom: 20,
   },
   summaryRow: {
@@ -1423,11 +1429,11 @@ const styles = StyleSheet.create({
   },
   summaryLabel: {
     fontSize: 14,
-    fontFamily: Typography.fontFamily.regular,
+    fontFamily: 'Roboto-Light',
   },
   summaryValue: {
     fontSize: 14,
-    fontFamily: Typography.fontFamily.semiBold,
+    fontFamily: 'Roboto-Regular',
   },
   totalSummaryRow: {
     borderTopWidth: 1,
@@ -1436,11 +1442,11 @@ const styles = StyleSheet.create({
   },
   totalSummaryLabel: {
     fontSize: 16,
-    fontFamily: Typography.fontFamily.bold,
+    fontFamily: 'Roboto-Regular',
   },
   totalSummaryValue: {
     fontSize: 18,
-    fontFamily: Typography.fontFamily.bold,
+    fontFamily: 'Roboto-Regular',
   },
   investorSection: {
     borderRadius: 16,
@@ -1450,7 +1456,7 @@ const styles = StyleSheet.create({
   },
   investorTitle: {
     fontSize: 18,
-    fontFamily: Typography.fontFamily.bold,
+    fontFamily: 'Roboto-Regular',
     marginBottom: 20,
   },
   investorDetail: {
@@ -1458,16 +1464,16 @@ const styles = StyleSheet.create({
   },
   investorLabel: {
     fontSize: 14,
-    fontFamily: Typography.fontFamily.semiBold,
+    fontFamily: 'Roboto-Regular',
     marginBottom: 4,
   },
   investorValue: {
     fontSize: 14,
-    fontFamily: Typography.fontFamily.regular,
+    fontFamily: 'Roboto-Light',
   },
   investorSignature: {
     fontSize: 16,
-    fontFamily: Typography.fontFamily.regular,
+    fontFamily: 'Roboto-Light',
     fontStyle: 'italic',
   },
   confirmationSection: {
@@ -1482,7 +1488,7 @@ const styles = StyleSheet.create({
   confirmationText: {
     flex: 1,
     fontSize: 14,
-    fontFamily: Typography.fontFamily.regular,
+    fontFamily: 'Roboto-Light',
     lineHeight: 20,
     marginLeft: 12,
     textAlign: 'justify',
@@ -1495,7 +1501,7 @@ const styles = StyleSheet.create({
   },
   orderTitle: {
     fontSize: 18,
-    fontFamily: Typography.fontFamily.bold,
+    fontFamily: 'Roboto-Regular',
     marginBottom: 20,
   },
   orderRow: {
@@ -1505,11 +1511,11 @@ const styles = StyleSheet.create({
   },
   orderLabel: {
     fontSize: 14,
-    fontFamily: Typography.fontFamily.regular,
+    fontFamily: 'Roboto-Light',
   },
   orderValue: {
     fontSize: 14,
-    fontFamily: Typography.fontFamily.semiBold,
+    fontFamily: 'Roboto-Regular',
   },
   orderTotalRow: {
     borderTopWidth: 1,
@@ -1519,11 +1525,11 @@ const styles = StyleSheet.create({
   },
   orderTotalLabel: {
     fontSize: 18,
-    fontFamily: Typography.fontFamily.bold,
+    fontFamily: 'Roboto-Regular',
   },
   orderTotalValue: {
     fontSize: 20,
-    fontFamily: Typography.fontFamily.bold,
+    fontFamily: 'Roboto-Regular',
   },
   projectDetails: {
     gap: 8,
@@ -1534,7 +1540,7 @@ const styles = StyleSheet.create({
   },
   projectDetailText: {
     fontSize: 14,
-    fontFamily: Typography.fontFamily.regular,
+    fontFamily: 'Roboto-Light',
   },
   footer: {
     paddingHorizontal: 24,
@@ -1549,7 +1555,7 @@ const styles = StyleSheet.create({
   },
   nextButtonText: {
     fontSize: 16,
-    fontFamily: Typography.fontFamily.semiBold,
+    fontFamily: 'Roboto-Regular',
   },
   finalizeButton: {
     flexDirection: 'row',
@@ -1561,7 +1567,7 @@ const styles = StyleSheet.create({
   },
   finalizeButtonText: {
     fontSize: 16,
-    fontFamily: Typography.fontFamily.semiBold,
+    fontFamily: 'Roboto-Regular',
     marginLeft: 8,
   },
   dropdown: {
@@ -1575,6 +1581,8 @@ const styles = StyleSheet.create({
   },
   dropdownText: {
     fontSize: 15,
+    fontFamily: 'Roboto-Light',
+    letterSpacing: 0,
   },
   overlay: {
     flex: 1,
@@ -1593,5 +1601,7 @@ const styles = StyleSheet.create({
   },
   itemText: {
     fontSize: 15,
+    fontFamily: 'Roboto-Light',
+    letterSpacing: 0,
   },
 });

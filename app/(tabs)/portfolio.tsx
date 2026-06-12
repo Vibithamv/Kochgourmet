@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -25,38 +25,57 @@ const THUMB_SIZE = Math.floor(
 );
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { Plus, Pencil } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
-import { getColors } from '@/constants/theme';
+import { getColors, Typography } from '@/constants/theme';
 import { useFavourites } from '@/contexts/FavouritesContext';
 import { useFolders } from '@/contexts/FoldersContext';
+import { useGlobalAlert } from '@/contexts/AlertContext';
 
 const TAB_BAR_HEIGHT = 90;
+const EDIT_MENU_WIDTH = 168;
 
 type FavouritesTab = 'rezepte' | 'ordner';
+type EditTarget = { kind: 'folder'; id: string } | { kind: 'all' };
+
+interface EditMenuAnchor {
+  readonly x: number;
+  readonly y: number;
+  readonly width: number;
+  readonly height: number;
+}
+
+interface EditMenuState extends EditMenuAnchor {
+  readonly target: EditTarget;
+}
 
 export default function FavoritenScreen() {
+  const { t } = useTranslation();
   const { theme } = useTheme();
   const colors = getColors(theme);
   const insets = useSafeAreaInsets();
+  const { showAlert } = useGlobalAlert();
 
   const { favourites, toggleFavourite } = useFavourites();
-  const { folders, renameFolder } = useFolders();
+  const { folders, renameFolder, deleteFolder } = useFolders();
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<FavouritesTab>('ordner');
 
   // Editable "Alle Favoriten" title on the Rezepte tab (folder titles live in FoldersContext)
-  const [allFavouritesTitle, setAllFavouritesTitle] = useState('Alle Favoriten');
+  const [allFavouritesTitle, setAllFavouritesTitle] = useState(() => t('favoritenScreen.allFavourites'));
+
+  const [editMenu, setEditMenu] = useState<EditMenuState | null>(null);
 
   // Rename modal — `target` is either { kind: 'folder', id } or { kind: 'all' }
-  const [renameTarget, setRenameTarget] = useState<
-    | { kind: 'folder'; id: string }
-    | { kind: 'all' }
-    | null
-  >(null);
+  const [renameTarget, setRenameTarget] = useState<EditTarget | null>(null);
   const [renameInput, setRenameInput] = useState('');
 
-  const openRename = useCallback((target: { kind: 'folder'; id: string } | { kind: 'all' }) => {
+  const openEditMenu = useCallback((target: EditTarget, anchor: EditMenuAnchor) => {
+    setEditMenu({ target, ...anchor });
+  }, []);
+
+  const openRename = useCallback((target: EditTarget) => {
     if (target.kind === 'folder') {
       const folder = folders.find(f => f.id === target.id);
       setRenameInput(folder?.title ?? '');
@@ -65,6 +84,29 @@ export default function FavoritenScreen() {
     }
     setRenameTarget(target);
   }, [folders, allFavouritesTitle]);
+
+  const handleRenameFromMenu = useCallback(() => {
+    if (!editMenu) return;
+    const target = editMenu.target;
+    setEditMenu(null);
+    openRename(target);
+  }, [editMenu, openRename]);
+
+  const handleDeleteFromMenu = useCallback(() => {
+    if (editMenu?.target.kind !== 'folder') return;
+    const folderId = editMenu.target.id;
+    const folder = folders.find(f => f.id === folderId);
+    setEditMenu(null);
+    showAlert(
+      t('favoritenScreen.deleteFolderTitle', { name: folder?.title ?? '' }),
+      t('favoritenScreen.deleteFolderMessage', { count: folder?.count ?? 0 }),
+      {
+        secondaryButtonText: t('common.cancel'),
+        buttonText: t('common.delete'),
+        buttonCallback: () => deleteFolder(folderId),
+      },
+    );
+  }, [editMenu, folders, showAlert, t, deleteFolder]);
 
   const confirmRename = useCallback(() => {
     const trimmed = renameInput.trim();
@@ -87,12 +129,19 @@ export default function FavoritenScreen() {
 
   const bottomPad = TAB_BAR_HEIGHT + Math.max(insets.bottom, 12) + 16;
 
+  const editMenuLeft = editMenu
+    ? Math.min(
+        Math.max(20, editMenu.x + editMenu.width - EDIT_MENU_WIDTH),
+        SCREEN_WIDTH - EDIT_MENU_WIDTH - 20,
+      )
+    : 0;
+
   return (
     <View style={[styles.screen, { backgroundColor: colors.background.primary }]}>
       {/* Header — Playfair title + circular "+" button */}
       <View style={[styles.header, { paddingTop: Math.max(insets.top, 44) + 16 }]}>
         <Text style={[styles.title, { color: colors.text.primary }]}>
-          Favoriten
+          {t('common.tabs.favoriten')}
         </Text>
         <TouchableOpacity
           style={[styles.addButton, { borderColor: colors.border.primary }]}
@@ -116,7 +165,7 @@ export default function FavoritenScreen() {
               <Text style={[styles.tabLabel, {
                 color: isActive ? colors.text.primary : colors.text.tertiary,
               }]}>
-                {tab === 'rezepte' ? 'Rezepte' : 'Ordner'}
+                {tab === 'rezepte' ? t('favoritenScreen.tabRecipes') : t('favoritenScreen.tabFolders')}
               </Text>
               {isActive && (
                 <View style={[styles.tabUnderline, { backgroundColor: colors.primary }]} />
@@ -131,7 +180,7 @@ export default function FavoritenScreen() {
         favourites.length === 0 ? (
           <View style={styles.empty}>
             <Text style={[styles.emptyText, { color: colors.text.tertiary }]}>
-              Noch keine Favoriten gespeichert
+              {t('favoritenScreen.noFavouritesYet')}
             </Text>
           </View>
         ) : (
@@ -154,16 +203,13 @@ export default function FavoritenScreen() {
                     {allFavouritesTitle}
                   </Text>
                   <Text style={[styles.folderCount, { color: colors.text.secondary }]}>
-                    {favourites.length} {favourites.length === 1 ? 'Rezept' : 'Rezepte'}
+                    {t('favoritenScreen.recipeCount', { count: favourites.length })}
                   </Text>
                 </View>
-                <TouchableOpacity
-                  style={[styles.folderEdit, { borderColor: colors.border.primary }]}
-                  onPress={() => openRename({ kind: 'all' })}
-                  activeOpacity={0.7}
-                >
-                  <Pencil size={14} color={colors.text.primary} strokeWidth={2} />
-                </TouchableOpacity>
+                <FolderEditButton
+                  colors={colors}
+                  onPress={anchor => openEditMenu({ kind: 'all' }, anchor)}
+                />
               </View>
 
               <View style={styles.thumbGrid}>
@@ -216,16 +262,13 @@ export default function FavoritenScreen() {
                     {folder.title}
                   </Text>
                   <Text style={[styles.folderCount, { color: colors.text.secondary }]}>
-                    {folder.count} Rezepte
+                    {t('favoritenScreen.recipeCount', { count: folder.count })}
                   </Text>
                 </View>
-                <TouchableOpacity
-                  style={[styles.folderEdit, { borderColor: colors.border.primary }]}
-                  onPress={() => openRename({ kind: 'folder', id: folder.id })}
-                  activeOpacity={0.7}
-                >
-                  <Pencil size={14} color={colors.text.primary} strokeWidth={2} />
-                </TouchableOpacity>
+                <FolderEditButton
+                  colors={colors}
+                  onPress={anchor => openEditMenu({ kind: 'folder', id: folder.id }, anchor)}
+                />
               </View>
 
               {/* Thumbnail grid (3 per row) — each opens the themed recipe detail */}
@@ -249,6 +292,51 @@ export default function FavoritenScreen() {
           ))}
         </ScrollView>
       )}
+      {/* ── Edit menu popover ──────────────────────────────────────────── */}
+      <Modal
+        visible={editMenu !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setEditMenu(null)}
+      >
+        <View style={styles.menuOverlay}>
+          <Pressable style={styles.menuBackdrop} onPress={() => setEditMenu(null)} />
+          {editMenu && (
+            <View
+              style={[
+                styles.editMenu,
+                {
+                  top: editMenu.y + editMenu.height + 6,
+                  left: editMenuLeft,
+                  backgroundColor: colors.background.card,
+                  borderColor: colors.border.primary,
+                },
+              ]}
+            >
+              <Pressable
+                style={[
+                  styles.editMenuItem,
+                  editMenu.target.kind === 'folder' && styles.editMenuItemDivider,
+                  editMenu.target.kind === 'folder' && { borderBottomColor: colors.border.primary },
+                ]}
+                onPress={handleRenameFromMenu}
+              >
+                <Text style={[styles.editMenuItemText, { color: colors.text.primary }]}>
+                  {t('favoritenScreen.rename')}
+                </Text>
+              </Pressable>
+              {editMenu.target.kind === 'folder' && (
+                <Pressable style={styles.editMenuItem} onPress={handleDeleteFromMenu}>
+                  <Text style={[styles.editMenuItemText, { color: colors.error }]}>
+                    {t('favoritenScreen.delete')}
+                  </Text>
+                </Pressable>
+              )}
+            </View>
+          )}
+        </View>
+      </Modal>
+
       {/* ── Rename modal ───────────────────────────────────────────────── */}
       <Modal
         visible={renameTarget !== null}
@@ -263,7 +351,9 @@ export default function FavoritenScreen() {
           <Pressable style={styles.modalBackdrop} onPress={() => setRenameTarget(null)} />
           <View style={[styles.renameCard, { backgroundColor: colors.background.card }]}>
             <Text style={[styles.renameTitle, { color: colors.text.primary }]}>
-              {renameTarget?.kind === 'folder' ? 'Ordner umbenennen' : 'Liste umbenennen'}
+              {renameTarget?.kind === 'folder'
+                ? t('favoritenScreen.renameFolder')
+                : t('favoritenScreen.renameList')}
             </Text>
             <TextInput
               style={[styles.renameInput, {
@@ -274,7 +364,7 @@ export default function FavoritenScreen() {
               value={renameInput}
               onChangeText={setRenameInput}
               autoFocus
-              placeholder="Name eingeben"
+              placeholder={t('favoritenScreen.namePlaceholder')}
               placeholderTextColor={colors.text.tertiary}
               returnKeyType="done"
               onSubmitEditing={confirmRename}
@@ -285,19 +375,46 @@ export default function FavoritenScreen() {
                 onPress={() => setRenameTarget(null)}
                 activeOpacity={0.7}
               >
-                <Text style={[styles.renameCancelText, { color: colors.text.primary }]}>Abbrechen</Text>
+                <Text style={[styles.renameCancelText, { color: colors.text.primary }]}>
+                  {t('common.cancel')}
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.renameSave, { backgroundColor: colors.primary }]}
                 onPress={confirmRename}
                 activeOpacity={0.8}
               >
-                <Text style={styles.renameSaveText}>Speichern</Text>
+                <Text style={styles.renameSaveText}>{t('common.save')}</Text>
               </TouchableOpacity>
             </View>
           </View>
         </KeyboardAvoidingView>
       </Modal>
+    </View>
+  );
+}
+
+interface FolderEditButtonProps {
+  readonly colors: ReturnType<typeof getColors>;
+  readonly onPress: (anchor: EditMenuAnchor) => void;
+}
+
+function FolderEditButton({ colors, onPress }: FolderEditButtonProps) {
+  const ref = useRef<View>(null);
+
+  return (
+    <View ref={ref} collapsable={false}>
+      <TouchableOpacity
+        style={[styles.folderEdit, { borderColor: colors.border.primary }]}
+        onPress={() => {
+          ref.current?.measureInWindow((x, y, width, height) => {
+            onPress({ x, y, width, height });
+          });
+        }}
+        activeOpacity={0.7}
+      >
+        <Pencil size={14} color={colors.text.primary} strokeWidth={2} />
+      </TouchableOpacity>
     </View>
   );
 }
@@ -411,6 +528,38 @@ const styles = StyleSheet.create({
     height: '100%',
   },
 
+  // Edit menu popover
+  menuOverlay: {
+    flex: 1,
+  },
+  menuBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  editMenu: {
+    position: 'absolute',
+    width: EDIT_MENU_WIDTH,
+    borderRadius: 12,
+    borderWidth: 1,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  editMenuItem: {
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+  },
+  editMenuItemDivider: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  editMenuItemText: {
+    fontFamily: 'Roboto-Regular',
+    fontSize: 16,
+    lineHeight: 21,
+  },
+
   // Rename modal
   modalOverlay: {
     flex: 1,
@@ -429,8 +578,8 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   renameTitle: {
-    fontSize: 18,
-    fontFamily: 'Inter-Bold',
+    fontSize: Typography.fontSize.xl,
+    fontFamily: 'Roboto-Medium',
     textAlign: 'center',
   },
   renameInput: {
@@ -438,8 +587,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     paddingHorizontal: 18,
     paddingVertical: 14,
-    fontSize: 15,
-    fontFamily: 'Inter-Regular',
+    fontSize: Typography.fontSize.base,
+    fontFamily: 'Roboto-Light',
+    lineHeight: 22,
   },
   renameActions: {
     flexDirection: 'row',
@@ -452,7 +602,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: 'center',
   },
-  renameCancelText: { fontSize: 15, fontFamily: 'Inter-SemiBold' },
+  renameCancelText: {
+    fontSize: 17,
+    fontFamily: 'Roboto-Light',
+    lineHeight: 17,
+    letterSpacing: 0,
+    textAlign: 'center',
+  },
   renameSave: {
     flex: 1,
     paddingVertical: 12,
@@ -461,7 +617,10 @@ const styles = StyleSheet.create({
   },
   renameSaveText: {
     color: '#fff',
-    fontSize: 15,
-    fontFamily: 'Inter-SemiBold',
+    fontSize: 17,
+    fontFamily: 'Roboto-Regular',
+    lineHeight: 17,
+    letterSpacing: 0,
+    textAlign: 'center',
   },
 });

@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { ChevronRight, ChevronDown, ChevronUp } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getColors } from '@/constants/theme';
 import { useGlobalAlert } from '@/contexts/AlertContext';
@@ -16,7 +17,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { replaceLoginClearingAuthStack } from '@/utils/authNavigation';
 
 interface MenuItem {
-  label: string;
+  id: string;
+  labelKey: string;
   route?: string;
   onPress?: () => void;
   labelColor?: string;
@@ -24,22 +26,8 @@ interface MenuItem {
 
 const TAB_BAR_HEIGHT = 90;
 
-const MAIN_MENU_ITEMS: MenuItem[] = [
-  { label: 'Rezepte', route: '/' },
-  { label: 'Magazin', route: '/projects' },
-  { label: 'Favoriten', route: '/portfolio' },
-];
-
-const BONUS_SUBMENU_ITEMS: MenuItem[] = [
-  { label: 'Mein Portfolio', route: '/screens/portfolio' },
-  { label: 'Investment', route: '/offerings' },
-  { label: 'Profil ändern', route: '/account/profile' },
-  { label: 'KYC Verifizierung', route: '/auth/kycRequest' },
-  { label: 'Hilfe & Support', route: '/account/help-support' },
-  { label: 'Einstellungen', route: '/account/settings' },
-];
-
 export default function MenuScreen() {
+  const { t } = useTranslation();
   const { theme } = useTheme();
   const colors = getColors(theme);
   const insets = useSafeAreaInsets();
@@ -48,21 +36,45 @@ export default function MenuScreen() {
   const [bonusExpanded, setBonusExpanded] = useState(false);
 
   const handleSignOut = useCallback(() => {
-    showAlert('Abmelden', 'Möchtest du dich wirklich abmelden?', {
-      buttonText: 'Abmelden',
+    showAlert(t('account.signOut'), t('account.signOutConfirm'), {
+      buttonText: t('account.signOut'),
       buttonCallback: () => {
         signOut();
         replaceLoginClearingAuthStack();
       },
-      secondaryButtonText: 'Abbrechen',
+      secondaryButtonText: t('common.cancel'),
     });
-  }, [showAlert, signOut]);
+  }, [showAlert, signOut, t]);
 
-  const bottomMenuItems: MenuItem[] = [
-    { label: 'Datenschutz', route: '/account/datenschutz' },
-    { label: 'Impressum', route: '/account/impressum' },
-    { label: 'Abmelden', labelColor: colors.primary, onPress: handleSignOut },
-  ];
+  const mainMenuItems = useMemo<MenuItem[]>(
+    () => [
+      { id: 'rezepte', labelKey: 'common.tabs.rezepte', route: '/' },
+      { id: 'magazin', labelKey: 'common.tabs.magazin', route: '/projects' },
+      { id: 'favoriten', labelKey: 'common.tabs.favoriten', route: '/portfolio' },
+    ],
+    [],
+  );
+
+  const bonusSubmenuItems = useMemo<MenuItem[]>(
+    () => [
+      { id: 'portfolio', labelKey: 'portfolio.title', route: '/screens/portfolio' },
+      { id: 'investment', labelKey: 'account.investment', route: '/offerings' },
+      { id: 'profile', labelKey: 'account.changeProfile', route: '/account/profile' },
+      { id: 'kyc', labelKey: 'account.kycVerification', route: '/auth/kycRequest' },
+      { id: 'help', labelKey: 'account.helpSupport', route: '/account/help-support' },
+      { id: 'settings', labelKey: 'account.appSettings', route: '/account/settings' },
+    ],
+    [],
+  );
+
+  const bottomMenuItems = useMemo<MenuItem[]>(
+    () => [
+      { id: 'privacy', labelKey: 'account.privacyPolicy', route: '/account/datenschutz' },
+      { id: 'legal', labelKey: 'account.legalNotice', route: '/account/impressum' },
+      { id: 'signOut', labelKey: 'account.signOut', labelColor: colors.primary, onPress: handleSignOut },
+    ],
+    [colors.primary, handleSignOut],
+  );
 
   const navigate = (item: MenuItem) => {
     if (item.onPress) {
@@ -86,7 +98,7 @@ export default function MenuScreen() {
         options?.submenu ? styles.submenuLabel : styles.rowLabel,
         { color: item.labelColor ?? colors.text.primary },
       ]}>
-        {item.label}
+        {t(item.labelKey)}
       </Text>
       <ChevronRight size={20} color={colors.text.tertiary} strokeWidth={1.5} />
     </TouchableOpacity>
@@ -104,18 +116,17 @@ export default function MenuScreen() {
         <View style={{ height: Math.max(insets.top, 44) + 24 }} />
 
         <Text style={[styles.title, { color: colors.text.primary }]}>
-          Menü
+          {t('common.tabs.menu')}
         </Text>
 
         <View style={styles.list}>
-          {MAIN_MENU_ITEMS.map(item => (
-            <View key={item.label}>
+          {mainMenuItems.map(item => (
+            <View key={item.id}>
               {renderMenuRow(item)}
               {renderDivider()}
             </View>
           ))}
 
-          {/* Bonus — expandable submenu */}
           <View>
             <TouchableOpacity
               style={styles.row}
@@ -123,7 +134,7 @@ export default function MenuScreen() {
               activeOpacity={0.5}
             >
               <Text style={[styles.rowLabel, { color: colors.text.primary }]}>
-                Bonus
+                {t('common.tabs.token')}
               </Text>
               {bonusExpanded ? (
                 <ChevronUp size={20} color={colors.text.tertiary} strokeWidth={1.5} />
@@ -131,8 +142,8 @@ export default function MenuScreen() {
                 <ChevronDown size={20} color={colors.text.tertiary} strokeWidth={1.5} />
               )}
             </TouchableOpacity>
-            {bonusExpanded && BONUS_SUBMENU_ITEMS.map(subItem => (
-              <View key={subItem.label}>
+            {bonusExpanded && bonusSubmenuItems.map(subItem => (
+              <View key={subItem.id}>
                 {renderDivider()}
                 {renderMenuRow(subItem, { submenu: true })}
               </View>
@@ -141,9 +152,9 @@ export default function MenuScreen() {
           </View>
 
           {bottomMenuItems.map(item => (
-            <View key={item.label}>
+            <View key={item.id}>
               {renderMenuRow(item)}
-              {item.label !== 'Abmelden' && renderDivider()}
+              {item.id !== 'signOut' && renderDivider()}
             </View>
           ))}
         </View>

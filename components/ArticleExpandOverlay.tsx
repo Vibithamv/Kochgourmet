@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Dimensions,
   Pressable,
+  Platform,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -15,18 +16,25 @@ import Animated, {
   interpolate,
   Extrapolation,
 } from 'react-native-reanimated';
+import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getColors } from '@/constants/theme';
 import type { CardLayout } from '@/components/RecipeCard';
 import type { ArticleListItem } from '@/components/ArticleCard';
-import MagazinDetailContent from '@/components/MagazinDetailContent';
+import MagazinDetailContent, { MAGAZINE_HERO_IMAGE_HEIGHT } from '@/components/MagazinDetailContent';
 import { normalizeCardLayoutForModal } from '@/utils/normalizeCardLayoutForModal';
+import {
+  getStatusBarStripHeight,
+  getHeroStatusBarStripBackground,
+  isHeroAtTop,
+} from '@/utils/statusBarLayout';
+import { useDetailScreenStatusBar } from '@/hooks/useStatusBarStyle';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 
 const LIST_IMAGE_HEIGHT = 252;
-const HERO_HEIGHT = 260;
+const HERO_HEIGHT = MAGAZINE_HERO_IMAGE_HEIGHT;
 const CARD_RADIUS = 15;
 
 const EXPAND_SPRING = {
@@ -59,11 +67,27 @@ export default function ArticleExpandOverlay({
   const { theme } = useTheme();
   const colors = getColors(theme);
   const insets = useSafeAreaInsets();
+  const statusBarStripHeight = getStatusBarStripHeight(insets.top);
 
   const progress = useSharedValue(0);
-
   const [detailInteractive, setDetailInteractive] = useState(false);
+  const [scrollLayoutReady, setScrollLayoutReady] = useState(false);
   const [closing, setClosing] = useState(false);
+  const [scrollY, setScrollY] = useState(0);
+
+  const heroAtTop = detailInteractive
+    ? isHeroAtTop(scrollY, true, HERO_HEIGHT)
+    : true;
+  const statusBarStripBackground = detailInteractive
+    ? getHeroStatusBarStripBackground(colors, scrollY, true, HERO_HEIGHT)
+    : 'transparent';
+
+  const statusBarConfig = useDetailScreenStatusBar(
+    true,
+    theme,
+    heroAtTop,
+    statusBarStripBackground,
+  );
 
   const normalizedLayout = normalizeCardLayoutForModal(sourceLayout);
 
@@ -72,39 +96,39 @@ export default function ArticleExpandOverlay({
 
     setClosing(true);
     setDetailInteractive(false);
-
+    setScrollLayoutReady(false);
     progress.value = withSpring(0, COLLAPSE_SPRING);
   }, [closing, progress]);
 
   useEffect(() => {
     progress.value = withSpring(1, EXPAND_SPRING);
-
-    const timer = setTimeout(
-      () => setDetailInteractive(true),
-      EXPAND_DETAIL_DELAY_MS,
-    );
-
-    return () => clearTimeout(timer);
+    const layoutTimer = setTimeout(() => setScrollLayoutReady(true), EXPAND_DETAIL_DELAY_MS - 70);
+    const detailTimer = setTimeout(() => setDetailInteractive(true), EXPAND_DETAIL_DELAY_MS);
+    return () => {
+      clearTimeout(layoutTimer);
+      clearTimeout(detailTimer);
+    };
   }, [progress]);
+
+  useEffect(() => {
+    if (!detailInteractive) {
+      setScrollY(0);
+    }
+  }, [detailInteractive]);
+
+  const handleScrollOffsetChange = useCallback((y: number) => {
+    setScrollY(y);
+  }, []);
 
   useEffect(() => {
     if (!closing) return;
 
-    const timer = setTimeout(
-      () => onClose(),
-      COLLAPSE_CLOSE_DELAY_MS,
-    );
-
+    const timer = setTimeout(() => onClose(), COLLAPSE_CLOSE_DELAY_MS);
     return () => clearTimeout(timer);
   }, [closing, onClose]);
 
   const backdropStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(
-      progress.value,
-      [0, 1],
-      [0, 0.55],
-      Extrapolation.CLAMP,
-    ),
+    opacity: interpolate(progress.value, [0, 1], [0, 0.55], Extrapolation.CLAMP),
   }));
 
   const shellStyle = useAnimatedStyle(() => {
@@ -112,72 +136,26 @@ export default function ArticleExpandOverlay({
 
     return {
       position: 'absolute',
-
-      left: interpolate(
-        p,
-        [0, 1],
-        [normalizedLayout.x, 0],
-        Extrapolation.CLAMP,
-      ),
-
-      top: interpolate(
-        p,
-        [0, 1],
-        [normalizedLayout.y, 0],
-        Extrapolation.CLAMP,
-      ),
-
-      width: interpolate(
-        p,
-        [0, 1],
-        [normalizedLayout.width, SCREEN_W],
-        Extrapolation.CLAMP,
-      ),
-
-      height: interpolate(
-        p,
-        [0, 1],
-        [normalizedLayout.height, SCREEN_H],
-        Extrapolation.CLAMP,
-      ),
-
-      borderRadius: interpolate(
-        p,
-        [0, 1],
-        [CARD_RADIUS, 0],
-        Extrapolation.CLAMP,
-      ),
-
+      left: interpolate(p, [0, 1], [normalizedLayout.x, 0], Extrapolation.CLAMP),
+      top: interpolate(p, [0, 1], [normalizedLayout.y, 0], Extrapolation.CLAMP),
+      width: interpolate(p, [0, 1], [normalizedLayout.width, SCREEN_W], Extrapolation.CLAMP),
+      height: interpolate(p, [0, 1], [normalizedLayout.height, SCREEN_H], Extrapolation.CLAMP),
+      borderRadius: interpolate(p, [0, 1], [CARD_RADIUS, 0], Extrapolation.CLAMP),
       overflow: 'hidden',
     };
   });
 
   const imageStyle = useAnimatedStyle(() => ({
-    height: interpolate(
-      progress.value,
-      [0, 1],
-      [LIST_IMAGE_HEIGHT, HERO_HEIGHT],
-      Extrapolation.CLAMP,
-    ),
+    height: interpolate(progress.value, [0, 1], [LIST_IMAGE_HEIGHT, HERO_HEIGHT], Extrapolation.CLAMP),
     width: '100%',
   }));
 
   const cardPreviewStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(
-      progress.value,
-      [0, 0.7, 0.9],
-      [1, 1, 0],
-      Extrapolation.CLAMP,
-    ),
+    opacity: interpolate(progress.value, [0, 0.7, 0.9], [1, 1, 0], Extrapolation.CLAMP),
   }));
 
   const detailStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(
-      progress.value,
-      [0.75, 1],
-      [0, 1],
-      Extrapolation.CLAMP,
-    ),
+    opacity: interpolate(progress.value, [0.75, 1], [0, 1], Extrapolation.CLAMP),
     flex: 1,
   }));
 
@@ -190,60 +168,72 @@ export default function ArticleExpandOverlay({
       onRequestClose={handleClose}
     >
       <View style={styles.root}>
+        <StatusBar
+          style={statusBarConfig.expo}
+          {...(Platform.OS === 'android'
+            ? { backgroundColor: statusBarStripBackground }
+            : {})}
+        />
+        <View
+          pointerEvents="none"
+          style={[
+            styles.statusBarOverlay,
+            {
+              height: statusBarStripHeight,
+              backgroundColor: statusBarStripBackground,
+            },
+          ]}
+        />
+
         <Animated.View
           style={[styles.backdrop, { backgroundColor: colors.background.overlay }, backdropStyle]}
         >
-          <Pressable
-            style={StyleSheet.absoluteFill}
-            onPress={handleClose}
-          />
+          <Pressable style={StyleSheet.absoluteFill} onPress={handleClose} />
         </Animated.View>
 
         <Animated.View
-          style={[
-            shellStyle,
-            {
-              backgroundColor: colors.background.primary,
-            },
-          ]}
+          style={[shellStyle, { backgroundColor: colors.background.primary }]}
         >
-          <Animated.View style={imageStyle}>
-            <Image
-              source={{ uri: article.imageUrl }}
-              style={styles.image}
-              resizeMode="cover"
-            />
+          <Animated.View
+            style={[
+              imageStyle,
+              (scrollLayoutReady || detailInteractive) && styles.expandHeroAbsolute,
+              detailInteractive && styles.expandHeroHidden,
+            ]}
+            pointerEvents="none"
+          >
+            <Image source={{ uri: article.imageUrl }} style={styles.image} resizeMode="cover" />
           </Animated.View>
 
-          <View style={styles.bodyArea}>
-            <Animated.View
-              style={[
-                styles.cardPreview,
-                cardPreviewStyle,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.previewTitle,
-                  { color: colors.text.primary },
-                ]}
-              >
-                {article.title}
-              </Text>
-            </Animated.View>
+          <View
+            style={[
+              styles.bodyArea,
+              scrollLayoutReady && styles.bodyAreaExpanded,
+              scrollLayoutReady && !detailInteractive && { paddingTop: HERO_HEIGHT },
+            ]}
+          >
+            {!detailInteractive && (
+              <Animated.View style={[styles.cardPreview, cardPreviewStyle]}>
+                <Text
+                  style={[styles.previewTitle, { color: colors.text.primary }]}
+                  numberOfLines={2}
+                >
+                  {article.title}
+                </Text>
+              </Animated.View>
+            )}
 
             <Animated.View
-              style={detailStyle}
-              pointerEvents={
-                detailInteractive
-                  ? 'auto'
-                  : 'none'
-              }
+              style={detailInteractive ? styles.detailExpanded : detailStyle}
+              pointerEvents={detailInteractive ? 'auto' : 'none'}
             >
               <MagazinDetailContent
                 articleId={article.id}
                 onClose={handleClose}
-                showHeroImage={false}
+                showHeroImage={detailInteractive}
+                deferStatusBarToParent
+                overlayContentPadding
+                onScrollOffsetChange={handleScrollOffsetChange}
                 floatingActionsBottom={Math.max(insets.bottom, 12) + TAB_BAR_CLEARANCE}
               />
             </Animated.View>
@@ -255,32 +245,40 @@ export default function ArticleExpandOverlay({
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
+  root: { flex: 1 },
+  statusBarOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 1000,
   },
-
-  backdrop: {
+  backdrop: { ...StyleSheet.absoluteFillObject },
+  image: { width: '100%', height: '100%' },
+  expandHeroAbsolute: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 2,
+  },
+  expandHeroHidden: { opacity: 0 },
+  bodyArea: { flex: 1, overflow: 'hidden' },
+  bodyAreaExpanded: {
     ...StyleSheet.absoluteFillObject,
   },
-
-  image: {
-    width: '100%',
-    height: '100%',
-  },
-
-  bodyArea: {
+  detailExpanded: {
     flex: 1,
-    overflow: 'hidden',
   },
-
   cardPreview: {
     ...StyleSheet.absoluteFillObject,
     paddingTop: 15,
+    paddingHorizontal: 10,
   },
-
   previewTitle: {
+    fontFamily: 'Roboto-Regular',
     fontSize: 16,
-    fontFamily: 'Inter-Regular',
     lineHeight: 21,
+    letterSpacing: 0,
   },
 });

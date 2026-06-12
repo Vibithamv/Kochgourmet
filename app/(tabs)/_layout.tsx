@@ -1,6 +1,7 @@
 import { Tabs, usePathname } from 'expo-router';
 import React, { useCallback } from 'react';
 import { BackHandler, Platform, View, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ASYNC_STORAGE_EXIT_RESET_TO_HOME } from '@/constants/navigation';
 import { useGlobalAlert } from '@/contexts/AlertContext';
@@ -15,6 +16,7 @@ async function exitApp() {
 
 export default function TabLayout() {
   const pathname = usePathname();
+  const { t } = useTranslation();
   const { showAlert } = useGlobalAlert();
 
   useFocusEffect(
@@ -28,10 +30,10 @@ export default function TabLayout() {
           pathname === '/account';
 
         if (isOnTabRoot) {
-          showAlert('App beenden', 'Möchtest du die App beenden?', {
-            buttonText: 'Ja',
+          showAlert(t('common.exit'), t('common.exitMsg'), {
+            buttonText: t('common.confirm'),
             buttonCallback: () => { void exitApp(); },
-            secondaryButtonText: 'Abbrechen',
+            secondaryButtonText: t('common.cancel'),
           });
           return true;
         }
@@ -42,17 +44,17 @@ export default function TabLayout() {
         const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
         return () => sub.remove();
       }
-    }, [pathname])
+    }, [pathname, showAlert, t])
   );
 
   return (
     <View style={styles.container}>
       <Tabs screenOptions={{ headerShown: false, tabBarStyle: { display: 'none' }, animation: 'shift' }}>
-        <Tabs.Screen name="index"      options={{ title: 'Rezepte' }} />
-        <Tabs.Screen name="projects"   options={{ title: 'Magazin' }} />
-        <Tabs.Screen name="portfolio"  options={{ title: 'Favoriten' }} />
-        <Tabs.Screen name="offerings"  options={{ title: 'Bonus' }} />
-        <Tabs.Screen name="account"    options={{ title: 'Menü' }} />
+        <Tabs.Screen name="index"      options={{ title: t('common.tabs.rezepte') }} />
+        <Tabs.Screen name="projects"   options={{ title: t('common.tabs.magazin') }} />
+        <Tabs.Screen name="portfolio"  options={{ title: t('common.tabs.favoriten') }} />
+        <Tabs.Screen name="offerings"  options={{ title: t('common.tabs.token') }} />
+        <Tabs.Screen name="account"    options={{ title: t('common.tabs.menu') }} />
         <Tabs.Screen name="engagement" options={{ href: null }} />
       </Tabs>
     </View>

@@ -6,7 +6,7 @@ import React, {
   useState,
   ReactNode,
 } from "react";
-import { Modal, View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { Modal, View, Text, Pressable, StyleSheet, Platform } from "react-native";
 import { useTheme } from "@/contexts/ThemeContext";
 import { getColors, Typography } from "@/constants/theme";
 
@@ -98,9 +98,6 @@ export const AlertProvider = ({ children }: { children: ReactNode }) => {
               {title}
             </Text>
 
-            {/* Divider */}
-            <View style={[styles.divider, { backgroundColor: colors.border.primary }]} />
-
             {/* Message */}
             <Text style={[styles.message, { color: colors.text.secondary }]}>
               {message}
@@ -109,42 +106,51 @@ export const AlertProvider = ({ children }: { children: ReactNode }) => {
             {/* Buttons */}
             {hasSecondary ? (
               <View style={styles.buttonRow}>
-                <TouchableOpacity
-                  style={[
+                <Pressable
+                  style={({ pressed }) => [
                     styles.button,
                     styles.secondaryButton,
                     {
-                      borderColor: colors.primary,
-                      backgroundColor: "transparent",
+                      borderColor: '#E0E0E0',
+                      backgroundColor: colors.background.primary,
+                      opacity: pressed && Platform.OS === 'ios' ? 0.75 : 1,
                     },
                   ]}
+                  android_ripple={{ color: 'rgba(0, 0, 0, 0.08)' }}
                   onPress={handleSecondaryPress}
-                  activeOpacity={0.75}
                 >
-                  <Text style={[styles.buttonText, { color: colors.primary }]}>
+                  <Text style={[styles.secondaryButtonText, { color: colors.text.primary }]}>
                     {secondaryButtonText}
                   </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.button, { backgroundColor: colors.primary }]}
+                </Pressable>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.button,
+                    { backgroundColor: colors.primary },
+                    pressed && Platform.OS === 'ios' ? { opacity: 0.75 } : null,
+                  ]}
+                  android_ripple={{ color: 'rgba(255, 255, 255, 0.2)' }}
                   onPress={handlePrimaryPress}
-                  activeOpacity={0.75}
                 >
                   <Text style={[styles.buttonText, { color: primaryBtnTextColor }]}>
                     {buttonText}
                   </Text>
-                </TouchableOpacity>
+                </Pressable>
               </View>
             ) : (
-              <TouchableOpacity
-                style={[styles.singleButton, { backgroundColor: colors.primary }]}
+              <Pressable
+                style={({ pressed }) => [
+                  styles.singleButton,
+                  { backgroundColor: colors.primary },
+                  pressed && Platform.OS === 'ios' ? { opacity: 0.75 } : null,
+                ]}
+                android_ripple={{ color: 'rgba(255, 255, 255, 0.2)' }}
                 onPress={handlePrimaryPress}
-                activeOpacity={0.75}
               >
                 <Text style={[styles.buttonText, { color: primaryBtnTextColor }]}>
                   {buttonText}
                 </Text>
-              </TouchableOpacity>
+              </Pressable>
             )}
           </View>
         </View>
@@ -179,22 +185,17 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: Typography.fontSize.xl,
-    fontFamily: "Inter-Bold",
-    textAlign: "center",
-    marginBottom: 14,
-  },
-  divider: {
-    width: "100%",
-    height: 1,
-    marginBottom: 14,
+    fontFamily: 'Roboto-Medium',
+    textAlign: 'center',
+    marginBottom: 10,
   },
   message: {
     fontSize: Typography.fontSize.base,
-    fontFamily: "Inter-Regular",
-    textAlign: "center",
+    fontFamily: 'Roboto-Light',
+    textAlign: 'left',
     lineHeight: 22,
     marginBottom: 22,
-    width: "100%",
+    width: '100%',
   },
   buttonRow: {
     flexDirection: "row",
@@ -203,23 +204,36 @@ const styles = StyleSheet.create({
   },
   button: {
     flex: 1,
+    minWidth: 0,
     paddingVertical: 12,
-    borderRadius: 10,
+    borderRadius: 9999,
     alignItems: "center",
     justifyContent: "center",
+    overflow: "hidden",
   },
   secondaryButton: {
-    borderWidth: 1.5,
+    borderWidth: 1,
   },
   singleButton: {
     width: "100%",
     paddingVertical: 13,
-    borderRadius: 10,
+    borderRadius: 9999,
     alignItems: "center",
     justifyContent: "center",
+    overflow: "hidden",
   },
   buttonText: {
-    fontSize: Typography.fontSize.base,
-    fontFamily: "Inter-SemiBold",
+    fontSize: 17,
+    fontFamily: 'Roboto-Regular',
+    lineHeight: 17,
+    letterSpacing: 0,
+    textAlign: 'center',
+  },
+  secondaryButtonText: {
+    fontSize: 17,
+    fontFamily: 'Roboto-Light',
+    lineHeight: 17,
+    letterSpacing: 0,
+    textAlign: 'center',
   },
 });

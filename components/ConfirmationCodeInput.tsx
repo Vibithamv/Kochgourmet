@@ -59,7 +59,7 @@ export default function ConfirmationCodeInput({
               style={[
                 styles.box,
                 {
-                  backgroundColor: colors.background.primary,
+                  backgroundColor: colors.background.secondary,
                   borderColor,
                 },
               ]}
@@ -90,14 +90,17 @@ export default function ConfirmationCodeInput({
 const styles = StyleSheet.create({
   pressable: {
     position: 'relative',
+    width: '100%',
   },
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     gap: 8,
+    width: '100%',
   },
   box: {
     flex: 1,
+    minWidth: 40,
     maxWidth: 48,
     aspectRatio: 1,
     borderRadius: 12,
@@ -107,7 +110,9 @@ const styles = StyleSheet.create({
   },
   digit: {
     fontSize: 20,
-    fontFamily: 'Inter-SemiBold',
+    fontFamily: 'Roboto-Regular',
+    lineHeight: 20,
+    letterSpacing: 0,
     textAlign: 'center',
   },
   hiddenInput: {

@@ -424,7 +424,7 @@ export default function HelpSupportScreen() {
                           styles.priorityText,
                           {
                             color: contactForm.priority === priority ? colors.text.inverse : colors.text.secondary,
-                            fontFamily: contactForm.priority === priority ? Typography.fontFamily.semiBold : Typography.fontFamily.regular
+                            fontFamily: contactForm.priority === priority ? 'Roboto-Regular' : 'Roboto-Light'
                           }
                         ]}>
                           {t(`helpSupport.priority.${priority}`)}
@@ -496,12 +496,12 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: Typography.fontSize.xl,
-    fontFamily: Typography.fontFamily.bold,
+    fontFamily: 'PlayfairDisplay_700Bold',
     textAlign: 'center',
   },
   headerSubtitle: {
     fontSize: Typography.fontSize.sm,
-    fontFamily: Typography.fontFamily.regular,
+    fontFamily: 'Roboto-Light',
     textAlign: 'center',
     marginTop: 2,
   },
@@ -518,7 +518,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: Typography.fontSize.xl,
-    fontFamily: Typography.fontFamily.bold,
+    fontFamily: 'PlayfairDisplay_700Bold',
     marginBottom: Spacing.lg,
     letterSpacing: -0.2,
   },
@@ -546,13 +546,13 @@ const styles = StyleSheet.create({
   },
   supportTitle: {
     fontSize: Typography.fontSize.lg,
-    fontFamily: Typography.fontFamily.semiBold,
+    fontFamily: 'Roboto-Regular',
     marginBottom: Spacing.xs,
     textAlign: 'center',
   },
   supportDescription: {
     fontSize: Typography.fontSize.sm,
-    fontFamily: Typography.fontFamily.regular,
+    fontFamily: 'Roboto-Light',
     textAlign: 'center',
     lineHeight: 18,
   },
@@ -568,7 +568,7 @@ const styles = StyleSheet.create({
   },
   comingSoonText: {
     fontSize: Typography.fontSize.xs,
-    fontFamily: Typography.fontFamily.medium,
+    fontFamily: 'Roboto-Regular',
     marginLeft: 2,
   },
   businessHoursCard: {
@@ -584,7 +584,7 @@ const styles = StyleSheet.create({
   },
   businessHoursTitle: {
     fontSize: Typography.fontSize.lg,
-    fontFamily: Typography.fontFamily.semiBold,
+    fontFamily: 'Roboto-Regular',
     marginLeft: Spacing.sm,
   },
   businessHoursList: {
@@ -597,11 +597,11 @@ const styles = StyleSheet.create({
   },
   businessHoursDay: {
     fontSize: Typography.fontSize.base,
-    fontFamily: Typography.fontFamily.medium,
+    fontFamily: 'Roboto-Regular',
   },
   businessHoursTime: {
     fontSize: Typography.fontSize.base,
-    fontFamily: Typography.fontFamily.regular,
+    fontFamily: 'Roboto-Light',
   },
   faqCard: {
     borderRadius: BorderRadius.lg,
@@ -611,7 +611,7 @@ const styles = StyleSheet.create({
   },
   faqWebsiteHint: {
     fontSize: Typography.fontSize.base,
-    fontFamily: Typography.fontFamily.regular,
+    fontFamily: 'Roboto-Light',
     lineHeight: 22,
     marginBottom: Spacing.md,
   },
@@ -622,7 +622,7 @@ const styles = StyleSheet.create({
   },
   faqWebsiteLink: {
     fontSize: Typography.fontSize.base,
-    fontFamily: Typography.fontFamily.medium,
+    fontFamily: 'Roboto-Regular',
     flex: 1,
   },
   faqList: {
@@ -641,13 +641,13 @@ const styles = StyleSheet.create({
   },
   faqQuestion: {
     fontSize: Typography.fontSize.lg,
-    fontFamily: Typography.fontFamily.semiBold,
+    fontFamily: 'Roboto-Regular',
     marginLeft: Spacing.sm,
     flex: 1,
   },
   faqAnswer: {
     fontSize: Typography.fontSize.base,
-    fontFamily: Typography.fontFamily.regular,
+    fontFamily: 'Roboto-Light',
     lineHeight: 22,
     marginTop: Spacing.sm,
     paddingLeft: 32,
@@ -674,12 +674,12 @@ const styles = StyleSheet.create({
   },
   resourceTitle: {
     fontSize: Typography.fontSize.lg,
-    fontFamily: Typography.fontFamily.semiBold,
+    fontFamily: 'Roboto-Regular',
     marginBottom: Spacing.xs,
   },
   resourceDescription: {
     fontSize: Typography.fontSize.base,
-    fontFamily: Typography.fontFamily.regular,
+    fontFamily: 'Roboto-Light',
   },
   modalOverlay: {
     flex: 1,
@@ -702,7 +702,7 @@ const styles = StyleSheet.create({
   },
   contactModalTitle: {
     fontSize: Typography.fontSize.xl,
-    fontFamily: Typography.fontFamily.bold,
+    fontFamily: 'PlayfairDisplay_700Bold',
   },
   closeButton: {
     width: 32,
@@ -723,7 +723,7 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontSize: Typography.fontSize.sm,
-    fontFamily: Typography.fontFamily.semiBold,
+    fontFamily: 'Roboto-Regular',
     marginBottom: Spacing.sm,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -732,14 +732,14 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.md,
     padding: Spacing.lg,
     fontSize: Typography.fontSize.lg,
-    fontFamily: Typography.fontFamily.regular,
+    fontFamily: 'Roboto-Light',
     borderWidth: 1,
   },
   textArea: {
     borderRadius: BorderRadius.md,
     padding: Spacing.lg,
     fontSize: Typography.fontSize.lg,
-    fontFamily: Typography.fontFamily.regular,
+    fontFamily: 'Roboto-Light',
     borderWidth: 1,
     height: 120,
   },
@@ -770,7 +770,7 @@ const styles = StyleSheet.create({
   },
   sendButtonText: {
     fontSize: Typography.fontSize.lg,
-    fontFamily: Typography.fontFamily.semiBold,
+    fontFamily: 'Roboto-Regular',
   },
   responseTimeCard: {
     flexDirection: 'row',
@@ -782,6 +782,6 @@ const styles = StyleSheet.create({
   },
   responseTimeText: {
     fontSize: Typography.fontSize.sm,
-    fontFamily: Typography.fontFamily.medium,
+    fontFamily: 'Roboto-Regular',
   },
 });

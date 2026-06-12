@@ -17,7 +17,7 @@ export default function SettingsScreen() {
   const { t } = useTranslation();
 
   return (
-    <View style={[styles.screen, { backgroundColor: colors.background.secondary }]}>
+    <View style={[styles.screen, { backgroundColor: colors.background.primary }]}>
       {/* Header */}
       <View style={[styles.header, {
         paddingTop: Math.max(insets.top, 44) + 16,
@@ -91,12 +91,12 @@ const styles = StyleSheet.create({
   headerContent: { flex: 1 },
   headerTitle: {
     fontSize: Typography.fontSize.xl,
-    fontFamily: Typography.fontFamily.bold,
+    fontFamily: 'PlayfairDisplay_700Bold',
     textAlign: 'center',
   },
   sectionLabel: {
     fontSize: Typography.fontSize.sm,
-    fontFamily: Typography.fontFamily.medium,
+    fontFamily: 'Roboto-Light',
     textTransform: 'uppercase',
     letterSpacing: 0.6,
     marginTop: 24,
@@ -118,6 +118,6 @@ const styles = StyleSheet.create({
   },
   rowLabel: {
     fontSize: Typography.fontSize.base,
-    fontFamily: Typography.fontFamily.regular,
+    fontFamily: 'Roboto-Regular',
   },
 });

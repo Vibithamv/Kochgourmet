@@ -11,7 +11,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { ArrowLeft } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
-import { getColors, getTypography } from '@/constants/theme';
+import { getColors } from '@/constants/theme';
 
 interface Subsection {
   heading?: string;
@@ -26,7 +26,6 @@ interface Section {
 export default function DatenschutzScreen() {
   const { theme } = useTheme();
   const colors = getColors(theme);
-  const typography = getTypography(theme);
   const insets = useSafeAreaInsets();
 
   const openMail = (address: string) => void Linking.openURL(`mailto:${address}`);
@@ -274,7 +273,7 @@ export default function DatenschutzScreen() {
         contentContainerStyle={[styles.scroll, { paddingBottom: Math.max(insets.bottom, 16) + 90 }]}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={[styles.title, { color: colors.text.primary, fontFamily: typography.fontFamily.display }]}>
+        <Text style={[styles.title, { color: colors.text.primary }]}>
           Datenschutz
         </Text>
 
@@ -327,26 +326,27 @@ const styles = StyleSheet.create({
     lineHeight: 52,
     letterSpacing: -0.5,
     marginBottom: 20,
+    fontFamily: 'PlayfairDisplay_700Bold',
   },
   section: { marginBottom: 24 },
   sectionHeading: {
     fontSize: 18,
-    fontFamily: 'Inter-Bold',
+    fontFamily: 'Roboto-Regular',
     marginBottom: 10,
   },
   subsection: { marginBottom: 12 },
   subHeading: {
     fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
+    fontFamily: 'Roboto-Regular',
     marginBottom: 4,
   },
   body: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Roboto-Light',
     lineHeight: 22,
   },
   link: {
-    fontFamily: 'Inter-SemiBold',
+    fontFamily: 'Roboto-Regular',
     textDecorationLine: 'underline',
   },
   bulletList: { gap: 4, marginVertical: 4 },
@@ -355,12 +355,12 @@ const styles = StyleSheet.create({
   bulletText: {
     flex: 1,
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Roboto-Light',
     lineHeight: 22,
   },
   disclaimer: {
     fontSize: 12,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Roboto-Light',
     textAlign: 'center',
     marginTop: 8,
   },

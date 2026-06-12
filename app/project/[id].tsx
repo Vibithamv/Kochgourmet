@@ -20,7 +20,6 @@ import {
   Calendar,
   Zap,
   ArrowRight,
-  X,
   Share2,
 } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
@@ -405,7 +404,7 @@ export default function ProjectDetailScreen() {
       <View
         style={[
           styles.errorContainer,
-          { backgroundColor: colors.background.secondary },
+          { backgroundColor: colors.background.primary },
         ]}
       >
         <View
@@ -582,14 +581,14 @@ export default function ProjectDetailScreen() {
     <View
       style={[
         styles.container,
-        { backgroundColor: colors.background.secondary },
+        { backgroundColor: colors.background.primary },
       ]}
     >
       {/* Animated sticky header removed — floating Schließen + share at the bottom replaces it. */}
 
       <Animated.ScrollView
         style={styles.scrollView}
-        contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 16) + 180 }}
+        contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 16) + 100 }}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
           { useNativeDriver: false }
@@ -744,7 +743,7 @@ export default function ProjectDetailScreen() {
                   style={[
                     styles.metricCard,
                     {
-                      backgroundColor: colors.background.secondary,
+                      backgroundColor: colors.background.primary,
                       borderColor: colors.border.primary,
                     },
                   ]}
@@ -777,7 +776,7 @@ export default function ProjectDetailScreen() {
                 style={[
                   styles.metricCard,
                   {
-                    backgroundColor: colors.background.secondary,
+                    backgroundColor: colors.background.primary,
                     borderColor: colors.border.primary,
                   },
                 ]}
@@ -845,7 +844,7 @@ export default function ProjectDetailScreen() {
                 style={[
                   styles.descriptionCard,
                   {
-                    backgroundColor: colors.background.secondary,
+                    backgroundColor: colors.background.primary,
                     borderColor: colors.border.primary,
                   },
                 ]}
@@ -982,7 +981,7 @@ export default function ProjectDetailScreen() {
                 style={[
                   styles.timelineCard,
                   {
-                    backgroundColor: colors.background.secondary,
+                    backgroundColor: colors.background.primary,
                     borderColor: colors.border.primary,
                   },
                 ]}
@@ -1072,7 +1071,7 @@ export default function ProjectDetailScreen() {
                 style={[
                   styles.trustCard,
                   {
-                    backgroundColor: colors.background.secondary,
+                    backgroundColor: colors.background.primary,
                     borderColor: colors.border.primary,
                   },
                 ]}
@@ -1185,7 +1184,7 @@ export default function ProjectDetailScreen() {
               style={[
                 styles.communityCard,
                 {
-                  backgroundColor: colors.background.secondary,
+                  backgroundColor: colors.background.primary,
                   borderColor: colors.border.primary,
                 },
               ]}
@@ -1248,7 +1247,7 @@ export default function ProjectDetailScreen() {
               bottom: 0,
               justifyContent: 'center',
               alignItems: 'center',
-              backgroundColor: colors.background.secondary,
+              backgroundColor: colors.background.primary,
               zIndex: 1000,
             },
           ]}
@@ -1297,7 +1296,7 @@ export default function ProjectDetailScreen() {
       </View> */}
       {/* Floating Schließen + share — same pattern and position as Rezepte detail */}
       <View
-        style={[styles.floatingActions, { bottom: Math.max(insets.bottom, 12) + 90 }]}
+        style={[styles.floatingActions, { bottom: Math.max(insets.bottom, 12) + 16 }]}
         pointerEvents="box-none"
       >
         <TouchableOpacity
@@ -1308,15 +1307,17 @@ export default function ProjectDetailScreen() {
           onPress={() => router.back()}
           activeOpacity={0.7}
         >
-          <X size={16} color={colors.text.primary} />
           <Text style={[styles.floatingCloseText, { color: colors.text.primary }]}>Schließen</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.floatingShareBtn, { backgroundColor: colors.primary }]}
+          style={[
+            styles.floatingShareBtn,
+            { backgroundColor: colors.background.card, borderColor: colors.border.primary },
+          ]}
           onPress={() => Share.share({ message: `${project.title}` })}
           activeOpacity={0.8}
         >
-          <Share2 size={16} color="#fff" />
+          <Share2 size={16} color={colors.text.primary} />
         </TouchableOpacity>
       </View>
     </View>
@@ -1347,13 +1348,13 @@ const createStyles = (colors: any) =>
     },
     loadingText: {
       fontSize: Typography.fontSize.xl,
-      fontFamily: Typography.fontFamily.bold,
+      fontFamily: 'Roboto-Regular',
       marginTop: Spacing.lg,
       marginBottom: Spacing.sm,
     },
     loadingSubtext: {
       fontSize: Typography.fontSize.base,
-      fontFamily: Typography.fontFamily.regular,
+      fontFamily: 'Roboto-Light',
       textAlign: 'center',
     },
     errorContainer: {
@@ -1374,13 +1375,13 @@ const createStyles = (colors: any) =>
     },
     errorText: {
       fontSize: Typography.fontSize.xl,
-      fontFamily: Typography.fontFamily.bold,
+      fontFamily: 'Roboto-Regular',
       marginBottom: Spacing.sm,
       textAlign: 'center',
     },
     errorSubtext: {
       fontSize: Typography.fontSize.base,
-      fontFamily: Typography.fontFamily.regular,
+      fontFamily: 'Roboto-Light',
       textAlign: 'center',
       marginBottom: Spacing.xl,
     },
@@ -1392,7 +1393,7 @@ const createStyles = (colors: any) =>
     },
     backButtonText: {
       fontSize: Typography.fontSize.lg,
-      fontFamily: Typography.fontFamily.semiBold,
+      fontFamily: 'Roboto-Regular',
     },
 
     // Animated Header
@@ -1437,7 +1438,7 @@ const createStyles = (colors: any) =>
     },
     headerTitle: {
       fontSize: Typography.fontSize.lg,
-      fontFamily: Typography.fontFamily.semiBold,
+      fontFamily: 'Roboto-Regular',
       textAlign: 'center',
       letterSpacing: -0.2,
       lineHeight: Typography.fontSize.lg * 1.2,
@@ -1528,7 +1529,7 @@ const createStyles = (colors: any) =>
     },
     statusText: {
       fontSize: Typography.fontSize.sm,
-      fontFamily: Typography.fontFamily.semiBold,
+      fontFamily: 'Roboto-Regular',
       letterSpacing: -0.1,
       color: '#F2F2F2',
     },
@@ -1544,13 +1545,13 @@ const createStyles = (colors: any) =>
     },
     returnText: {
       fontSize: Typography.fontSize.lg,
-      fontFamily: Typography.fontFamily.bold,
+      fontFamily: 'Roboto-Regular',
       color: '#FFFFFF',
       letterSpacing: -0.2,
     },
     returnLabel: {
       fontSize: Typography.fontSize.xs,
-      fontFamily: Typography.fontFamily.medium,
+      fontFamily: 'Roboto-Light',
       color: 'rgba(255, 255, 255, 0.8)',
     },
     heroContent: {
@@ -1571,9 +1572,9 @@ const createStyles = (colors: any) =>
     },
     heroTitle: {
       fontSize: Typography.fontSize['2xl'],
-      fontFamily: Typography.fontFamily.bold,
-      color: '#5b5959ff',
-      letterSpacing: -0.5,
+      fontFamily: 'PlayfairDisplay_700Bold',
+      color: '#F2F2F2',
+      letterSpacing: 0,
       lineHeight: 28,
       textShadowColor: 'rgba(0, 0, 0, 0.25)',
       textShadowOffset: { width: 0, height: 1 },
@@ -1585,7 +1586,7 @@ const createStyles = (colors: any) =>
     },
     heroLocationText: {
       fontSize: Typography.fontSize.lg,
-      fontFamily: Typography.fontFamily.medium,
+      fontFamily: 'Roboto-Light',
       color: 'rgba(255, 255, 255, 0.9)',
       marginLeft: Spacing.xs,
       letterSpacing: -0.1,
@@ -1616,12 +1617,12 @@ const createStyles = (colors: any) =>
     },
     investButtonText: {
       fontSize: Typography.fontSize.lg,
-      fontFamily: Typography.fontFamily.semiBold,
+      fontFamily: 'Roboto-Regular',
       letterSpacing: 0.2,
     },
     minInvestmentText: {
       fontSize: Typography.fontSize.sm,
-      fontFamily: Typography.fontFamily.regular,
+      fontFamily: 'Roboto-Light',
       textAlign: 'center',
       marginTop: Spacing.md,
     },
@@ -1653,13 +1654,13 @@ const createStyles = (colors: any) =>
     },
     metricValue: {
       fontSize: Typography.fontSize.lg,
-      fontFamily: Typography.fontFamily.bold,
+      fontFamily: 'Roboto-Regular',
       marginBottom: Spacing.xs,
       letterSpacing: -0.2,
     },
     metricLabel: {
       fontSize: Typography.fontSize.xs,
-      fontFamily: Typography.fontFamily.medium,
+      fontFamily: 'Roboto-Light',
       textAlign: 'center',
       letterSpacing: -0.1,
     },
@@ -1687,13 +1688,13 @@ const createStyles = (colors: any) =>
     },
     progressTitle: {
       fontSize: Typography.fontSize.lg,
-      fontFamily: Typography.fontFamily.semiBold,
+      fontFamily: 'Roboto-Regular',
       marginLeft: Spacing.sm,
       letterSpacing: -0.2,
     },
     progressPercentage: {
       fontSize: Typography.fontSize.xl,
-      fontFamily: Typography.fontFamily.bold,
+      fontFamily: 'Roboto-Regular',
       letterSpacing: -0.3,
     },
     progressTrack: {
@@ -1715,13 +1716,13 @@ const createStyles = (colors: any) =>
     },
     progressStatValue: {
       fontSize: Typography.fontSize.lg,
-      fontFamily: Typography.fontFamily.bold,
+      fontFamily: 'Roboto-Regular',
       marginBottom: Spacing.xs,
       letterSpacing: -0.2,
     },
     progressStatLabel: {
       fontSize: Typography.fontSize.sm,
-      fontFamily: Typography.fontFamily.regular,
+      fontFamily: 'Roboto-Light',
     },
 
     // Description Section
@@ -1742,13 +1743,13 @@ const createStyles = (colors: any) =>
     },
     descriptionTitle: {
       fontSize: Typography.fontSize.lg,
-      fontFamily: Typography.fontFamily.semiBold,
+      fontFamily: 'Roboto-Regular',
       marginLeft: Spacing.sm,
       letterSpacing: -0.2,
     },
     descriptionText: {
       fontSize: Typography.fontSize.base,
-      fontFamily: Typography.fontFamily.regular,
+      fontFamily: 'Roboto-Light',
       lineHeight: 24,
       marginBottom: Spacing.xl,
       letterSpacing: -0.1,
@@ -1758,7 +1759,7 @@ const createStyles = (colors: any) =>
     },
     highlightsTitle: {
       fontSize: Typography.fontSize.lg,
-      fontFamily: Typography.fontFamily.semiBold,
+      fontFamily: 'Roboto-Regular',
       marginBottom: Spacing.lg,
       letterSpacing: -0.2,
     },
@@ -1771,7 +1772,7 @@ const createStyles = (colors: any) =>
     },
     highlightText: {
       fontSize: Typography.fontSize.base,
-      fontFamily: Typography.fontFamily.regular,
+      fontFamily: 'Roboto-Light',
       marginLeft: Spacing.sm,
       letterSpacing: -0.1,
     },
@@ -1794,7 +1795,7 @@ const createStyles = (colors: any) =>
     },
     timelineTitle: {
       fontSize: Typography.fontSize.lg,
-      fontFamily: Typography.fontFamily.semiBold,
+      fontFamily: 'Roboto-Regular',
       marginLeft: Spacing.sm,
       letterSpacing: -0.2,
     },
@@ -1820,13 +1821,13 @@ const createStyles = (colors: any) =>
     },
     timelineItemTitle: {
       fontSize: Typography.fontSize.base,
-      fontFamily: Typography.fontFamily.semiBold,
+      fontFamily: 'Roboto-Regular',
       marginBottom: Spacing.xs,
       letterSpacing: -0.1,
     },
     timelineItemDate: {
       fontSize: Typography.fontSize.sm,
-      fontFamily: Typography.fontFamily.regular,
+      fontFamily: 'Roboto-Light',
     },
     timelineLine: {
       position: 'absolute',
@@ -1855,7 +1856,7 @@ const createStyles = (colors: any) =>
     },
     trustTitle: {
       fontSize: Typography.fontSize.lg,
-      fontFamily: Typography.fontFamily.semiBold,
+      fontFamily: 'Roboto-Regular',
       marginLeft: Spacing.sm,
       letterSpacing: -0.2,
     },
@@ -1876,7 +1877,7 @@ const createStyles = (colors: any) =>
     },
     trustItemText: {
       fontSize: Typography.fontSize.base,
-      fontFamily: Typography.fontFamily.regular,
+      fontFamily: 'Roboto-Light',
       flex: 1,
       letterSpacing: -0.1,
     },
@@ -1903,12 +1904,12 @@ const createStyles = (colors: any) =>
     },
     communityTitle: {
       fontSize: Typography.fontSize.lg,
-      fontFamily: Typography.fontFamily.semiBold,
+      fontFamily: 'Roboto-Regular',
       letterSpacing: -0.2,
     },
     communityText: {
       fontSize: Typography.fontSize.base,
-      fontFamily: Typography.fontFamily.regular,
+      fontFamily: 'Roboto-Light',
       lineHeight: 22,
       marginBottom: Spacing.xl,
       letterSpacing: -0.1,
@@ -1922,13 +1923,13 @@ const createStyles = (colors: any) =>
     },
     communityStatValue: {
       fontSize: Typography.fontSize.xl,
-      fontFamily: Typography.fontFamily.bold,
+      fontFamily: 'Roboto-Regular',
       marginBottom: Spacing.xs,
       letterSpacing: -0.3,
     },
     communityStatLabel: {
       fontSize: Typography.fontSize.sm,
-      fontFamily: Typography.fontFamily.regular,
+      fontFamily: 'Roboto-Light',
     },
 
     // Floating Schließen + share buttons (recipe-detail pattern)
@@ -1956,11 +1957,12 @@ const createStyles = (colors: any) =>
       shadowRadius: 12,
       elevation: 6,
     },
-    floatingCloseText: { fontSize: 14, fontFamily: 'Inter-SemiBold' },
+    floatingCloseText: { fontSize: 14, fontFamily: 'Roboto-Regular', letterSpacing: 0 },
     floatingShareBtn: {
       width: 44,
       height: 44,
       borderRadius: 22,
+      borderWidth: 1,
       alignItems: 'center',
       justifyContent: 'center',
       shadowColor: '#000',
@@ -1996,7 +1998,7 @@ const createStyles = (colors: any) =>
     },
     stickyButtonText: {
       fontSize: Typography.fontSize.lg,
-      fontFamily: Typography.fontFamily.bold,
+      fontFamily: 'Roboto-Regular',
       letterSpacing: -0.2,
     },
   });

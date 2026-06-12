@@ -11,7 +11,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { ArrowLeft } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
-import { getColors, getTypography } from '@/constants/theme';
+import { getColors } from '@/constants/theme';
 
 interface ImpressumSection {
   heading: string;
@@ -21,7 +21,6 @@ interface ImpressumSection {
 export default function ImpressumScreen() {
   const { theme } = useTheme();
   const colors = getColors(theme);
-  const typography = getTypography(theme);
   const insets = useSafeAreaInsets();
 
   const openMail = (address: string) => {
@@ -141,7 +140,7 @@ export default function ImpressumScreen() {
         contentContainerStyle={[styles.scroll, { paddingBottom: Math.max(insets.bottom, 16) + 90 }]}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={[styles.title, { color: colors.text.primary, fontFamily: typography.fontFamily.display }]}>
+        <Text style={[styles.title, { color: colors.text.primary }]}>
           Impressum
         </Text>
 
@@ -185,31 +184,32 @@ const styles = StyleSheet.create({
     lineHeight: 52,
     letterSpacing: -0.5,
     marginBottom: 24,
+    fontFamily: 'PlayfairDisplay_700Bold',
   },
   section: {
     marginBottom: 22,
   },
   sectionHeading: {
     fontSize: 16,
-    fontFamily: 'Inter-Bold',
+    fontFamily: 'Roboto-Regular',
     marginBottom: 6,
   },
   body: {
     fontSize: 15,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Roboto-Light',
     lineHeight: 24,
   },
   bodyMuted: {
     fontSize: 13,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Roboto-Light',
   },
   link: {
-    fontFamily: 'Inter-SemiBold',
+    fontFamily: 'Roboto-Regular',
     textDecorationLine: 'underline',
   },
   disclaimer: {
     fontSize: 12,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Roboto-Light',
     textAlign: 'center',
     marginTop: 8,
   },

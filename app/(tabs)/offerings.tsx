@@ -12,7 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Search } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/contexts/ThemeContext';
-import { getColors, getTypography, Typography } from '@/constants/theme';
+import { getColors } from '@/constants/theme';
 import ProjectCard from '@/components/ProjectCard';
 import { listOfferings } from '@/hooks/listOfferings';
 import { useGlobalAlert } from '@/contexts/AlertContext';
@@ -53,7 +53,6 @@ const OfferingsScreen = React.memo(() => {
   const { t } = useTranslation();
   const { theme } = useTheme();
   const colors = getColors(theme);
-  const typography = getTypography(theme);
   const insets = useSafeAreaInsets();
   const listRef = React.useRef<FlatList>(null);
 
@@ -139,17 +138,14 @@ const OfferingsScreen = React.memo(() => {
   }), []);
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background.secondary }]}>
+    <View style={[styles.container, { backgroundColor: colors.background.primary }]}>
       {/* Header — Playfair Display title matching Magazin/Favoriten */}
       <View style={[styles.header, { paddingTop: Math.max(insets.top, 44) + 16 }]}>
-        <Text style={[styles.title, {
-          color: colors.text.primary,
-          fontFamily: typography.fontFamily.display,
-        }]}>
+        <Text style={[styles.title, { color: colors.text.primary }]}>
           {t('common.tabs.token')} 🎁
         </Text>
-        <Text style={[styles.subtitle, { color: colors.text.secondary }]}>
-          Deine Bonus & Token
+        <Text style={[styles.subtitle, { color: colors.text.primary }]}>
+          {t('bonusScreen.subtitle')}
         </Text>
       </View>
 
@@ -211,14 +207,16 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   title: {
+    fontFamily: 'PlayfairDisplay_700Bold',
     fontSize: 42,
     lineHeight: 52,
-    letterSpacing: -0.5,
+    letterSpacing: 0,
   },
   subtitle: {
-    fontSize: 15,
-    fontFamily: 'Inter-Regular',
-    lineHeight: 22,
+    fontFamily: 'Roboto-Light',
+    fontSize: 17,
+    lineHeight: 23,
+    letterSpacing: 0,
   },
   searchRow: {
     flexDirection: 'row',
@@ -238,8 +236,10 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    fontSize: 15,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Roboto-Light',
+    fontSize: 17,
+    lineHeight: 17,
+    letterSpacing: 0,
   },
   listContent: {
     paddingHorizontal: 24,
@@ -255,8 +255,8 @@ const styles = StyleSheet.create({
     paddingVertical: 60,
   },
   emptyText: {
-    fontSize: Typography.fontSize.lg,
-    fontFamily: 'Inter-Medium',
+    fontSize: 15,
+    fontFamily: 'Roboto-Light',
     textAlign: 'center',
   },
 });

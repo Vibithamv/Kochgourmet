@@ -148,6 +148,8 @@ const styles = StyleSheet.create({
   },
   dropdownText: {
     fontSize: 15,
+    fontFamily: 'Roboto-Light',
+    letterSpacing: 0,
     color: "#333",
   },
   overlay: {
@@ -169,5 +171,7 @@ const styles = StyleSheet.create({
   },
   itemText: {
     fontSize: 16,
+    fontFamily: 'Roboto-Light',
+    letterSpacing: 0,
   },
 });
