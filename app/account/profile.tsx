@@ -32,18 +32,23 @@ import { AccountInfoShimmer } from '@/components/Shimmer';
 
 const ANREDE_OPTIONS = ['Herr', 'Frau', 'Divers', 'Keine Angabe'];
 
-const NATIVE_SWITCH_SIZE = Platform.select({
-  ios: { width: 51, height: 31 },
-  android: { width: 48, height: 28 },
-  default: { width: 51, height: 31 },
-});
-
-const NEWSLETTER_SWITCH_SCALE =
-  26.756 / NATIVE_SWITCH_SIZE.width;
-const NEWSLETTER_SWITCH_LAYOUT = {
-  width: NATIVE_SWITCH_SIZE.width * NEWSLETTER_SWITCH_SCALE,
-  height: NATIVE_SWITCH_SIZE.height * NEWSLETTER_SWITCH_SCALE,
-};
+const PROFILE_SWITCH = Platform.select({
+  ios: {
+    layoutWidth: 51,
+    layoutHeight: 31,
+    scale: 1,
+  },
+  android: {
+    layoutWidth: 51,
+    layoutHeight: 31,
+    scale: 51 / 48,
+  },
+  default: {
+    layoutWidth: 51,
+    layoutHeight: 31,
+    scale: 1,
+  },
+})!;
 
 function splitNameOnFirstSpace(fullName: string | undefined | null): { firstName: string; lastName: string } {
   const trimmed = (fullName ?? '').trim();
@@ -303,13 +308,13 @@ export default function ProfileScreen() {
           paddingVertical: 6,
         },
         toggleSwitchWrap: {
-          width: NEWSLETTER_SWITCH_LAYOUT.width,
-          height: NEWSLETTER_SWITCH_LAYOUT.height,
+          width: PROFILE_SWITCH.layoutWidth,
+          height: PROFILE_SWITCH.layoutHeight,
           justifyContent: 'center',
           alignItems: 'center',
         },
         toggleSwitchScale: {
-          transform: [{ scale: NEWSLETTER_SWITCH_SCALE }],
+          transform: [{ scale: PROFILE_SWITCH.scale }],
         },
         toggleLabel: {
           flex: 1,
@@ -726,7 +731,8 @@ export default function ProfileScreen() {
                   value={weeklyNewsletter}
                   onValueChange={setWeeklyNewsletter}
                   trackColor={{ false: colors.border.primary, true: colors.primary }}
-                  thumbColor="#fff"
+                  ios_backgroundColor={colors.border.primary}
+                  thumbColor="#FFFFFF"
                 />
               </View>
             </View>
@@ -741,7 +747,8 @@ export default function ProfileScreen() {
                   value={dailyNewsletter}
                   onValueChange={setDailyNewsletter}
                   trackColor={{ false: colors.border.primary, true: colors.primary }}
-                  thumbColor="#fff"
+                  ios_backgroundColor={colors.border.primary}
+                  thumbColor="#FFFFFF"
                 />
               </View>
             </View>
