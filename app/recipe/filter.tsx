@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -9,9 +9,11 @@ import {
   FlatList,
   Platform,
   Image,
+  ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   ChevronRight, ChevronLeft, ChevronDown, ChevronUp, Check,
   Soup, Beef, Salad, Cookie, Sandwich, Apple, CakeSlice,
@@ -19,87 +21,52 @@ import {
 } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getColors } from '@/constants/theme';
-
-// ─── Filter definitions ─────────────────────────────────────────────────────
+import { useRecipeFilters } from '@/contexts/RecipeFiltersContext';
+import { mobileAppRecipes } from '@/hooks/mobileApp';
+import type { RecipeFilterCategory, RecipeFilterCountry, RecipeFilterTimeBucket } from '@/types/mobileAppApi';
+import {
+  countryFlagUrl,
+  type RecipeFilterSelection,
+} from '@/utils/recipeFilterUtils';
 
 type LucideIcon = React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>;
 
-const KATEGORIEN: { name: string; sub: string[]; icon: LucideIcon }[] = [
-  { name: 'Pasta & Reisgerichte', sub: ['Nudeln', 'Reis', 'Risotto'], icon: Soup },
-  { name: 'Fisch & Fleisch', sub: ['Fisch', 'Rind', 'Geflügel', 'Lamm'], icon: Beef },
-  { name: 'Salate', sub: [], icon: Salad },
-  { name: 'Backen', sub: ['Kuchen', 'Brot', 'Muffins'], icon: Cookie },
-  { name: 'Fast-Food-Snacks', sub: ['Burger', 'Pizza', 'Wraps'], icon: Sandwich },
-  { name: 'Gemüse & Obst', sub: [], icon: Apple },
-  { name: 'Suppen', sub: [], icon: Soup },
-  { name: 'Süssspeisen', sub: ['Eis', 'Pudding', 'Mousse'], icon: CakeSlice },
-  { name: 'Saucen, Dips & Co', sub: [], icon: Droplet },
-  { name: 'Grillen', sub: [], icon: Flame },
-  { name: 'Ei', sub: [], icon: Egg },
-  { name: 'Eintöpfe', sub: [], icon: CookingPot },
-  { name: 'Getränke', sub: ['Smoothies', 'Tee', 'Cocktails'], icon: Wine },
-  { name: 'Käse', sub: [], icon: Pizza },
-];
+const CATEGORY_ICONS: Record<string, LucideIcon> = {
+  'Pasta & Reisgerichte': Soup,
+  'Desserts': CakeSlice,
+  'Getränke': Wine,
+  'Fisch & Fleisch': Beef,
+  'Backen': Cookie,
+  'Ofen Gerichte': Pizza,
+  'Grillen': Flame,
+  'Streetfood & Snacks': Sandwich,
+  'Saucen, Dips & Co': Droplet,
+  'Käse': Pizza,
+  'Suppen': Soup,
+  'Eintöpfe': CookingPot,
+  'Ei': Egg,
+  'Gemüse & Obst': Apple,
+  'Salate': Salad,
+};
 
-const COUNTRIES: { code: string; name: string }[] = [
-  { code: 'us', name: 'Amerika' },
-  { code: 'al', name: 'Albanien' },
-  { code: 'cn', name: 'China' },
-  { code: 'de', name: 'Deutsch' },
-  { code: 'fr', name: 'Frankreich' },
-  { code: 'gr', name: 'Griechenland' },
-  { code: 'international', name: 'International' },
-  { code: 'in', name: 'Indien' },
-  { code: 'il', name: 'Israel' },
-  { code: 'it', name: 'Italien' },
-  { code: 'jp', name: 'Japan' },
-  { code: 'kr', name: 'Korea' },
-  { code: 'ma', name: 'Maroko' },
-  { code: 'at', name: 'Österreich' },
-  { code: 'ch', name: 'Schweiz' },
-  { code: 'es', name: 'Spanien' },
-  { code: 'th', name: 'Thailand' },
-  { code: 'tr', name: 'Türkei' },
-  { code: 'vn', name: 'Vietnam' },
-];
+function getCategoryIcon(name: string): LucideIcon {
+  return CATEGORY_ICONS[name] ?? Soup;
+}
 
 const FLAG_SIZE = 20;
 
-/** Flat filter screens — each row opens a list of selectable demo options. */
 type FilterKey = 'thema' | 'ernaehrung' | 'saisonal' | 'zubereitung' | 'schwierigkeit' | 'menuefolge' | 'zeit';
 
-const FLAT_FILTERS: Record<FilterKey, { label: string; options: string[] }> = {
-  thema: {
-    label: 'Thema',
-    options: ['Schnell & Einfach', 'Sonntagsessen', 'Picknick', 'Party', 'Romantisch', 'Kinder-Lieblinge', 'Resteverwertung', 'Gäste'],
-  },
-  ernaehrung: {
-    label: 'Ernährung',
-    options: ['Vegetarisch', 'Vegan', 'Glutenfrei', 'Laktosefrei', 'Low Carb', 'High Protein', 'Zuckerfrei', 'Paleo', 'Keto'],
-  },
-  saisonal: {
-    label: 'Saisonal',
-    options: ['Frühling', 'Sommer', 'Herbst', 'Winter', 'Weihnachten', 'Ostern', 'Silvester', 'Oktoberfest'],
-  },
-  zubereitung: {
-    label: 'Zubereitung',
-    options: ['Backofen', 'Pfanne', 'Topf', 'Grill', 'Airfryer', 'Mikrowelle', 'Rohkost', 'Slow Cooker', 'Wok'],
-  },
-  schwierigkeit: {
-    label: 'Schwierigkeit',
-    options: ['Einfach', 'Mittel', 'Schwierig'],
-  },
-  menuefolge: {
-    label: 'Menüfolge',
-    options: ['Vorspeise', 'Hauptgericht', 'Beilage', 'Nachspeise', 'Snack', 'Frühstück', 'Brunch', 'Getränk'],
-  },
-  zeit: {
-    label: 'Zeit',
-    options: ['Unter 15 Minuten', '15–30 Minuten', '30–60 Minuten', '1–2 Stunden', 'Über 2 Stunden'],
-  },
+const FLAT_FILTER_LABELS: Record<FilterKey, string> = {
+  thema: 'Thema',
+  ernaehrung: 'Ernährung',
+  saisonal: 'Saisonal',
+  zubereitung: 'Zubereitung',
+  schwierigkeit: 'Schwierigkeit',
+  menuefolge: 'Menüfolge',
+  zeit: 'Zeit',
 };
 
-/** Design size for "Exakte Treffer" switch on the main filter screen */
 const EXACT_MATCH_SWITCH_SIZE = {
   width: 26.755584716796875,
   height: 12.468358993530273,
@@ -111,7 +78,6 @@ const NATIVE_SWITCH_SIZE = Platform.select({
   default: { width: 51, height: 31 },
 });
 
-/** Uniform scale keeps the native switch proportional (avoids vertical crop). */
 const EXACT_MATCH_SWITCH_SCALE = EXACT_MATCH_SWITCH_SIZE.width / NATIVE_SWITCH_SIZE.width;
 
 const EXACT_MATCH_SWITCH_LAYOUT = {
@@ -132,8 +98,6 @@ const FILTER_ROW_ORDER: { label: string; key: 'kategorien' | 'laenderkuechen' | 
 ];
 
 type ScreenMode = 'main' | 'kategorien' | 'laenderkuechen' | FilterKey;
-
-// ─── Sub-components (defined outside parent to avoid re-creation per render) ─
 
 type ColorsType = ReturnType<typeof getColors>;
 
@@ -173,12 +137,12 @@ interface SubHeaderProps {
 }
 
 interface CircularFlagProps {
-  readonly code: string;
+  readonly flagUrl: string | null;
   readonly colors: ColorsType;
 }
 
-function CircularFlag({ code, colors }: CircularFlagProps) {
-  if (code === 'international') {
+function CircularFlag({ flagUrl, colors }: CircularFlagProps) {
+  if (!flagUrl) {
     return (
       <View style={[styles.flagCircle, { backgroundColor: colors.primary }]}>
         <Star size={14} color="#fff" fill="#fff" />
@@ -188,11 +152,7 @@ function CircularFlag({ code, colors }: CircularFlagProps) {
 
   return (
     <View style={styles.flagCircle}>
-      <Image
-        source={{ uri: `https://flagcdn.com/w80/${code}.png` }}
-        style={styles.flagImage}
-        resizeMode="cover"
-      />
+      <Image source={{ uri: flagUrl }} style={styles.flagImage} resizeMode="cover" />
     </View>
   );
 }
@@ -218,72 +178,127 @@ function SubHeader({ title, colors, topInset, onBack }: SubHeaderProps) {
   );
 }
 
-// ─── Component ──────────────────────────────────────────────────────────────
+function timeBucketKey(bucket: RecipeFilterTimeBucket): string {
+  return `${bucket.operator}:${bucket.value}`;
+}
 
 export default function FilterScreen() {
   const { theme } = useTheme();
   const colors = getColors(theme);
   const insets = useSafeAreaInsets();
+  const { options, selection, setOptions, setSelection } = useRecipeFilters();
+  const recipesApi = useMemo(() => mobileAppRecipes(), []);
 
   const [screen, setScreen] = useState<ScreenMode>('main');
-  const [exactMatch, setExactMatch] = useState(true);
+  const [draft, setDraft] = useState<RecipeFilterSelection>(selection);
+  const [expandedCategories, setExpandedCategories] = useState<number[]>([]);
+  const [loadingOptions, setLoadingOptions] = useState(!options);
+
+  const loadFilterOptions = useCallback(async () => {
+    setLoadingOptions(true);
+    const response = await recipesApi.getFilterOptions();
+    if (response.success && response.data) {
+      setOptions(response.data);
+    }
+    setLoadingOptions(false);
+  }, [recipesApi, setOptions]);
+
+  useFocusEffect(
+    useCallback(() => {
+      setDraft(selection);
+      if (!options) {
+        void loadFilterOptions();
+      }
+    }, [loadFilterOptions, options, selection]),
+  );
 
   const goBack = () => router.back();
   const goMain = () => setScreen('main');
 
-  // Pre-selected demo values so badges are visible from the start
-  const [expandedCategories, setExpandedCategories] = useState<string[]>(['Pasta & Reisgerichte']);
-  const [selectedSubs, setSelectedSubs] = useState<string[]>(['Reis', 'Geflügel']);
-  const [selectedCategories, setSelectedCategories] = useState<string[]>(['Fisch & Fleisch', 'Salate']);
-  const [selectedCountries, setSelectedCountries] = useState<string[]>(['Italien', 'Japan']);
+  const applyFilters = () => {
+    setSelection(draft);
+    router.back();
+  };
 
-  const [flatSelections, setFlatSelections] = useState<Record<FilterKey, string[]>>({
-    thema: ['Schnell & Einfach'],
-    ernaehrung: ['Vegetarisch'],
-    saisonal: ['Sommer'],
-    zubereitung: ['Backofen', 'Pfanne'],
-    schwierigkeit: ['Einfach', 'Mittel'],
-    menuefolge: ['Hauptgericht'],
-    zeit: ['15–30 Minuten'],
-  });
-
-  // Toggle helpers
-  const toggleExpand = (name: string) => {
-    setExpandedCategories(prev => prev.includes(name) ? prev.filter(c => c !== name) : [...prev, name]);
-  };
-  const toggleSub = (sub: string) => {
-    setSelectedSubs(prev => prev.includes(sub) ? prev.filter(s => s !== sub) : [...prev, sub]);
-  };
-  const toggleCategory = (name: string) => {
-    setSelectedCategories(prev => prev.includes(name) ? prev.filter(c => c !== name) : [...prev, name]);
-  };
-  const toggleCountry = (name: string) => {
-    setSelectedCountries(prev => prev.includes(name) ? prev.filter(c => c !== name) : [...prev, name]);
-  };
-  const toggleFlat = (key: FilterKey, option: string) => {
-    setFlatSelections(prev => ({
+  const toggleCategoryUid = (uid: number) => {
+    setDraft((prev) => ({
       ...prev,
-      [key]: prev[key].includes(option) ? prev[key].filter(o => o !== option) : [...prev[key], option],
+      categoryUids: prev.categoryUids.includes(uid)
+        ? prev.categoryUids.filter((id) => id !== uid)
+        : [...prev.categoryUids, uid],
     }));
   };
 
-  const isCategoryChecked = (cat: { name: string; sub: string[] }) => {
-    if (selectedCategories.includes(cat.name)) return true;
-    return cat.sub.some(s => selectedSubs.includes(s));
+  const toggleExpand = (uid: number) => {
+    setExpandedCategories((prev) =>
+      prev.includes(uid) ? prev.filter((id) => id !== uid) : [...prev, uid],
+    );
   };
 
-  // Count badges shown on the main list
+  const toggleCountryUid = (uid: number) => {
+    setDraft((prev) => ({
+      ...prev,
+      countryUids: prev.countryUids.includes(uid)
+        ? prev.countryUids.filter((id) => id !== uid)
+        : [...prev.countryUids, uid],
+    }));
+  };
+
+  const toggleUidList = (
+    field: 'specialUids' | 'dietUids' | 'occasionUids' | 'preparationTypeUids' | 'menutypeUids',
+    uid: number,
+  ) => {
+    setDraft((prev) => ({
+      ...prev,
+      [field]: prev[field].includes(uid)
+        ? prev[field].filter((id) => id !== uid)
+        : [...prev[field], uid],
+    }));
+  };
+
+  const toggleDifficulty = (uid: number) => {
+    setDraft((prev) => ({
+      ...prev,
+      difficultyUid: prev.difficultyUid === uid ? undefined : uid,
+    }));
+  };
+
+  const toggleTimeBucket = (bucket: RecipeFilterTimeBucket) => {
+    const key = timeBucketKey(bucket);
+    setDraft((prev) => ({
+      ...prev,
+      timeBucket:
+        prev.timeBucket && timeBucketKey(prev.timeBucket) === key ? undefined : bucket,
+    }));
+  };
+
+  const isCategoryChecked = (cat: RecipeFilterCategory) => {
+    if (draft.categoryUids.includes(cat.uid)) return true;
+    return (cat.children ?? []).some((child) => draft.categoryUids.includes(child.uid));
+  };
+
   const countFor = (key: 'kategorien' | 'laenderkuechen' | FilterKey): number => {
-    if (key === 'kategorien') return selectedCategories.length + selectedSubs.length;
-    if (key === 'laenderkuechen') return selectedCountries.length;
-    return flatSelections[key].length;
+    if (key === 'kategorien') return draft.categoryUids.length;
+    if (key === 'laenderkuechen') return draft.countryUids.length;
+    if (key === 'schwierigkeit') return draft.difficultyUid !== undefined ? 1 : 0;
+    if (key === 'zeit') return draft.timeBucket ? 1 : 0;
+    const fieldMap: Record<Exclude<FilterKey, 'schwierigkeit' | 'zeit'>, keyof RecipeFilterSelection> = {
+      thema: 'specialUids',
+      ernaehrung: 'dietUids',
+      saisonal: 'occasionUids',
+      zubereitung: 'preparationTypeUids',
+      menuefolge: 'menutypeUids',
+    };
+    const field = fieldMap[key as Exclude<FilterKey, 'schwierigkeit' | 'zeit'>];
+    const value = draft[field];
+    return Array.isArray(value) ? value.length : 0;
   };
 
   const actionsProps = {
     colors,
     bottomInset: insets.bottom,
     onCancel: goBack,
-    onApply: goBack,
+    onApply: applyFilters,
   };
   const subHeaderProps = {
     colors,
@@ -291,7 +306,17 @@ export default function FilterScreen() {
     onBack: goMain,
   };
 
-  // ── Main filter list ───────────────────────────────────────────────────────
+  if (loadingOptions && !options) {
+    return (
+      <View style={[styles.screen, styles.loadingScreen, { backgroundColor: colors.background.primary }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
+  const categories = options?.categories ?? [];
+  const countries = options?.countries ?? [];
+
   if (screen === 'main') {
     return (
       <View style={[styles.screen, { backgroundColor: colors.background.primary }]}>
@@ -331,8 +356,8 @@ export default function FilterScreen() {
             <View style={styles.exactMatchSwitchWrap}>
               <View style={styles.exactMatchSwitchScale}>
                 <Switch
-                  value={exactMatch}
-                  onValueChange={setExactMatch}
+                  value={draft.exactMatch}
+                  onValueChange={(value) => setDraft((prev) => ({ ...prev, exactMatch: value }))}
                   trackColor={{ false: colors.border.primary, true: colors.primary }}
                   thumbColor="#fff"
                 />
@@ -357,22 +382,24 @@ export default function FilterScreen() {
     );
   }
 
-  // ── Kategorien sub-screen (expandable, with leading icons) ─────────────────
   if (screen === 'kategorien') {
     return (
       <View style={[styles.screen, { backgroundColor: colors.background.primary }]}>
         <SubHeader title="Kategorien" {...subHeaderProps} />
         <ScrollView contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false}>
-          {KATEGORIEN.map(cat => {
-            const isExpanded = expandedCategories.includes(cat.name);
+          {categories.map((cat) => {
+            const isExpanded = expandedCategories.includes(cat.uid);
             const isChecked = isCategoryChecked(cat);
-            const hasSub = cat.sub.length > 0;
-            const CatIcon = cat.icon;
+            const children = cat.children ?? [];
+            const hasChildren = children.length > 0;
+            const CatIcon = getCategoryIcon(cat.name);
             return (
-              <View key={cat.name}>
+              <View key={cat.uid}>
                 <TouchableOpacity
                   style={[styles.catRow, { borderBottomColor: colors.border.primary }]}
-                  onPress={() => hasSub ? toggleExpand(cat.name) : toggleCategory(cat.name)}
+                  onPress={() =>
+                    hasChildren ? toggleExpand(cat.uid) : toggleCategoryUid(cat.uid)
+                  }
                   activeOpacity={0.7}
                 >
                   <View style={styles.catRowLeft}>
@@ -385,22 +412,22 @@ export default function FilterScreen() {
                         <Check size={12} color="#fff" />
                       </View>
                     )}
-                    {hasSub && (
+                    {hasChildren && (
                       isExpanded
                         ? <ChevronUp size={18} color={colors.text.tertiary} />
                         : <ChevronDown size={18} color={colors.text.tertiary} />
                     )}
                   </View>
                 </TouchableOpacity>
-                {isExpanded && cat.sub.map(sub => (
+                {isExpanded && children.map((sub) => (
                   <TouchableOpacity
-                    key={sub}
+                    key={sub.uid}
                     style={[styles.subRow, { borderBottomColor: colors.border.primary }]}
-                    onPress={() => toggleSub(sub)}
+                    onPress={() => toggleCategoryUid(sub.uid)}
                     activeOpacity={0.7}
                   >
-                    <Text style={[styles.subLabel, { color: colors.text.secondary }]}>{sub}</Text>
-                    {selectedSubs.includes(sub) && (
+                    <Text style={[styles.subLabel, { color: colors.text.secondary }]}>{sub.name}</Text>
+                    {draft.categoryUids.includes(sub.uid) && (
                       <View style={[styles.checkCircle, { backgroundColor: colors.primary }]}>
                         <Check size={12} color="#fff" />
                       </View>
@@ -416,25 +443,24 @@ export default function FilterScreen() {
     );
   }
 
-  // ── Länderküchen sub-screen ────────────────────────────────────────────────
   if (screen === 'laenderkuechen') {
     return (
       <View style={[styles.screen, { backgroundColor: colors.background.primary }]}>
         <SubHeader title="Länderküchen" {...subHeaderProps} />
         <FlatList
-          data={COUNTRIES}
-          keyExtractor={item => item.name}
+          data={countries}
+          keyExtractor={(item: RecipeFilterCountry) => String(item.uid)}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
           renderItem={({ item }) => (
             <TouchableOpacity
               style={[styles.countryRow, { borderBottomColor: colors.border.primary }]}
-              onPress={() => toggleCountry(item.name)}
+              onPress={() => toggleCountryUid(item.uid)}
               activeOpacity={0.7}
             >
-              <CircularFlag code={item.code} colors={colors} />
+              <CircularFlag flagUrl={countryFlagUrl(item.flagImage)} colors={colors} />
               <Text style={[styles.rowLabel, { color: colors.text.primary, flex: 1 }]}>{item.name}</Text>
-              {selectedCountries.includes(item.name) && (
+              {draft.countryUids.includes(item.uid) && (
                 <View style={[styles.checkCircle, { backgroundColor: colors.primary }]}>
                   <Check size={12} color="#fff" />
                 </View>
@@ -447,27 +473,111 @@ export default function FilterScreen() {
     );
   }
 
-  // ── Generic flat sub-screen ────────────────────────────────────────────────
   const flatKey = screen;
-  const config = FLAT_FILTERS[flatKey];
-  const selected = flatSelections[flatKey];
+  const flatLabel = FLAT_FILTER_LABELS[flatKey];
+
+  if (flatKey === 'schwierigkeit') {
+    const difficulties = options?.difficulties ?? [];
+    return (
+      <View style={[styles.screen, { backgroundColor: colors.background.primary }]}>
+        <SubHeader title={flatLabel} {...subHeaderProps} />
+        <FlatList
+          data={difficulties}
+          keyExtractor={(item) => String(item.uid)}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={[styles.row, { borderBottomColor: colors.border.primary }]}
+              onPress={() => toggleDifficulty(item.uid)}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.rowLabel, { color: colors.text.primary }]}>{item.name}</Text>
+              {draft.difficultyUid === item.uid && (
+                <View style={[styles.checkCircle, { backgroundColor: colors.primary }]}>
+                  <Check size={12} color="#fff" />
+                </View>
+              )}
+            </TouchableOpacity>
+          )}
+        />
+        <ActionButtons {...actionsProps} />
+      </View>
+    );
+  }
+
+  if (flatKey === 'zeit') {
+    const timeBuckets = options?.timeBuckets ?? [];
+    return (
+      <View style={[styles.screen, { backgroundColor: colors.background.primary }]}>
+        <SubHeader title={flatLabel} {...subHeaderProps} />
+        <FlatList
+          data={timeBuckets}
+          keyExtractor={(item) => timeBucketKey(item)}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={[styles.row, { borderBottomColor: colors.border.primary }]}
+              onPress={() => toggleTimeBucket(item)}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.rowLabel, { color: colors.text.primary }]}>{item.label}</Text>
+              {draft.timeBucket && timeBucketKey(draft.timeBucket) === timeBucketKey(item) && (
+                <View style={[styles.checkCircle, { backgroundColor: colors.primary }]}>
+                  <Check size={12} color="#fff" />
+                </View>
+              )}
+            </TouchableOpacity>
+          )}
+        />
+        <ActionButtons {...actionsProps} />
+      </View>
+    );
+  }
+
+  const flatOptionsMap: Record<
+    Exclude<FilterKey, 'schwierigkeit' | 'zeit'>,
+    { uid: number; name: string }[]
+  > = {
+    thema: options?.specials ?? [],
+    ernaehrung: options?.diets ?? [],
+    saisonal: options?.occasions ?? [],
+    zubereitung: options?.preparationTypes ?? [],
+    menuefolge: options?.menutypes ?? [],
+  };
+
+  const fieldMap: Record<
+    Exclude<FilterKey, 'schwierigkeit' | 'zeit'>,
+    'specialUids' | 'dietUids' | 'occasionUids' | 'preparationTypeUids' | 'menutypeUids'
+  > = {
+    thema: 'specialUids',
+    ernaehrung: 'dietUids',
+    saisonal: 'occasionUids',
+    zubereitung: 'preparationTypeUids',
+    menuefolge: 'menutypeUids',
+  };
+
+  const flatOptions = flatOptionsMap[flatKey as Exclude<FilterKey, 'schwierigkeit' | 'zeit'>];
+  const uidField = fieldMap[flatKey as Exclude<FilterKey, 'schwierigkeit' | 'zeit'>];
+  const selectedUids = draft[uidField];
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.background.primary }]}>
-      <SubHeader title={config.label} {...subHeaderProps} />
+      <SubHeader title={flatLabel} {...subHeaderProps} />
       <FlatList
-        data={config.options}
-        keyExtractor={item => item}
+        data={flatOptions}
+        keyExtractor={(item) => String(item.uid)}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
         renderItem={({ item }) => (
           <TouchableOpacity
             style={[styles.row, { borderBottomColor: colors.border.primary }]}
-            onPress={() => toggleFlat(flatKey, item)}
+            onPress={() => toggleUidList(uidField, item.uid)}
             activeOpacity={0.7}
           >
-            <Text style={[styles.rowLabel, { color: colors.text.primary }]}>{item}</Text>
-            {selected.includes(item) && (
+            <Text style={[styles.rowLabel, { color: colors.text.primary }]}>{item.name}</Text>
+            {selectedUids.includes(item.uid) && (
               <View style={[styles.checkCircle, { backgroundColor: colors.primary }]}>
                 <Check size={12} color="#fff" />
               </View>
@@ -482,17 +592,16 @@ export default function FilterScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
+  loadingScreen: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingBottom: 20,
     gap: 12,
-  },
-  title: {
-    fontSize: 28,
-    fontFamily: 'Inter-Bold',
-    letterSpacing: -0.5,
   },
   titleDisplay: {
     fontFamily: 'PlayfairDisplay_700Bold',

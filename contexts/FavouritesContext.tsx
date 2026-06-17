@@ -1,21 +1,19 @@
-import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useMemo,
+  useState,
+} from 'react';
 import type { Recipe } from '@/components/RecipeCard';
-
-const INITIAL_RECIPES: Recipe[] = [
-  { id: '1', title: 'Fränkischer Bratwurst Döner', imageUrl: 'https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=400', durationMinutes: 60, rating: 4.3 },
-  { id: '2', title: 'Veganer Döner-Flammkuchen', imageUrl: 'https://images.unsplash.com/photo-1571091718767-18b5b1457add?w=400', durationMinutes: 15, rating: 5 },
-  { id: '3', title: 'Brazil Limonade', imageUrl: 'https://images.unsplash.com/photo-1544145945-f90425340c7e?w=400', durationMinutes: 5, rating: 5, isFavourite: true },
-  { id: '4', title: 'Kinderriegel Cheesecake', imageUrl: 'https://images.unsplash.com/photo-1533134242443-d4fd215305ad?w=400', durationMinutes: 25, rating: 4.5 },
-  { id: '5', title: "Nicht gegrillter Dickmann's Smores", imageUrl: 'https://images.unsplash.com/photo-1481070414801-51fd732d7184?w=400', durationMinutes: 2, rating: 4.25 },
-  { id: '6', title: 'Karamelisiert Zwiebelpasta', imageUrl: 'https://images.unsplash.com/photo-1563379926898-05f4575a45d8?w=400', durationMinutes: 25, rating: 4 },
-  { id: '7', title: 'Allgäuer Käsespätzle', imageUrl: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400', durationMinutes: 60, rating: 4.3 },
-  { id: '8', title: 'Klassische Gulaschsuppe', imageUrl: 'https://images.unsplash.com/photo-1547592180-85f173990554?w=400', durationMinutes: 90, rating: 4.7 },
-];
+import { useRecipeFavorite } from '@/hooks/useRecipeFavorite';
 
 interface FavouritesContextType {
-  recipes: Recipe[];
   favourites: Recipe[];
-  toggleFavourite: (id: string) => void;
+  syncRecipesFromList: (recipes: Recipe[]) => void;
+  setRecipeFavorite: (recipe: Recipe, isFavorite: boolean) => void;
+  replaceFavourites: (recipes: Recipe[]) => void;
+  toggleFavourite: (id: string, recipe?: Recipe) => void;
 }
 
 const FavouritesContext = createContext<FavouritesContextType | undefined>(undefined);
@@ -23,19 +21,82 @@ const FavouritesContext = createContext<FavouritesContextType | undefined>(undef
 type FavouritesProviderProps = Readonly<{ children: React.ReactNode }>;
 
 export function FavouritesProvider({ children }: FavouritesProviderProps) {
-  const [recipes, setRecipes] = useState<Recipe[]>(INITIAL_RECIPES);
+  const { toggleFavorite } = useRecipeFavorite();
+  const [favouriteMap, setFavouriteMap] = useState<Map<string, Recipe>>(new Map());
 
-  const toggleFavourite = useCallback((id: string) => {
-    setRecipes(prev =>
-      prev.map(r => r.id === id ? { ...r, isFavourite: !r.isFavourite } : r)
-    );
+  const favourites = useMemo(
+    () => Array.from(favouriteMap.values()),
+    [favouriteMap],
+  );
+
+  const setRecipeFavorite = useCallback((recipe: Recipe, isFavorite: boolean) => {
+    setFavouriteMap((prev) => {
+      const next = new Map(prev);
+      if (isFavorite) {
+        next.set(recipe.id, { ...recipe, isFavourite: true });
+      } else {
+        next.delete(recipe.id);
+      }
+      return next;
+    });
   }, []);
 
-  const favourites = useMemo(() => recipes.filter(r => r.isFavourite), [recipes]);
+  const syncRecipesFromList = useCallback((recipes: Recipe[]) => {
+    setFavouriteMap((prev) => {
+      const next = new Map(prev);
+      recipes.forEach((recipe) => {
+        if (recipe.isFavourite) {
+          next.set(recipe.id, { ...recipe, isFavourite: true });
+        }
+      });
+      return next;
+    });
+  }, []);
+
+  const replaceFavourites = useCallback((recipes: Recipe[]) => {
+    const next = new Map<string, Recipe>();
+    recipes.forEach((recipe) => {
+      next.set(recipe.id, { ...recipe, isFavourite: true });
+    });
+    setFavouriteMap(next);
+  }, []);
+
+  const toggleFavourite = useCallback(
+    (id: string, recipe?: Recipe) => {
+      const existing = favouriteMap.get(id) ?? recipe;
+      const currentlyFavorite = existing?.isFavourite ?? favouriteMap.has(id);
+
+      void (async () => {
+        const nextFavorite = await toggleFavorite(id, currentlyFavorite);
+        if (nextFavorite === null) return;
+
+        if (existing) {
+          setRecipeFavorite(existing, nextFavorite);
+        } else if (nextFavorite) {
+          setRecipeFavorite(
+            recipe ?? { id, title: '', imageUrl: '', durationMinutes: 0, rating: 0, isFavourite: true },
+            true,
+          );
+        } else {
+          setRecipeFavorite(
+            recipe ?? { id, title: '', imageUrl: '', durationMinutes: 0, rating: 0 },
+            false,
+          );
+        }
+      })();
+    },
+    [favouriteMap, setRecipeFavorite, toggleFavorite],
+  );
 
   const value = useMemo(
-    () => ({ recipes, favourites, toggleFavourite }),
-    [recipes, favourites, toggleFavourite]
+    () => ({
+      favourites,
+      syncRecipesFromList,
+      setRecipeFavorite,
+      replaceFavourites,
+      toggleFavourite,
+    }),
+    [favourites, syncRecipesFromList, setRecipeFavorite, replaceFavourites, toggleFavourite],
   );
 
   return (

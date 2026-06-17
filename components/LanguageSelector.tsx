@@ -10,7 +10,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { Globe, Check, X } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
-import { getColors, Typography } from '@/constants/theme';
+import { getColors, getTypography, Typography } from '@/constants/theme';
 import { suppressTabBar, restoreTabBar } from '@/utils/tabBarStore';
 
 interface Language {
@@ -29,6 +29,7 @@ export default function LanguageSelector() {
   const { i18n, t } = useTranslation();
   const { theme } = useTheme();
   const colors = getColors(theme);
+  const typography = getTypography(theme);
   const insets = useSafeAreaInsets();
   const [modalVisible, setModalVisible] = useState(false);
 
@@ -54,7 +55,9 @@ export default function LanguageSelector() {
         activeOpacity={0.7}
       >
         <Globe size={15} color={colors.text.tertiary} />
-        <Text style={[styles.triggerText, { color: colors.text.tertiary }]}>{currentCode}</Text>
+        <Text style={[styles.triggerText, { color: colors.text.tertiary, fontFamily: typography.fontFamily.medium }]}>
+          {currentCode}
+        </Text>
       </TouchableOpacity>
 
       <Modal
@@ -75,7 +78,9 @@ export default function LanguageSelector() {
           }]}>
             {/* Header */}
             <View style={[styles.sheetHeader, { borderBottomColor: colors.border.primary }]}>
-              <Text style={[styles.sheetTitle, { color: colors.text.primary }]}>{t('account.language')}</Text>
+              <Text style={[styles.sheetTitle, { color: colors.text.primary, fontFamily: typography.fontFamily.display }]}>
+                {t('account.language')}
+              </Text>
               <TouchableOpacity
                 style={[styles.closeBtn, { backgroundColor: colors.background.secondary }]}
                 onPress={closeModal}
@@ -102,11 +107,19 @@ export default function LanguageSelector() {
                   <View>
                     <Text style={[
                       styles.optionName,
-                      { color: isActive ? colors.primary : colors.text.primary },
+                      {
+                        color: isActive ? colors.primary : colors.text.primary,
+                        fontFamily: isActive
+                          ? typography.fontFamily.semiBold
+                          : typography.fontFamily.regular,
+                      },
                     ]}>
                       {lang.name}
                     </Text>
-                    <Text style={[styles.optionNative, { color: colors.text.tertiary }]}>
+                    <Text style={[
+                      styles.optionNative,
+                      { color: colors.text.tertiary, fontFamily: typography.fontFamily.regular },
+                    ]}>
                       {lang.nativeName}
                     </Text>
                   </View>
@@ -133,7 +146,6 @@ const styles = StyleSheet.create({
   },
   triggerText: {
     fontSize: Typography.fontSize.xs,
-    fontFamily: 'Roboto-Regular',
     letterSpacing: 0.5,
   },
   overlay: {
@@ -158,7 +170,6 @@ const styles = StyleSheet.create({
   },
   sheetTitle: {
     fontSize: Typography.fontSize.base,
-    fontFamily: 'PlayfairDisplay_700Bold',
     letterSpacing: 0.1,
   },
   closeBtn: {
@@ -177,11 +188,9 @@ const styles = StyleSheet.create({
   },
   optionName: {
     fontSize: Typography.fontSize.base,
-    fontFamily: 'Roboto-Regular',
     marginBottom: 2,
   },
   optionNative: {
     fontSize: Typography.fontSize.sm,
-    fontFamily: 'Roboto-Light',
   },
 });

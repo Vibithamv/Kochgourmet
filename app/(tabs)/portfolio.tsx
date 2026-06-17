@@ -32,6 +32,10 @@ import { getColors, Typography } from '@/constants/theme';
 import { useFavourites } from '@/contexts/FavouritesContext';
 import { useFolders } from '@/contexts/FoldersContext';
 import { useGlobalAlert } from '@/contexts/AlertContext';
+import { useFocusEffect } from '@react-navigation/native';
+import { mobileAppRecipes } from '@/hooks/mobileApp';
+import { mapRecipeListItem } from '@/utils/mobileAppMappers';
+import { getMobileAppJwt } from '@/utils/mobileAppAuthUtils';
 
 const TAB_BAR_HEIGHT = 90;
 const EDIT_MENU_WIDTH = 168;
@@ -57,8 +61,9 @@ export default function FavoritenScreen() {
   const insets = useSafeAreaInsets();
   const { showAlert } = useGlobalAlert();
 
-  const { favourites, toggleFavourite } = useFavourites();
+  const { favourites, toggleFavourite, replaceFavourites } = useFavourites();
   const { folders, renameFolder, deleteFolder } = useFolders();
+  const recipesApi = React.useMemo(() => mobileAppRecipes(), []);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<FavouritesTab>('ordner');
 
@@ -122,10 +127,26 @@ export default function FavoritenScreen() {
     setRenameTarget(null);
   }, [renameInput, renameTarget, renameFolder]);
 
+  const loadFavourites = useCallback(async () => {
+    const jwt = await getMobileAppJwt();
+    if (!jwt) return;
+
+    const response = await recipesApi.listFavoriteRecipes();
+    if (response.success && response.data) {
+      replaceFavourites(response.data.map(mapRecipeListItem));
+    }
+  }, [recipesApi, replaceFavourites]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void loadFavourites();
+    }, [loadFavourites]),
+  );
+
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 800);
-  }, []);
+    void loadFavourites().finally(() => setRefreshing(false));
+  }, [loadFavourites]);
 
   const bottomPad = TAB_BAR_HEIGHT + Math.max(insets.bottom, 12) + 16;
 

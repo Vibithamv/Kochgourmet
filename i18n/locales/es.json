@@ -17,6 +17,7 @@
     },
     "success": "Éxito",
     "cancel": "Cancelar",
+    "close": "Cerrar",
     "confirm": "Confirmar",
     "ok": "OK",
     "save": "Guardar",
@@ -84,7 +85,7 @@
       "registerSuccess": "Registro completado correctamente. Inicia sesión para continuar.",
       "successScreenTitle": "Registro completado",
       "registerFailed": "Registrierung fehlgeschlagen. Bitte versuchen Sie es erneut.",
-      "userAlreadyExists": "El usuario ya existe. Por favor, inicie sesión.",
+      "userAlreadyExists": "Ya existe una cuenta con este correo electrónico. Por favor, inicie sesión.",
       "enterFirstName": "Por favor, ingrese el nombre",
       "enterLastName": "Por favor, ingrese el apellido",
       "enterEmail": "Por favor, ingrese el correo electrónico",
@@ -137,7 +138,8 @@
       "passwordsDontMatch": "Las contraseñas no coinciden",
       "passwordTooShort": "La contraseña debe tener al menos 6 caracteres",
       "loginFailed": "Error de inicio de sesión",
-      "registrationFailed": "Error de registro"
+      "registrationFailed": "Error de registro",
+      "userNotConfirmed": "Su cuenta no ha sido confirmada."
     }
   },
   "dashboard": {
@@ -546,6 +548,15 @@
     "paymentProviderTypeLabel": "Tipo de proveedor de pago",
     "bankTransferReferenceNote": "Importante: use la referencia exactamente como se indica para que podamos identificar su pago.",
     "bankTransferReferenceNoteWithRef": "Importante: use esta referencia exactamente al transferir para que podamos identificar su pago: {{reference}}",
+    "orderTitle": "Pedido",
+    "overviewOrderTitle": "Resumen del pedido",
+    "selectPaymentRequired": "Elija un método de pago*",
+    "buyNow": "Comprar ahora",
+    "bankTransferTitle": "Transferencia bancaria",
+    "bankTransferInstruction": "Transfiera el importe total a la dirección que figura a continuación.",
+    "thankYouTitle": "¡Muchas gracias!",
+    "thankYouMessage": "¡Nos alegra que ahora formes parte de la comunidad Founder Kochgourmet! 😊",
+    "backToOverview": "Volver al resumen",
     "tokenAlert": "La cantidad de tokens debe ser mayor que la inversión mínima"
   },
   "whitelistWaiting": {
@@ -664,7 +675,14 @@
     "projected5Year": "Proyección a 5 años",
     "ownership": "Participación",
     "draft": "Redactado",
-    "next": "Siguiente"
+    "next": "Siguiente",
+    "buy": "Comprar",
+    "selectAmount": "Seleccionar",
+    "communityMembersJoined": "¡{{memberCount}} miembros de la comunidad Kochgourmet ya se han unido!",
+    "communityMembersJoinedSuffix": "miembros de la comunidad Kochgourmet ya se han unido!",
+    "minTokens": "Mín. {{count}} {{symbol}}",
+    "schedule": "Cronograma",
+    "moreInfo": "Más información"
   },
   "currencies": {
     "usd": "USD",
@@ -856,7 +874,10 @@
     "emptyArticles": "No se encontraron artículos."
   },
   "bonusScreen": {
-    "subtitle": "Tus bonos y tokens"
+    "title": "Community",
+    "subtitle": "Únete a nuestro programa de bonificación comunitaria y ayúdanos a hacer crecer Kochgourmet. 🤯",
+    "searchPlaceholder": "Buscar",
+    "runtime": "Duración {{duration}}"
   },
   "favoritenScreen": {
     "rename": "Renombrar",
@@ -868,6 +889,7 @@
     "tabFolders": "Carpetas",
     "allFavourites": "Todos los favoritos",
     "noFavouritesYet": "Aún no hay favoritos guardados",
+    "loginRequired": "Inicia sesión para guardar favoritos.",
     "recipeCount_one": "{{count}} receta",
     "recipeCount_other": "{{count}} recetas",
     "renameFolder": "Renombrar carpeta",

@@ -15,6 +15,7 @@ import { AlertProvider } from '@/contexts/AlertContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { FavouritesProvider } from '@/contexts/FavouritesContext';
 import { FoldersProvider } from '@/contexts/FoldersContext';
+import { RecipeFiltersProvider } from '@/contexts/RecipeFiltersContext';
 import { Provider as PaperProvider } from 'react-native-paper';
 import { ThirdwebProvider } from "thirdweb/react";
 
@@ -348,6 +349,7 @@ export default function RootLayout() {
             <AlertProvider>
               <AuthProvider>
                 <FavouritesProvider>
+                  <RecipeFiltersProvider>
                   <FoldersProvider>
                     <Stack screenOptions={{ headerShown: false }}>
                       <Stack.Screen name="auth" />
@@ -361,6 +363,7 @@ export default function RootLayout() {
                     <ThemedStatusBar />
                     <CustomSplash visible={showSplash} />
                   </FoldersProvider>
+                  </RecipeFiltersProvider>
                 </FavouritesProvider>
               </AuthProvider>
             </AlertProvider>

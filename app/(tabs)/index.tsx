@@ -3,7 +3,6 @@ import {
   View,
   Text,
   Image,
-  ScrollView,
   StyleSheet,
   TouchableOpacity,
   TextInput,
@@ -19,12 +18,20 @@ import { Search, X, Sparkles, ChevronRight } from 'lucide-react-native';
 import RecipeCard, { type Recipe, type CardLayout } from '@/components/RecipeCard';
 import RecipeExpandOverlay from '@/components/RecipeExpandOverlay';
 import { useFavourites } from '@/contexts/FavouritesContext';
+import { useRecipeFilters } from '@/contexts/RecipeFiltersContext';
+import { recipeFilterSelectionToParams } from '@/utils/recipeFilterUtils';
+import { useRecipeFavorite } from '@/hooks/useRecipeFavorite';
 import { useFocusEffect } from '@react-navigation/native';
 import { userManagement } from '@/hooks/userManagement';
+import { mobileAppRecipes } from '@/hooks/mobileApp';
+import { mapRecipeListItem } from '@/utils/mobileAppMappers';
 import { useGlobalAlert } from '@/contexts/AlertContext';
 import { replaceLoginClearingAuthStack } from '@/utils/authNavigation';
+import { DashboardShimmer } from '@/components/Shimmer';
 import { LinearGradient } from 'expo-linear-gradient';
+import { RECIPES_PER_PAGE } from '@/constants/recipeListDefaults';
 
+const TAB_BAR_HEIGHT = 80;
 
 function PromoBanner({ onDismiss, tabBarHeight }: Readonly<{ onDismiss: () => void; tabBarHeight: number }>) {
   const insets = useSafeAreaInsets();
@@ -112,24 +119,77 @@ export default function RezepteScreen() {
   const colors = getColors(theme);
   const insets = useSafeAreaInsets();
   const { showAlert } = useGlobalAlert();
-  const userAccount = userManagement();
+  const userAccount = useMemo(() => userManagement(), []);
+  const recipesApi = useMemo(() => mobileAppRecipes(), []);
 
-  const { recipes, toggleFavourite } = useFavourites();
+  const { setRecipeFavorite, syncRecipesFromList } = useFavourites();
+  const { toggleFavorite } = useRecipeFavorite();
+  const { selection, chips, removeChip } = useRecipeFilters();
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeFilters, setActiveFilters] = useState<string[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
   const [userName, setUserName] = useState('');
   const [profilePictureUrl, setProfilePictureUrl] = useState<string | null>(null);
   const [showBanner, setShowBanner] = useState(false);
   const bannerShownRef = useRef(false);
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [expandedRecipe, setExpandedRecipe] = useState<{
     recipe: Recipe;
     layout: CardLayout;
   } | null>(null);
 
+  const loadRecipes = useCallback(
+    async (options: { page?: number; append?: boolean; search?: string } = {}) => {
+      const nextPage = options.page ?? 1;
+      const append = options.append ?? false;
+      const search = options.search ?? searchQuery;
+
+      if (append) {
+        setLoadingMore(true);
+      } else if (nextPage === 1) {
+        setLoading(true);
+      }
+
+      try {
+        const response = await recipesApi.listRecipes({
+          page: nextPage,
+          itemsPerPage: RECIPES_PER_PAGE,
+          ...recipeFilterSelectionToParams(selection),
+          ...(search.trim() ? { search: search.trim() } : {}),
+        });
+
+        if (response.success && response.data) {
+          const members = response.data['hydra:member'] ?? [];
+          const mapped = members.map(mapRecipeListItem);
+          setRecipes((prev) => (append ? [...prev, ...mapped] : mapped));
+          syncRecipesFromList(mapped);
+          setPage(nextPage);
+          setHasMore(Boolean(response.data['hydra:view']?.['hydra:next']));
+        } else {
+          if (!append) {
+            setRecipes([]);
+          }
+          setHasMore(false);
+          if (!append && response.status !== undefined) {
+            showAlert('Fehler', 'Rezepte konnten nicht geladen werden.');
+          }
+        }
+      } finally {
+        setLoading(false);
+        setLoadingMore(false);
+        setRefreshing(false);
+      }
+    },
+    [recipesApi, searchQuery, selection, showAlert, syncRecipesFromList],
+  );
+
   useFocusEffect(
     useCallback(() => {
-      userAccount.getUser().then(res => {
+      userAccount.getUser().then((res) => {
         if (res.success && res.data) {
           const u = res.data.data.user;
           setUserName(u.first_name ?? '');
@@ -144,26 +204,49 @@ export default function RezepteScreen() {
           replaceLoginClearingAuthStack();
         }
       });
-    }, [])
+    }, [showAlert, userAccount]),
   );
+
+  useEffect(() => {
+    if (searchDebounceRef.current) {
+      clearTimeout(searchDebounceRef.current);
+    }
+    searchDebounceRef.current = setTimeout(() => {
+      void loadRecipes({ page: 1, search: searchQuery });
+    }, 400);
+
+    return () => {
+      if (searchDebounceRef.current) {
+        clearTimeout(searchDebounceRef.current);
+      }
+    };
+  }, [searchQuery, selection, loadRecipes]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 800);
-  }, []);
+    void loadRecipes({ page: 1, search: searchQuery });
+  }, [loadRecipes, searchQuery]);
 
-  const filteredRecipes = useMemo(() => {
-    if (!searchQuery) return recipes;
-    return recipes.filter(r =>
-      r.title.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }, [recipes, searchQuery]);
+  const onLoadMore = useCallback(() => {
+    if (loading || loadingMore || !hasMore) return;
+    void loadRecipes({ page: page + 1, append: true, search: searchQuery });
+  }, [hasMore, loadRecipes, loading, loadingMore, page, searchQuery]);
 
-  const removeFilter = useCallback((filter: string) => {
-    setActiveFilters(prev => prev.filter(f => f !== filter));
-  }, []);
-
-  const TAB_BAR_HEIGHT = 80;
+  const handleToggleFavourite = useCallback(
+    (recipe: Recipe) => {
+      void (async () => {
+        const nextFavorite = await toggleFavorite(recipe.id, recipe.isFavourite ?? false);
+        if (nextFavorite === null) return;
+        setRecipes((prev) =>
+          prev.map((item) =>
+            item.id === recipe.id ? { ...item, isFavourite: nextFavorite } : item,
+          ),
+        );
+        setRecipeFavorite({ ...recipe, isFavourite: nextFavorite }, nextFavorite);
+      })();
+    },
+    [setRecipeFavorite, toggleFavorite],
+  );
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.background.primary }]}>
@@ -214,24 +297,22 @@ export default function RezepteScreen() {
       </View>
 
       {/* Active filter chips */}
-      {activeFilters.length > 0 && (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.chipsRow}
-        >
-          {activeFilters.map(f => (
-            <TouchableOpacity
-              key={f}
-              style={[styles.chip, { backgroundColor: colors.primary }]}
-              onPress={() => removeFilter(f)}
-              activeOpacity={0.8}
-            >
-              <X size={11} color="#fff" />
-              <Text style={styles.chipText}>{f}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+      {chips.length > 0 && (
+        <View style={styles.chipsSection}>
+          <View style={styles.chipsRow}>
+            {chips.map((chip) => (
+              <TouchableOpacity
+                key={chip.id}
+                style={[styles.chip, { backgroundColor: colors.primary }]}
+                onPress={() => removeChip(chip.id)}
+                activeOpacity={0.8}
+              >
+                <X size={10} color="#fff" />
+                <Text style={styles.chipText}>{chip.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
       )}
 
       {/* Floating promo banner */}
@@ -243,7 +324,9 @@ export default function RezepteScreen() {
       )}
 
       {/* Recipe grid / empty state */}
-      {filteredRecipes.length === 0 ? (
+      {loading && recipes.length === 0 ? (
+        <DashboardShimmer />
+      ) : recipes.length === 0 ? (
         <View style={styles.emptyState}>
           <Text style={[styles.emptyTitle, { color: colors.text.primary }]}>
             Nichts gefunden 😱
@@ -254,8 +337,9 @@ export default function RezepteScreen() {
         </View>
       ) : (
         <FlatList
-          data={filteredRecipes}
-          keyExtractor={item => item.id}
+          style={styles.list}
+          data={recipes}
+          keyExtractor={(item) => item.id}
           extraData={expandedRecipe?.recipe.id ?? recipes}
           numColumns={2}
           columnWrapperStyle={styles.row}
@@ -264,6 +348,8 @@ export default function RezepteScreen() {
             { paddingBottom: TAB_BAR_HEIGHT + Math.max(insets.bottom, 12) + 16 },
           ]}
           showsVerticalScrollIndicator={false}
+          onEndReached={onLoadMore}
+          onEndReachedThreshold={0.4}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -272,6 +358,15 @@ export default function RezepteScreen() {
               colors={[colors.primary]}
             />
           }
+          ListFooterComponent={
+            loadingMore ? (
+              <View style={styles.loadMore}>
+                <Text style={[styles.loadMoreText, { color: colors.text.tertiary }]}>
+                  Laden…
+                </Text>
+              </View>
+            ) : null
+          }
           renderItem={({ item }) => (
             <View style={styles.cardWrapper}>
               <RecipeCard
@@ -279,7 +374,7 @@ export default function RezepteScreen() {
                 variant="rezepte"
                 hidden={expandedRecipe?.recipe.id === item.id}
                 onPressWithLayout={(layout) => setExpandedRecipe({ recipe: item, layout })}
-                onToggleFavourite={() => toggleFavourite(item.id)}
+                onToggleFavourite={() => handleToggleFavourite(item)}
               />
             </View>
           )}
@@ -343,7 +438,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     gap: 10,
     marginTop: 50,
-    marginBottom: 30,
+    marginBottom: 16,
   },
   searchBar: {
     flex: 1,
@@ -371,23 +466,35 @@ const styles = StyleSheet.create({
     width: 46,
     height: 46,
   },
+  chipsSection: {
+    flexGrow: 0,
+    flexShrink: 0,
+    marginBottom: 16,
+  },
   chipsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     paddingHorizontal: 20,
     gap: 8,
-    marginBottom: 14,
+    rowGap: 8,
   },
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    height: 25,
     borderRadius: 9999,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    gap: 5,
+    paddingHorizontal: 10,
+    gap: 4,
   },
   chipText: {
     color: '#fff',
-    fontSize: 13,
+    fontSize: 12,
+    lineHeight: 14,
     fontFamily: 'Inter-Medium',
+  },
+  list: {
+    flex: 1,
   },
   grid: {
     paddingHorizontal: 20,
@@ -398,6 +505,14 @@ const styles = StyleSheet.create({
   },
   cardWrapper: {
     flex: 1,
+  },
+  loadMore: {
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
+  loadMoreText: {
+    fontFamily: 'Roboto-Light',
+    fontSize: 14,
   },
   emptyState: {
     flex: 1,

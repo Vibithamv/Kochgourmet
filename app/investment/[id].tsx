@@ -2,23 +2,15 @@ import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
-  ScrollView,
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
   Modal,
-  FlatList,
   Platform,
 } from 'react-native';
 import { InvestmentShimmer } from '@/components/Shimmer';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
-import {
-  ArrowLeft,
-  Plus,
-  Minus,
-  Check,
-} from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import {
   getColors,
@@ -27,13 +19,16 @@ import {
 import { useTheme } from '@/contexts/ThemeContext';
 import { useGlobalAlert } from '@/contexts/AlertContext';
 import { offeringDetails } from '@/hooks/offering_details';
-import PaymentProviderDropdown from '@/components/paymentProviderDropdown';
 import { userManagement } from '@/hooks/userManagement';
 import { createPaymentOrder } from '@/hooks/createPayment';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { docSign } from '@/hooks/docSign';
 import WebView from 'react-native-webview';
 import { useOfferingCheck } from '@/hooks/useOfferingCheck';
+import InvestmentOrderStep from '@/components/InvestmentOrderStep';
+import InvestmentOverviewStep from '@/components/InvestmentOverviewStep';
+import { InvestmentFloatingBar } from '@/components/InvestmentCommunityUI';
+import { formatInvestmentPrice } from '@/utils/investmentFormat';
 
 type ProjectStatus =
   | 'PRIVATESALE'
@@ -136,6 +131,8 @@ export default function InvestmentScreen() {
   const { showAlert } = useGlobalAlert();
   const [totalAmount, setTotalAmount] = useState(1);
   const colors = getColors(theme);
+  const isDark = theme === 'dark' || theme === 'darkGreen';
+  const floatingBottom = Math.max(insets.bottom, 12) + 16;
   const offering = offeringDetails();
   const { performOfferingCheck } = useOfferingCheck();
   let projectData: ExtendedProject;
@@ -157,11 +154,11 @@ export default function InvestmentScreen() {
   const [envelopeIds, setEnvelopeIds] = useState([]);
   const [isPdfLoading, setIsPdfLoading] = useState(false);
   const [confirmSubscription, setConfirmSubscription] = useState(false);
+  const [isSigned, setIsSigned] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Derived state for steps
   const hasSignableDocs = documentsArray.length > 0;
-  const totalSteps = hasSignableDocs ? 3 : 2;
 
   useEffect(() => {
     loadProject();
@@ -306,14 +303,6 @@ export default function InvestmentScreen() {
     }
   };
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: project?.currency,
-      minimumFractionDigits: 0,
-    }).format(value);
-  };
-
   const handleNextStep = async () => {
     if (currentStep === 1) {
       if (tokenAmount < (project?.minimum_investment || 0)) {
@@ -392,7 +381,9 @@ export default function InvestmentScreen() {
               router.replace({
                 pathname: '/investment/success',
                 params: {
-                  amount: encodeURIComponent(formatCurrency(totalAmount)),
+                  amount: encodeURIComponent(
+                    formatInvestmentPrice(totalAmount, project?.currency)
+                  ),
                   title: encodeURIComponent(project?.title || ''),
                   bankDetails: encodeURIComponent(
                     JSON.stringify({
@@ -435,38 +426,12 @@ export default function InvestmentScreen() {
       });
   };
 
-  const paymentConfirmCtaLabel =
-    project?.offeringType === OFFERING_ACCESS_TRADITIONAL
-      ? t('projectDetail.backThisProject')
-      : t('investment.toPayment');
+  const paymentConfirmCtaLabel = t('investment.buyNow');
 
-  const step1PrimaryTitle = useMemo(() => {
-    const name = project?.title ?? '';
-    const ot = project?.offeringType;
-    if (ot === OFFERING_ACCESS_TRADITIONAL) {
-      return t('investment.step1TitleParticipateIn', { name });
-    }
-    if (ot === OFFERING_DEBT_TRADITIONAL) {
-      return t('investment.step1TitleInvestIn', { name });
-    }
-    return t('investment.subscriptionCertificate');
-  }, [project?.offeringType, project?.title, t]);
+  const isOverviewStep =
+    currentStep === 3 || (currentStep === 2 && !hasSignableDocs);
 
-  /** Step 1 "Investment details" — property row: merged phrase for traditional access/debt types. */
-  const investmentDetailsPropertyLine = useMemo(() => {
-    const name = project?.title ?? '';
-    const ot = project?.offeringType;
-    if (ot === OFFERING_ACCESS_TRADITIONAL) {
-      return {
-        kind: 'merged' as const,
-        text: t('investment.step1TitleParticipateIn', { name }),
-      };
-    }
-    if (ot === OFFERING_DEBT_TRADITIONAL) {
-      return { kind: 'merged' as const, text: t('investment.step1TitleInvestIn', { name }) };
-    }
-    return { kind: 'split' as const };
-  }, [project?.offeringType, project?.title, t]);
+  const selectedPayment = paymentMethods.find((p) => p.id === paymentTypeID);
 
   const confirmSubscriptionText = useMemo(() => {
     const count = tokenAmount;
@@ -481,215 +446,22 @@ export default function InvestmentScreen() {
     return t('investment.confirmSubscription', { count });
   }, [project?.offeringType, project?.title, tokenAmount, t]);
 
-  const renderFooterAction = () => {
-    if (currentStep === 1) {
-      return (
-        <TouchableOpacity
-          style={[styles.nextButton, { backgroundColor: colors.primary }]}
-          onPress={handleNextStep}
-        >
-          <Text
-            style={[styles.nextButtonText, { color: colors.text.inverse }]}
-          >
-            {hasSignableDocs ? t('investment.signDocument') : paymentConfirmCtaLabel}
-          </Text>
-        </TouchableOpacity>
-      );
-    }
-    if (currentStep === totalSteps) {
-      return (
-        <TouchableOpacity
-          style={[
-            styles.finalizeButton,
-            { backgroundColor: confirmSubscription ? colors.primary : colors.border.primary },
-          ]}
-          onPress={handleInvestment}
-          disabled={!confirmSubscription}
-        >
-          <Text
-            style={[
-              styles.finalizeButtonText,
-              {
-                color: confirmSubscription ? colors.text.inverse : colors.text.tertiary,
-              },
-            ]}
-          >
-            {paymentConfirmCtaLabel}
-          </Text>
-        </TouchableOpacity>
-      );
-    }
-    return null;
+  const decrementTokens = () => {
+    const next = Math.max(minimumTokenCount, tokenAmount - 1);
+    setTokenAmount(next);
+    calculateTotalAmount(next, project?.currency || '', project?.id || '');
   };
 
-  const renderStepIndicator = () => (
-    <View
-      style={[
-        styles.stepIndicator,
-        {
-          backgroundColor: colors.background.primary,
-          borderBottomColor: colors.border.primary,
-        },
-      ]}
-    >
-      <Text style={[styles.stepText, { color: colors.text.secondary }]}>
-        {t('investment.step')} {currentStep} {t('investment.of')} {totalSteps}
-      </Text>
-      <View
-        style={[styles.progressBar, { backgroundColor: colors.border.primary }]}
-      >
-        <View
-          style={[
-            styles.progressFill,
-            {
-              width: `${(currentStep / totalSteps) * 100}%`,
-              backgroundColor: colors.primary,
-            },
-          ]}
-        />
-      </View>
-    </View>
-  );
-
-  const renderStep1 = () => (
-    <ScrollView style={styles.stepContent} showsVerticalScrollIndicator={false}>
-      <View style={styles.headerSection}>
-        <Text style={[styles.stepTitle, { color: colors.text.primary }]}>
-          {step1PrimaryTitle}
-        </Text>
-      </View>
-
-      {/* <View style={styles.documentSection}>
-        <View style={styles.documentPlaceholder}>
-          <FileText size={48} color="#94A3B8" />
-          <Text style={styles.documentText}>
-            {t('investment.documentPreview')}
-          </Text>
-        </View>
-      </View> */}
-
-      <FlatList
-        data={docs}
-        keyExtractor={(item) => item.index.toString()}
-        scrollEnabled={false}
-        renderItem={({ item }) => (
-          item.isSignRequired ?
-            <TouchableOpacity
-              style={[styles.card, { backgroundColor: colors.primary, borderColor: colors.primary }]}
-              onPress={() =>
-                router.push({
-                  pathname: "/screens/docWebview",
-                  params: {
-                    title: item.name,
-                    pdfUrl: item.document,
-                  },
-                })
-              }
-            >
-              <Text style={[styles.title, { color: colors.text.inverse }]}>{item.name}</Text>
-            </TouchableOpacity> : null
-        )}
-      />
-
-      <View style={[styles.investmentDetails, { backgroundColor: colors.background.card, borderColor: colors.border.primary, borderWidth: 1 }]}>
-        <Text style={[styles.detailsTitle, { color: colors.text.primary }]}>
-          {project?.offeringType === OFFERING_ACCESS_TRADITIONAL
-            ? t('investment.details')
-            : t('investment.investmentDetails')}
-        </Text>
-
-        {investmentDetailsPropertyLine.kind === 'merged' ? (
-          <View style={styles.detailRow}>
-            <Text
-              style={[styles.detailValue, { color: colors.text.primary, flex: 1 }]}
-            >
-              {investmentDetailsPropertyLine.text}
-            </Text>
-          </View>
-        ) : (
-          <View style={styles.detailRow}>
-            <Text style={[styles.detailLabel, { color: colors.text.primary }]}>
-              {t('investment.property')}:
-            </Text>
-            <Text style={[styles.detailValue, { color: colors.text.primary }]}>
-              {project?.title}
-            </Text>
-          </View>
-        )}
-
-        <View style={styles.detailRow}>
-          <Text style={[styles.detailLabel, { color: colors.text.primary }]}>{t('investment.tokenAmount')}:</Text>
-          <View style={styles.tokenSelector}>
-            <TouchableOpacity
-              style={styles.tokenButton}
-              onPress={() => {
-                const next = Math.max(minimumTokenCount, tokenAmount - 1);
-                setTokenAmount(next);
-                calculateTotalAmount(
-                  next,
-                  project?.currency || '',
-                  project?.id || ''
-                );
-              }}
-            >
-              <Minus size={16} color={colors.text.tertiary} />
-            </TouchableOpacity>
-            <Text style={[styles.tokenValue, { color: colors.text.primary }]}>{tokenAmount}</Text>
-            <TouchableOpacity
-              style={styles.tokenButton}
-              onPress={() => {
-                setTokenAmount(tokenAmount + 1);
-                calculateTotalAmount(
-                  tokenAmount + 1,
-                  project?.currency || '',
-                  project?.id || ''
-                );
-              }}
-            >
-              <Plus size={16} color={colors.text.tertiary} />
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        <View style={styles.detailRow}>
-          <Text style={[styles.detailLabel, { color: colors.text.primary }]}>
-            {t('investment.pricePerToken')}:
-          </Text>
-          <Text style={[styles.detailValue, { color: colors.text.primary }]}>{formatCurrency(tokenPrice)}</Text>
-        </View>
-
-        <View style={[styles.detailRow, styles.totalRow, { borderTopColor: colors.border.primary }]}>
-          <Text style={[styles.totalLabel, { color: colors.text.primary }]}>{t('investment.totalAmount')}: </Text>
-          <Text style={[styles.totalValue, { color: colors.text.primary }]}>{formatCurrency(totalAmount)}</Text>
-        </View>
-      </View>
-
-      <View style={styles.formSection}>
-        <View style={styles.inputContainer}>
-          <Text style={[styles.inputLabel, { color: colors.text.primary }]}>
-            {t('investment.paymentProvider')} <Text style={{ color: 'red' }}>*</Text>
-          </Text>
-          <PaymentProviderDropdown
-            payment={paymentMethods}
-            onChange={(type, id) => {
-              setPaymentTypeID(id);
-              setPaymentType(type);
-            }}
-          />
-        </View>
-      </View>
-    </ScrollView>
-  );
-
-  const [isSigned, setIsSigned] = useState(false);
+  const incrementTokens = () => {
+    const next = tokenAmount + 1;
+    setTokenAmount(next);
+    calculateTotalAmount(next, project?.currency || '', project?.id || '');
+  };
 
   useEffect(() => {
-    let interval: any;
+    let interval: ReturnType<typeof setInterval> | undefined;
     if (currentStep === 2 && signingUrl[urlArrayIndex]?.envelopeId) {
-      // Check immediately
       checkStatus();
-
-      // Then poll every 15 seconds
       interval = setInterval(() => {
         checkStatus();
       }, 15000);
@@ -710,7 +482,6 @@ export default function InvestmentScreen() {
 
   const renderStep2 = () => (
     <View style={{ flex: 1 }}>
-      {/* Full screen loader overlay */}
       {isPdfLoading && (
         <View
           style={{
@@ -726,293 +497,34 @@ export default function InvestmentScreen() {
           }}
         >
           <ActivityIndicator size="large" color={colors.primary} />
-          {/* <Text style={{ marginTop: 10, color: "#000" }}>Loading PDF…</Text> */}
         </View>
       )}
 
-      {/* WebView */}
       <WebView
         originWhitelist={["*"]}
         javaScriptEnabled={true}
         source={{ uri: signingUrl[urlArrayIndex].signingUrl }}
-        //  onLoadStart={() => setIsPdfLoading(true)}
         onLoadEnd={() => setIsPdfLoading(false)}
         style={{ flex: 1 }}
       />
 
-      {/* Bottom Button */}
       <TouchableOpacity
         style={[
           styles.nextButton,
           {
             backgroundColor: isSigned ? colors.primary : colors.border.primary,
             marginBottom: 10,
-            marginHorizontal: 20,
           },
         ]}
         disabled={!isSigned}
-        onPress={() => {
-          signingUrl.length > urlArrayIndex + 1
-            ? setUrlArrayIndex(urlArrayIndex + 1)
-            : setCurrentStep(3);
-
-          setIsSigned(false); // Reset for next document
-        }}
+        onPress={() => setCurrentStep(3)}
       >
-        <Text style={[styles.nextButtonText, { color: isSigned ? colors.text.inverse : colors.text.tertiary }]}>
-          {`(${urlArrayIndex + 1}/${signingUrl.length}) ${
-            isSigned ? t('projectDetail.next') : 'Processing.....'
-          }`}
+        <Text style={[styles.nextButtonText, { color: colors.text.inverse }]}>
+          {t('common.next')}
         </Text>
       </TouchableOpacity>
     </View>
   );
-
-  const renderStep3 = () => {
-    const selectedPayment = paymentMethods.find((p) => p.id === paymentTypeID);
-    const showBankDetails =
-      selectedPayment?.providerType === 'CUSTOMIBAN' &&
-      Boolean(
-        (selectedPayment.bankName && selectedPayment.bankName.length > 0) ||
-          (selectedPayment.accountName && selectedPayment.accountName.length > 0) ||
-          (selectedPayment.accountNumber && selectedPayment.accountNumber.length > 0) ||
-          (selectedPayment.bic && selectedPayment.bic.length > 0)
-      );
-
-    return (
-    <ScrollView style={styles.stepContent} showsVerticalScrollIndicator={false}>
-      <View style={[styles.summarySection, { backgroundColor: colors.background.card, borderColor: colors.border.primary }]}>
-        <Text style={[styles.summaryTitle, { color: colors.text.primary }]}>
-          {project?.offeringType === OFFERING_ACCESS_TRADITIONAL
-            ? t('investment.overviewShort')
-            : t('investment.investmentOverview')}
-        </Text>
-
-        {investmentDetailsPropertyLine.kind === 'merged' ? (
-          <View style={styles.summaryRow}>
-            <Text
-              style={[styles.summaryValue, { color: colors.text.primary, flex: 1 }]}
-            >
-              {investmentDetailsPropertyLine.text}
-            </Text>
-          </View>
-        ) : (
-          <View style={styles.summaryRow}>
-            <Text style={[styles.summaryLabel, { color: colors.text.primary }]}>
-              {t('investment.property')}:
-            </Text>
-            <Text style={[styles.summaryValue, { color: colors.text.primary }]}>
-              {project?.title}
-            </Text>
-          </View>
-        )}
-
-        <View style={styles.summaryRow}>
-          <Text style={[styles.summaryLabel, { color: colors.text.primary }]}>
-            {t('investment.tokenAmount')}:
-          </Text>
-          <Text style={[styles.summaryValue, { color: colors.text.primary }]}>{tokenAmount}</Text>
-        </View>
-
-        <View style={styles.summaryRow}>
-          <Text style={[styles.summaryLabel, { color: colors.text.primary }]}>{t('investment.tokenPrice')}:</Text>
-          <Text style={[styles.summaryValue, { color: colors.text.primary }]}>{formatCurrency(tokenPrice)}</Text>
-        </View>
-
-        <View style={[styles.summaryRow, styles.totalSummaryRow, { borderTopColor: colors.border.primary }]}>
-          <Text style={[styles.totalSummaryLabel, { color: colors.text.primary }]}>
-            {t('investment.totalAmount')}:
-          </Text>
-          <Text style={[styles.totalSummaryValue, { color: colors.text.primary }]}>
-            {formatCurrency(totalAmount)}
-          </Text>
-        </View>
-      </View>
-
-      <View style={[styles.investorSection, { backgroundColor: colors.background.card, borderColor: colors.border.primary }]}>
-        <Text style={[styles.investorTitle, { color: colors.text.primary }]}>
-          {t('investment.investorDetails')}
-        </Text>
-
-        {/* <View style={styles.investorDetail}>
-          <Text style={styles.investorLabel}>{t('investment.fullName')} *</Text>
-          <Text style={styles.investorValue}>{fullName}</Text>
-        </View>
-
-        <View style={styles.investorDetail}>
-          <Text style={styles.investorLabel}>
-            {t('investment.fullAddress')} *
-          </Text>
-          <Text style={styles.investorValue}>{address}</Text>
-        </View> */}
-
-        <View style={styles.investorDetail}>
-          <Text style={[styles.investorLabel, { color: colors.text.primary }]}>
-            {t('investment.paymentType')} *
-          </Text>
-          <Text style={[styles.investorValue, { color: colors.text.primary }]}>{paymentType}</Text>
-        </View>
-
-        {/* <View style={[styles.investorDetail]}>
-          <Text style={styles.investorLabel}>
-            {t('investment.digitalSignature')} *
-          </Text>
-          <Image
-            source={{ uri: signature }}
-            style={{ width: '100%', height: 100 }}
-            resizeMode="contain"
-          />
-        </View> */}
-      </View>
-
-      <View style={[styles.orderSummary, { backgroundColor: colors.background.card, borderColor: colors.border.primary }]}>
-        <Text style={[styles.orderTitle, { color: colors.text.primary }]}>{t('investment.orderSummary')}</Text>
-
-        {investmentDetailsPropertyLine.kind === 'merged' ? (
-          <View style={styles.orderRow}>
-            <Text style={[styles.orderValue, { color: colors.text.primary, flex: 1 }]}>
-              {investmentDetailsPropertyLine.text}
-            </Text>
-          </View>
-        ) : (
-          <View style={styles.orderRow}>
-            <Text style={[styles.orderLabel, { color: colors.text.primary }]}>
-              {t('investment.property')}:
-            </Text>
-            <Text style={[styles.orderValue, { color: colors.text.primary }]}>
-              {project?.title}
-            </Text>
-          </View>
-        )}
-
-        <View style={styles.orderRow}>
-          <Text style={[styles.orderLabel, { color: colors.text.primary }]}>{t('investment.tokenAmount')}:</Text>
-          <Text style={[styles.orderValue, { color: colors.text.primary }]}>{tokenAmount}</Text>
-        </View>
-
-        <View style={styles.orderRow}>
-          <Text style={[styles.orderLabel, { color: colors.text.primary }]}>
-            {t('investment.pricePerToken')}:
-          </Text>
-          <Text style={[styles.orderValue, { color: colors.text.primary }]}>{formatCurrency(tokenPrice)}</Text>
-        </View>
-
-        <View style={[styles.orderRow, styles.orderTotalRow, { borderTopColor: colors.border.primary }]}>
-          <Text style={[styles.orderTotalLabel, { color: colors.text.primary }]}>
-            {t('investment.totalSum')}:
-          </Text>
-          <Text style={[styles.orderTotalValue, { color: colors.text.primary }]}>
-            {formatCurrency(totalAmount)}
-          </Text>
-        </View>
-
-        {/* <View style={[styles.projectDetails]}>
-          <View style={styles.projectDetail}>
-            <Text style={styles.projectDetailText}>
-              📈 {project?.expected_return}% {t('investment.annualReturn')}
-            </Text>
-          </View>
-          <View style={styles.projectDetail}>
-            <Text style={styles.projectDetailText}>
-              ⏱️ {project?.duration_months} {t('investment.monthsRuntime')}
-            </Text>
-          </View>
-          <View style={styles.projectDetail}>
-            <Text style={styles.projectDetailText}>
-              📋 {t('investment.landRegisterRank')}
-            </Text>
-          </View>
-        </View> */}
-      </View>
-
-      {showBankDetails && selectedPayment ? (
-        <View
-          style={[
-            styles.investorSection,
-            { backgroundColor: colors.background.card, borderColor: colors.border.primary },
-          ]}
-        >
-          <Text style={[styles.investorTitle, { color: colors.text.primary }]}>
-            {t('investment.bankTransferDetails')}
-          </Text>
-          <Text
-            style={[
-              styles.investorValue,
-              { color: colors.text.secondary, marginBottom: 16 },
-            ]}
-          >
-            {t('investment.bankTransferDetailsHint')}
-          </Text>
-          {selectedPayment.bankName ? (
-            <View style={styles.investorDetail}>
-              <Text style={[styles.investorLabel, { color: colors.text.primary }]}>
-                {t('investment.bankNameLabel')}
-              </Text>
-              <Text style={[styles.investorValue, { color: colors.text.primary }]}>
-                {selectedPayment.bankName}
-              </Text>
-            </View>
-          ) : null}
-          {selectedPayment.accountName ? (
-            <View style={styles.investorDetail}>
-              <Text style={[styles.investorLabel, { color: colors.text.primary }]}>
-                {t('investment.accountHolderLabel')}
-              </Text>
-              <Text style={[styles.investorValue, { color: colors.text.primary }]}>
-                {selectedPayment.accountName}
-              </Text>
-            </View>
-          ) : null}
-          {selectedPayment.accountNumber ? (
-            <View style={styles.investorDetail}>
-              <Text style={[styles.investorLabel, { color: colors.text.primary }]}>
-                {t('investment.accountNumberLabel')}
-              </Text>
-              <Text
-                style={[styles.investorValue, { color: colors.text.primary }]}
-                selectable
-              >
-                {selectedPayment.accountNumber}
-              </Text>
-            </View>
-          ) : null}
-          {selectedPayment.bic ? (
-            <View style={styles.investorDetail}>
-              <Text style={[styles.investorLabel, { color: colors.text.primary }]}>
-                {t('investment.bicLabel')}
-              </Text>
-              <Text
-                style={[styles.investorValue, { color: colors.text.primary }]}
-                selectable
-              >
-                {selectedPayment.bic}
-              </Text>
-            </View>
-          ) : null}
-        </View>
-      ) : null}
-
-      <View style={styles.confirmationSection}>
-        <TouchableOpacity
-          style={styles.confirmationBox}
-          onPress={() => setConfirmSubscription(!confirmSubscription)}
-          activeOpacity={0.7}
-        >
-          <View style={[
-            styles.checkboxBox,
-            { borderColor: colors.primary },
-            confirmSubscription && { backgroundColor: colors.primary }
-          ]}>
-            {confirmSubscription && <Check size={14} color={colors.text.inverse} />}
-          </View>
-          <Text style={[styles.confirmationText, { color: colors.text.primary }]}>
-            {confirmSubscriptionText}
-          </Text>
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
-    );
-  };
 
   if (loading) {
     return <InvestmentShimmer />;
@@ -1045,69 +557,73 @@ export default function InvestmentScreen() {
     <View
       style={[
         styles.container,
-        { backgroundColor: colors.background.primary },
+        { backgroundColor: colors.background.secondary },
       ]}
     >
-      {/* Header */}
-      <View
-        style={[
-          styles.header,
-          {
-            paddingTop: Math.max(insets.top, 44) + 16,
-            backgroundColor: colors.background.primary,
-            borderBottomColor: colors.border.primary,
-          },
-        ]}
-      >
-        <TouchableOpacity
-          style={[
-            styles.backIcon,
-            { backgroundColor: colors.background.secondary },
-          ]}
-          onPress={() => router.back()}
-        >
-          <ArrowLeft size={24} color={colors.text.primary} />
-        </TouchableOpacity>
-        <View style={styles.headerContent}>
-          {currentStep === 2 ? null : (
-            <>
-              <Text style={[styles.headerTitle, { color: colors.text.primary }]}>
-                {t('investment.tokenPurchase')}
-              </Text>
-              <Text
-                style={[styles.headerSubtitle, { color: colors.text.secondary }]}
-              >
-                {project.title}
-              </Text>
-            </>
-          )}
-        </View>
-        <View style={styles.headerSpacer} />
-      </View>
-
-      {/* Step Indicator */}
-      {renderStepIndicator()}
-
-      {/* Step Content */}
       <View style={styles.content}>
-        {currentStep === 1 && renderStep1()}
-        {currentStep === 2 && hasSignableDocs && renderStep2()}
-        {(currentStep === 3 || (currentStep === 2 && !hasSignableDocs)) && renderStep3()}
+        {currentStep === 1 ? (
+          <InvestmentOrderStep
+            projectTitle={project.title}
+            tokenAmount={tokenAmount}
+            minimumTokenCount={minimumTokenCount}
+            tokenPrice={tokenPrice}
+            totalAmount={totalAmount}
+            currency={project.currency}
+            paymentMethods={paymentMethods}
+            onPaymentChange={(type, id) => {
+              setPaymentTypeID(id);
+              setPaymentType(type);
+            }}
+            onDecrementTokens={decrementTokens}
+            onIncrementTokens={incrementTokens}
+            colors={colors}
+            floatingBottom={floatingBottom}
+          />
+        ) : null}
+        {currentStep === 2 && hasSignableDocs ? renderStep2() : null}
+        {isOverviewStep ? (
+          <InvestmentOverviewStep
+            projectTitle={project.title}
+            tokenAmount={tokenAmount}
+            tokenPrice={tokenPrice}
+            totalAmount={totalAmount}
+            currency={project.currency}
+            paymentType={paymentType}
+            selectedPayment={selectedPayment}
+            confirmSubscription={confirmSubscription}
+            confirmText={confirmSubscriptionText}
+            onToggleConfirm={() => setConfirmSubscription(!confirmSubscription)}
+            colors={colors}
+            floatingBottom={floatingBottom}
+          />
+        ) : null}
       </View>
 
-      {/* Footer */}
-      <View
-        style={[
-          styles.footer,
-          {
-            paddingBottom: Math.max(insets.bottom, 20),
-            backgroundColor: colors.background.primary,
-            borderTopColor: colors.border.primary,
-          },
-        ]}
-      >
-        {renderFooterAction()}
-      </View>
+      {currentStep === 1 ? (
+        <InvestmentFloatingBar
+          primaryLabel={t('common.next')}
+          cancelLabel={t('common.cancel')}
+          onPrimary={handleNextStep}
+          onCancel={() => router.back()}
+          bottom={floatingBottom}
+          colors={colors}
+          isDark={isDark}
+        />
+      ) : null}
+
+      {isOverviewStep ? (
+        <InvestmentFloatingBar
+          primaryLabel={paymentConfirmCtaLabel}
+          cancelLabel={t('common.cancel')}
+          onPrimary={handleInvestment}
+          primaryDisabled={!confirmSubscription || isSubmitting}
+          onCancel={() => router.back()}
+          bottom={floatingBottom}
+          colors={colors}
+          isDark={isDark}
+        />
+      ) : null}
+
       {/* Loading Modal */}
       <Modal
         transparent={true}

@@ -11,6 +11,7 @@ import { ChevronDown } from "lucide-react-native"; // arrow icon
 import { useTheme } from "@/contexts/ThemeContext";
 import { getColors } from "@/constants/themes";
 import { useTranslation } from "react-i18next";
+import { formatPaymentTypeLabel } from "@/utils/investmentFormat";
 
 
 type PaymentMethod = {
@@ -26,11 +27,13 @@ type PaymentMethod = {
 type Props = {
   payment: PaymentMethod[];
   onChange?: (type: string, id: string) => void;
+  variant?: 'default' | 'community';
 };
 
 export default function PaymentProviderDropdown({
   payment,
   onChange,
+  variant = 'default',
 }: Readonly<Props>) {
   const [open, setOpen] = useState(false);
   const { t } = useTranslation();
@@ -68,16 +71,36 @@ export default function PaymentProviderDropdown({
 
   const paymentCount = payment?.length ?? 0;
   const showModalPicker = paymentCount > 1;
+  const isCommunity = variant === 'community';
   const dropdownSurfaceStyle = [
     styles.dropdown,
+    isCommunity && styles.dropdownCommunity,
     {
-      backgroundColor: colors.background.card,
+      backgroundColor: colors.background.primary,
       borderColor: colors.border.primary,
-      borderWidth: 2,
+      borderWidth: isCommunity ? 1 : 2,
     },
   ];
   const displayType =
     selected?.type ?? (paymentCount === 1 ? payment[0]?.type : undefined);
+  const selectedLabel = selected
+    ? formatPaymentTypeLabel(selected.type)
+    : t('investment.paymentProvider');
+  const singleLabel = displayType
+    ? formatPaymentTypeLabel(displayType)
+    : t('investment.paymentProvider');
+  const showChevron = isCommunity || showModalPicker;
+
+  const dropdownBody = (
+    <>
+      <Text style={[styles.dropdownText, { color: colors.text.primary, flex: 1 }]}>
+        {showModalPicker ? selectedLabel : singleLabel}
+      </Text>
+      {showChevron ? (
+        <ChevronDown size={20} color={colors.text.tertiary} />
+      ) : null}
+    </>
+  );
 
   return (
     <>
@@ -87,17 +110,10 @@ export default function PaymentProviderDropdown({
           onPress={() => setOpen(true)}
           activeOpacity={0.8}
         >
-          <Text style={[styles.dropdownText, { color: colors.text.primary }]}>
-            {selected ? selected.type : t('investment.paymentProvider')}
-          </Text>
-          <ChevronDown size={20} color={colors.text.tertiary} />
+          {dropdownBody}
         </TouchableOpacity>
       ) : (
-        <View style={dropdownSurfaceStyle}>
-          <Text style={[styles.dropdownText, { color: colors.text.primary }]}>
-            {displayType ?? t('investment.paymentProvider')}
-          </Text>
-        </View>
+        <View style={dropdownSurfaceStyle}>{dropdownBody}</View>
       )}
 
       {showModalPicker ? (
@@ -122,7 +138,7 @@ export default function PaymentProviderDropdown({
                     onPress={() => selectAddress(item)}
                   >
                     <Text style={[styles.itemText, { color: colors.text.primary }]}>
-                      {item.type}
+                      {formatPaymentTypeLabel(item.type)}
                     </Text>
                   </TouchableOpacity>
                 )}
@@ -138,13 +154,18 @@ export default function PaymentProviderDropdown({
 const styles = StyleSheet.create({
   dropdown: {
     borderWidth: 1,
-    borderColor: "#000",
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 18,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+  },
+  dropdownCommunity: {
+    borderRadius: 9999,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+    minHeight: 45,
   },
   dropdownText: {
     fontSize: 15,

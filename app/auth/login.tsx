@@ -33,6 +33,9 @@ import {
   loginPasswordFieldErrorI18nKey,
   type LoginPasswordFieldErrorCode,
 } from '@/app/auth/loginPasswordFieldErrors';
+import {
+  localizedAuthErrorMessage,
+} from '@/utils/apiErrorMessage';
 import { promptPushNotificationsAfterLogin } from '@/utils/logFcmToken';
 import NetworkService from '@/services/NetworkService';
 import { API_HEADER_CONFIG } from '@/config/apiHeaderConfig';
@@ -91,17 +94,6 @@ type SocialSignupUrlApiBody = {
   data: { url: string; auth_type: string };
   meta?: { message?: string };
 };
-
-function messageFromApiError(error: unknown, fallback: string): string {
-  if (error && typeof error === 'object') {
-    const e = error as Record<string, unknown>;
-    const nested = e.error as Record<string, unknown> | undefined;
-    if (nested && typeof nested.message === 'string') return nested.message;
-    if (typeof e.message === 'string') return e.message;
-  }
-  if (typeof error === 'string') return error;
-  return fallback;
-}
 
 function validateEmailFormat(email: string) {
   const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -279,7 +271,7 @@ export default function LoginScreen() {
           googleOAuthExchangeRef.current = null;
           showAlert(
             t('common.error'),
-            messageFromApiError(response.error, t('common.tryAgain'))
+            localizedAuthErrorMessage(response.error, t, 'common.tryAgain')
           );
           router.replace('/auth/login');
           return;
@@ -335,7 +327,7 @@ export default function LoginScreen() {
       if (!response.success) {
         showAlert(
           t('auth.errors.loginFailed'),
-          response.error.error.message || t('auth.errors.loginFailed')
+          localizedAuthErrorMessage(response.error, t, 'auth.errors.loginFailed')
         );
         return;
       }
@@ -387,7 +379,7 @@ export default function LoginScreen() {
         await AsyncStorage.removeItem(OAUTH_UI_PROVIDER_PENDING_KEY);
         showAlert(
           t('common.error'),
-          messageFromApiError(response.error, t('common.tryAgain'))
+          localizedAuthErrorMessage(response.error, t, 'common.tryAgain')
         );
         return;
       }
@@ -434,7 +426,7 @@ export default function LoginScreen() {
         await AsyncStorage.removeItem(OAUTH_UI_PROVIDER_PENDING_KEY);
         showAlert(
           t('common.error'),
-          messageFromApiError(response.error, t('common.tryAgain'))
+          localizedAuthErrorMessage(response.error, t, 'common.tryAgain')
         );
         return;
       }

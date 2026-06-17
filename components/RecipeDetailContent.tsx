@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,16 +11,21 @@ import {
   Modal,
   Pressable,
   Platform,
+  useWindowDimensions,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
 } from 'react-native';
+import RenderHTML from 'react-native-render-html';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Clock, Star, Heart, Share2, ChevronDown, Minus, Plus, Check } from 'lucide-react-native';
 import HeroSteamIcon, { heroSteamOverlayStyle, HERO_STEAM_ICON_OVERHANG } from '@/components/HeroSteamIcon';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getColors, getTypography } from '@/constants/theme';
-import { getRecipeDetail } from '@/utils/mockRecipeDetails';
+import { mobileAppRecipes } from '@/hooks/mobileApp';
+import { mapRecipeDetail, getRecipePrepStepSets } from '@/utils/mobileAppMappers';
+import type { RecipeDetail as UiRecipeDetail } from '@/utils/mockRecipeDetails';
+import { ProjectDetailShimmer } from '@/components/Shimmer';
 import {
   getStatusBarStripHeight,
   getHeroStatusBarStripBackground,
@@ -28,12 +33,14 @@ import {
 } from '@/utils/statusBarLayout';
 import { useDetailScreenStatusBar } from '@/hooks/useStatusBarStyle';
 import { useFavourites } from '@/contexts/FavouritesContext';
+import { useRecipeFavorite } from '@/hooks/useRecipeFavorite';
 
-const PREP_STYLES = [
-  'Normale Zubereitung',
-  'Schnelle Zubereitung (Airfryer)',
-  'Meal Prep Version',
-];
+const PREP_STYLE_KEYS = ['normal', 'thermomix', 'airfryer'] as const;
+const PREP_STYLE_LABELS: Record<(typeof PREP_STYLE_KEYS)[number], string> = {
+  normal: 'Normale Zubereitung',
+  thermomix: 'Thermomix',
+  airfryer: 'Airfryer',
+};
 
 const AMOUNT_REGEX = /^(\d+([.,]\d+)?)/;
 
@@ -76,15 +83,52 @@ export default function RecipeDetailContent({
   const colors = getColors(theme);
   const typography = getTypography(theme);
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
   const statusBarStripHeight = getStatusBarStripHeight(insets.top);
   const actionsBottom = floatingActionsBottom ?? Math.max(insets.bottom, 12) + 90;
+  const recipesApi = useMemo(() => mobileAppRecipes(), []);
 
-  const recipe = getRecipeDetail(recipeId);
-  const [servings, setServings] = useState(recipe.servings);
-  const [prepStyle, setPrepStyle] = useState(PREP_STYLES[0]);
+  const [recipe, setRecipe] = useState<UiRecipeDetail | null>(null);
+  const [prepStepSets, setPrepStepSets] = useState(getRecipePrepStepSets({
+    uid: 0,
+    title: '',
+    defaultNumberOfServings: 4,
+    ingredients: [],
+    nutritions: [],
+    categories: [],
+    preparationSteps: [],
+    thermomixPreparationSteps: [],
+    airfryerPreparationSteps: [],
+  }));
+  const [loading, setLoading] = useState(true);
+  const [servings, setServings] = useState(4);
+  const [prepStyleKey, setPrepStyleKey] = useState<(typeof PREP_STYLE_KEYS)[number]>('normal');
   const [showPrepDropdown, setShowPrepDropdown] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [scrollY, setScrollY] = useState(0);
+  const [isFavourite, setIsFavourite] = useState(false);
+  const [rating, setRating] = useState(0);
+  const [shortDescription, setShortDescription] = useState('');
+
+  const loadRecipe = useCallback(async () => {
+    setLoading(true);
+    const response = await recipesApi.getRecipe(recipeId);
+    if (response.success && response.data) {
+      const mapped = mapRecipeDetail(response.data);
+      setRecipe(mapped);
+      setServings(mapped.servings);
+      setPrepStepSets(getRecipePrepStepSets(response.data));
+      setIsFavourite(response.data.isFavorite ?? false);
+      setRating(response.data.rating?.value ?? 0);
+      setShortDescription(response.data.shortDescription ?? '');
+      setPrepStyleKey('normal');
+    }
+    setLoading(false);
+  }, [recipeId, recipesApi]);
+
+  useEffect(() => {
+    void loadRecipe();
+  }, [loadRecipe]);
 
   const ownsStatusBar = manageStatusBar && !deferStatusBarToParent;
   const tracksScroll = ownsStatusBar || deferStatusBarToParent || Boolean(onScrollOffsetChange);
@@ -112,17 +156,47 @@ export default function RecipeDetailContent({
     [onScrollOffsetChange],
   );
 
-  const { recipes, toggleFavourite } = useFavourites();
-  const recipeFromList = recipes.find(r => r.id === recipeId);
-  const isFavourite = recipeFromList?.isFavourite ?? false;
-  const rating = recipeFromList?.rating ?? 0;
+  const { setRecipeFavorite } = useFavourites();
+  const { toggleFavorite } = useRecipeFavorite();
+
+  const prepStyles = useMemo(
+    () =>
+      PREP_STYLE_KEYS.filter((key) => prepStepSets[key].length > 0).map((key) => ({
+        key,
+        label: PREP_STYLE_LABELS[key],
+      })),
+    [prepStepSets],
+  );
+
+  const activePrepStyle = prepStyles.find((style) => style.key === prepStyleKey) ?? prepStyles[0];
+  const activeSteps = prepStepSets[activePrepStyle?.key ?? 'normal'] ?? [];
+
+  const handleToggleFavourite = useCallback(() => {
+    if (!recipe) return;
+    const recipeCard = {
+      id: recipeId,
+      title: recipe.title,
+      imageUrl: recipe.imageUrl,
+      durationMinutes: recipe.bakeDurationMinutes,
+      rating,
+      isFavourite,
+    };
+
+    void (async () => {
+      const nextFavorite = await toggleFavorite(recipeId, isFavourite);
+      if (nextFavorite === null) return;
+      setIsFavourite(nextFavorite);
+      setRecipeFavorite(recipeCard, nextFavorite);
+    })();
+  }, [isFavourite, rating, recipe, recipeId, setRecipeFavorite, toggleFavorite]);
 
   // Scale ingredient amounts when serving count changes
   const scaledSections = useMemo(() => {
+    if (!recipe) return [];
     const factor = servings / recipe.servings;
-    return recipe.ingredientSections.map(section => ({
+    return recipe.ingredientSections.map((section) => ({
       ...section,
-      items: section.items.map(item => ({
+      items: section.items.map((item) => ({
         ...item,
         amount: scaleAmount(item.amount, factor),
       })),
@@ -130,13 +204,22 @@ export default function RecipeDetailContent({
   }, [recipe, servings]);
 
   const onShare = async () => {
+    if (!recipe) return;
     await Share.share({ message: `Schau dir dieses Rezept an: ${recipe.title}` });
   };
 
   const onRefresh = () => {
     setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 800);
+    void loadRecipe().finally(() => setRefreshing(false));
   };
+
+  if (loading && !recipe) {
+    return <ProjectDetailShimmer />;
+  }
+
+  if (!recipe) {
+    return null;
+  }
 
   return (
     <View style={[styles.fill, { backgroundColor: colors.background.secondary }]}>
@@ -198,6 +281,12 @@ export default function RecipeDetailContent({
             {recipe.title}
           </Text>
 
+          {shortDescription ? (
+            <Text style={[styles.shortDescription, { color: colors.text.secondary }]}>
+              {shortDescription}
+            </Text>
+          ) : null}
+
           {/* Meta row */}
           <View style={styles.metaRow}>
             <View style={styles.metaItems}>
@@ -216,13 +305,15 @@ export default function RecipeDetailContent({
               {rating > 0 && (
                 <View style={styles.metaItem}>
                   <Star size={14} color={colors.text.primary} />
-                  <Text style={[styles.metaText, { color: colors.text.primary }]}>{rating}</Text>
+                  <Text style={[styles.metaText, { color: colors.text.primary }]}>
+                    {rating.toFixed(1)}
+                  </Text>
                 </View>
               )}
             </View>
             <TouchableOpacity
               style={styles.metaHeartBtn}
-              onPress={() => toggleFavourite(recipeId)}
+              onPress={handleToggleFavourite}
               hitSlop={8}
             >
               <Heart
@@ -259,12 +350,14 @@ export default function RecipeDetailContent({
           </View>
 
           {/* Author */}
-          <View style={styles.authorRow}>
-            <Image source={{ uri: recipe.author.avatarUrl }} style={styles.authorAvatar} />
-            <Text style={[styles.authorName, { color: colors.text.primary }]}>
-              {recipe.author.name}
-            </Text>
-          </View>
+          {recipe.author.name ? (
+            <View style={styles.authorRow}>
+              <Image source={{ uri: recipe.author.avatarUrl }} style={styles.authorAvatar} />
+              <Text style={[styles.authorName, { color: colors.text.primary }]}>
+                {recipe.author.name}
+              </Text>
+            </View>
+          ) : null}
 
           {/* Zutaten header with +/- servings */}
           <View style={styles.zutatenHeader}>
@@ -293,16 +386,18 @@ export default function RecipeDetailContent({
           </View>
 
           {/* Preparation style dropdown trigger */}
-          <TouchableOpacity
-            style={[styles.zubereitungSelector, { borderBottomColor: colors.border.primary }]}
-            onPress={() => setShowPrepDropdown(true)}
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.zubereitungText, { color: colors.text.primary }]}>
-              {prepStyle}
-            </Text>
-            <ChevronDown size={16} color={colors.text.tertiary} />
-          </TouchableOpacity>
+          {prepStyles.length > 1 ? (
+            <TouchableOpacity
+              style={[styles.zubereitungSelector, { borderBottomColor: colors.border.primary }]}
+              onPress={() => setShowPrepDropdown(true)}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.zubereitungText, { color: colors.text.primary }]}>
+                {activePrepStyle?.label ?? PREP_STYLE_LABELS.normal}
+              </Text>
+              <ChevronDown size={16} color={colors.text.tertiary} />
+            </TouchableOpacity>
+          ) : null}
 
           {/* Scaled ingredient sections */}
           {scaledSections.map(section => (
@@ -330,14 +425,27 @@ export default function RecipeDetailContent({
           <Text style={[styles.zutatenTitle, { color: colors.text.primary, marginTop: 20, marginBottom: 16 }]}>
             Zubereitung
           </Text>
-          {recipe.steps.map(step => (
+          {activeSteps.map((step) => (
             <View key={step.number} style={styles.stepBlock}>
               <Text style={[styles.stepLabel, { color: colors.text.primary }]}>
                 Schritt {step.number} / {step.total}
               </Text>
-              <Text style={[styles.stepText, { color: colors.text.primary }]}>
-                {step.text}
-              </Text>
+              {step.text.includes('<') ? (
+                <RenderHTML
+                  contentWidth={width - 48}
+                  source={{ html: step.text }}
+                  baseStyle={{
+                    color: colors.text.primary,
+                    fontFamily: 'Roboto-Light',
+                    fontSize: 16,
+                    lineHeight: 24,
+                  }}
+                />
+              ) : (
+                <Text style={[styles.stepText, { color: colors.text.primary }]}>
+                  {step.text}
+                </Text>
+              )}
             </View>
           ))}
 
@@ -388,15 +496,20 @@ export default function RecipeDetailContent({
             <Text style={[styles.sheetTitle, { color: colors.text.primary, fontFamily: typography.fontFamily.display }]}>
               Zubereitungsart
             </Text>
-            {PREP_STYLES.map(style => (
+            {prepStyles.map((style) => (
               <TouchableOpacity
-                key={style}
+                key={style.key}
                 style={[styles.sheetOption, { borderBottomColor: colors.border.primary }]}
-                onPress={() => { setPrepStyle(style); setShowPrepDropdown(false); }}
+                onPress={() => {
+                  setPrepStyleKey(style.key);
+                  setShowPrepDropdown(false);
+                }}
                 activeOpacity={0.7}
               >
-                <Text style={[styles.sheetOptionText, { color: colors.text.primary }]}>{style}</Text>
-                {prepStyle === style && <Check size={18} color={colors.primary} />}
+                <Text style={[styles.sheetOptionText, { color: colors.text.primary }]}>
+                  {style.label}
+                </Text>
+                {prepStyleKey === style.key && <Check size={18} color={colors.primary} />}
               </TouchableOpacity>
             ))}
             <View style={{ height: Math.max(insets.bottom, 16) }} />
@@ -431,6 +544,12 @@ const styles = StyleSheet.create({
     fontSize: 35,
     lineHeight: 35,
     letterSpacing: 0,
+    marginBottom: 12,
+  },
+  shortDescription: {
+    fontFamily: 'Roboto-Light',
+    fontSize: 16,
+    lineHeight: 24,
     marginBottom: 12,
   },
 

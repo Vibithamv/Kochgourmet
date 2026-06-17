@@ -30,6 +30,11 @@ import {
   isPasswordRequirementsError,
   isPasswordRequirementsMet,
 } from '@/utils/passwordValidation';
+import {
+  getAuthErrorI18nKey,
+  localizedAuthErrorMessage,
+  messageFromApiError,
+} from '@/utils/apiErrorMessage';
 import type { TFunction } from 'i18next';
 
 type FieldErrors = { [key: string]: string };
@@ -66,16 +71,18 @@ type ShowAlertFn = (
 ) => void;
 
 function alertRegisterFailure(
-  message: string,
+  error: unknown,
   password: string,
   t: TFunction,
   showAlert: ShowAlertFn
 ): void {
-  if (message === 'User already exists') {
+  const message = messageFromApiError(error, '');
+
+  if (getAuthErrorI18nKey(error) === 'auth.register.userAlreadyExists') {
     showAlert(t('common.alert'), t('auth.register.userAlreadyExists'), {
-      buttonText: 'Login',
+      buttonText: t('auth.register.signIn'),
       buttonCallback: () => replaceLoginClearingAuthStack(),
-      secondaryButtonText: 'Cancel',
+      secondaryButtonText: t('common.cancel'),
     });
     return;
   }
@@ -89,7 +96,10 @@ function alertRegisterFailure(
     );
     return;
   }
-  showAlert(t('common.alert'), message || t('auth.register.registerFailed'));
+  showAlert(
+    t('common.alert'),
+    localizedAuthErrorMessage(error, t, 'auth.register.registerFailed')
+  );
 }
 
 // ── Field helpers ────────────────────────────────────────────────────────────
@@ -206,7 +216,7 @@ export default function RegisterScreen() {
       });
       return;
     }
-    alertRegisterFailure(registerResult.error?.error?.message ?? '', password, t, showAlert);
+    alertRegisterFailure(registerResult.error, password, t, showAlert);
   };
 
   const onClose = () => {

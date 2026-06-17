@@ -12,10 +12,9 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { CheckCircle, LogOut } from 'lucide-react-native';
 import {
   getColors,
+  getTypography,
   Typography,
   Spacing,
-  BorderRadius,
-  Shadows,
   Colors,
 } from '@/constants/theme';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -32,6 +31,9 @@ export default function VerifyIdentityScreen() {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const colors = getColors(theme);
+  const typography = getTypography(theme);
+  const isDark = theme === 'dark' || theme === 'darkGreen';
+  const primaryButtonTextColor = isDark ? '#0D1117' : '#FFFFFF';
   const { name, id } = useLocalSearchParams();
   const request = kycRequest();
   const { showAlert } = useGlobalAlert();
@@ -141,27 +143,38 @@ export default function VerifyIdentityScreen() {
           <CheckCircle size={56} color={colors.success} />
         </View>
 
-        <Text style={[styles.welcomeText, { color: colors.text.primary }]}>
+        <Text style={[styles.welcomeText, { color: colors.text.primary, fontFamily: typography.fontFamily.medium }]}>
           {name}
         </Text>
 
-        <Text style={[styles.title, { color: colors.text.primary }]}>
+        <Text style={[styles.title, { color: colors.text.primary, fontFamily: typography.fontFamily.display }]}>
           {titleText}
         </Text>
 
-        <Text style={[styles.subtitle, { color: colors.text.secondary }]}>
+        <Text style={[styles.subtitle, { color: colors.text.secondary, fontFamily: typography.fontFamily.regular }]}>
           {subtitleText}
         </Text>
 
         <TouchableOpacity
-          style={[styles.button, { backgroundColor: colors.primary }]}
+          style={[
+            styles.primaryBtn,
+            { backgroundColor: colors.primary, opacity: loading ? 0.6 : 1 },
+          ]}
           disabled={loading}
           onPress={isKycSettled ? () => router.back() : handleCompleteKYC}
         >
           {loading ? (
-            <ActivityIndicator size="small" color={colors.text.inverse} />
+            <ActivityIndicator size="small" color={primaryButtonTextColor} />
           ) : (
-            <Text style={[styles.buttonText, { color: colors.text.inverse }]}>
+            <Text
+              style={[
+                styles.primaryBtnText,
+                {
+                  color: primaryButtonTextColor,
+                  fontFamily: typography.fontFamily.regular,
+                },
+              ]}
+            >
               {buttonLabel}
             </Text>
           )}
@@ -214,36 +227,37 @@ const styles = StyleSheet.create({
   },
   welcomeText: {
     fontSize: Typography.fontSize.lg,
-    fontFamily: Typography.fontFamily.medium,
     marginBottom: Spacing.sm,
     textAlign: 'center',
     width: '100%',
   },
   title: {
     fontSize: Typography.fontSize['5xl'],
-    fontFamily: Typography.fontFamily.bold,
     textAlign: 'center',
     marginBottom: Spacing.lg,
   },
   subtitle: {
     fontSize: Typography.fontSize.base,
-    fontFamily: Typography.fontFamily.regular,
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: Spacing['4xl'],
   },
-  button: {
-    width: 200,
-    borderRadius: BorderRadius.md,
-    paddingVertical: Spacing.lg,
+  primaryBtn: {
+    minWidth: 200,
+    maxWidth: '100%',
+    minHeight: 45,
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+    borderRadius: 9999,
     alignItems: 'center',
-    ...Shadows.button,
-    padding: 10,
+    justifyContent: 'center',
     alignSelf: 'center',
   },
-  buttonText: {
-    fontSize: Typography.fontSize.lg,
-    fontFamily: Typography.fontFamily.semiBold,
+  primaryBtnText: {
+    fontSize: 17,
+    lineHeight: 17,
+    letterSpacing: 0,
+    textAlign: 'center',
   },
   footer: {
     flexDirection: 'row',

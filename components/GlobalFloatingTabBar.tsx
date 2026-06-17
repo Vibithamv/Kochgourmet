@@ -55,7 +55,7 @@ export default function GlobalFloatingTabBar() {
   const blurTint = isDark ? 'dark' : 'light';
   const glassOverlay = isDark
     ? 'rgba(34, 30, 28, 0.42)'
-    : 'rgba(255, 249, 240, 0.52)';
+    : '#FFF6EACC';
   const glassBorder = isDark
     ? 'rgba(255, 255, 255, 0.1)'
     : 'rgba(255, 255, 255, 0.72)';

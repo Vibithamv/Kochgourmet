@@ -34,6 +34,7 @@
     },
     "success": "Erfolg",
     "cancel": "Abbrechen",
+    "close": "Schließen",
     "confirm": "Bestätigen",
     "ok": "OK",
     "save": "Speichern",
@@ -101,7 +102,7 @@
       "registerSuccess": "Registrierung erfolgreich abgeschlossen, bitte melden Sie sich an.",
       "successScreenTitle": "Registrierung erfolgreich",
       "registerFailed": "Registrierung fehlgeschlagen. Bitte versuchen Sie es erneut.",
-      "userAlreadyExists": "Benutzer existiert bereits. Bitte anmelden.",
+      "userAlreadyExists": "Ein Konto mit dieser E-Mail-Adresse existiert bereits. Bitte melden Sie sich stattdessen an.",
       "enterFirstName": "Bitte Vornamen eingeben",
       "enterLastName": "Bitte Nachnamen eingeben",
       "enterEmail": "Bitte E-Mail eingeben",
@@ -154,7 +155,8 @@
       "passwordsDontMatch": "Passwörter stimmen nicht überein",
       "passwordTooShort": "Passwort muss mindestens 6 Zeichen lang sein",
       "loginFailed": "Anmeldung fehlgeschlagen",
-      "registrationFailed": "Registrierung fehlgeschlagen"
+      "registrationFailed": "Registrierung fehlgeschlagen",
+      "userNotConfirmed": "Ihr Konto wurde nicht bestätigt."
     }
   },
   "dashboard": {
@@ -581,6 +583,15 @@
     "paymentProviderTypeLabel": "Zahlungsanbieter-Typ",
     "bankTransferReferenceNote": "Wichtig: Verwenden Sie den Verwendungszweck exakt wie angegeben, damit wir Ihre Zahlung zuordnen können.",
     "bankTransferReferenceNoteWithRef": "Wichtig: Verwenden Sie bei der Überweisung exakt diesen Verwendungszweck, damit wir Ihre Zahlung zuordnen können: {{reference}}",
+    "orderTitle": "Bestellung",
+    "overviewOrderTitle": "Übersicht Bestellung",
+    "selectPaymentRequired": "Wählen Sie eine Zahlungsart*",
+    "buyNow": "Jetzt Kaufen",
+    "bankTransferTitle": "Banküberweisung",
+    "bankTransferInstruction": "Bitte überweise den Gesamtbetrag an die nachstehende Adresse.",
+    "thankYouTitle": "Vielen Dank!",
+    "thankYouMessage": "Wir freuen uns das du nun teil der Founder Kochgourmet Community bist! 😊",
+    "backToOverview": "Zurück zur Übersicht",
     "exit": "Beenden",
     "exitMsg": "Möchten Sie die App verlassen?",
     "logout": "Abmelden",
@@ -631,7 +642,7 @@
     "loadingProject": "Projektdetails werden geladen...",
     "projectNotFound": "Projekt nicht gefunden",
     "goBack": "Zurück",
-    "backThisProject": "unterstütze dieses Projekt",
+    "backThisProject": "Unterstütze dieses Projekt",
     "comingSoon": "Demnächst verfügbar",
     "shareProject": "Projekt teilen",
     "sharingAvailable": "Teilen-Funktion wird bald verfügbar sein",
@@ -703,7 +714,14 @@
     "projected5Year": "Prognose 5 Jahre",
     "ownership": "Eigentumsanteil",
     "draft": "Entworfen",
-    "next": "Weiter"
+    "next": "Weiter",
+    "buy": "Kaufen",
+    "selectAmount": "Auswählen",
+    "communityMembersJoined": "{{memberCount}} Kochgourmet Community Mitglieder sind bereits dabei!",
+    "communityMembersJoinedSuffix": "Kochgourmet Community Mitglieder sind bereits dabei!",
+    "minTokens": "Min. {{count}} {{symbol}}",
+    "schedule": "Zeitplan",
+    "moreInfo": "Weitere Informationen"
   },
   "currencies": {
     "usd": "USD",
@@ -895,7 +913,10 @@
     "emptyArticles": "Keine Artikel gefunden."
   },
   "bonusScreen": {
-    "subtitle": "Deine Bonus & Token"
+    "title": "Community",
+    "subtitle": "Nimm Teil bei unserem Community Bonusprogramm und entwickle mit uns Kochgourmet weiter. 🤯",
+    "searchPlaceholder": "Suchen",
+    "runtime": "Laufzeit {{duration}}"
   },
   "favoritenScreen": {
     "rename": "Umbenennen",
@@ -907,6 +928,7 @@
     "tabFolders": "Ordner",
     "allFavourites": "Alle Favoriten",
     "noFavouritesYet": "Noch keine Favoriten gespeichert",
+    "loginRequired": "Melde dich an, um Favoriten zu speichern.",
     "recipeCount_one": "{{count}} Rezept",
     "recipeCount_other": "{{count}} Rezepte",
     "renameFolder": "Ordner umbenennen",

@@ -4,9 +4,12 @@ import {
   Text,
   StyleSheet,
   PanResponder,
+  TouchableOpacity,
+  type DimensionValue,
   type LayoutChangeEvent,
   type GestureResponderEvent,
 } from 'react-native';
+import { Minus, Plus } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getColors, getTypography, Spacing, BorderRadius } from '@/constants/theme';
@@ -34,6 +37,7 @@ type OfferingTokenSliderProps = Readonly<{
   annualIncomeBase: number;
   value: number;
   onChange: (tokens: number) => void;
+  variant?: 'default' | 'community';
 }>;
 
 function tokensFromRatio(
@@ -62,6 +66,7 @@ export default function OfferingTokenSlider({
   annualIncomeBase,
   value,
   onChange,
+  variant = 'default',
 }: OfferingTokenSliderProps) {
   const { t, i18n } = useTranslation();
   const { theme } = useTheme();
@@ -164,17 +169,34 @@ export default function OfferingTokenSlider({
           marginBottom: Spacing.lg,
         },
         headerLabel: {
-          fontSize: typo.fontSize.base,
+          fontSize: variant === 'community' ? 15 : typo.fontSize.base,
+          lineHeight: variant === 'community' ? 23 : undefined,
           fontFamily: 'Roboto-Light',
+          letterSpacing: 0,
         },
         headerValue: {
-          fontSize: typo.fontSize.base,
+          fontSize: variant === 'community' ? 15 : typo.fontSize.base,
+          lineHeight: variant === 'community' ? 23 : undefined,
           fontFamily: 'Roboto-Regular',
+          letterSpacing: 0,
         },
         trackHitArea: {
+          flex: 1,
           height: 44,
           justifyContent: 'center',
+        },
+        sliderRow: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 12,
           marginBottom: Spacing.sm,
+        },
+        stepBtn: {
+          width: 32,
+          height: 32,
+          borderRadius: 16,
+          alignItems: 'center',
+          justifyContent: 'center',
         },
         track: {
           height: TRACK_HEIGHT,
@@ -202,8 +224,10 @@ export default function OfferingTokenSlider({
           marginBottom: Spacing.lg,
         },
         scaleLabel: {
-          fontSize: typo.fontSize.xs,
+          fontSize: variant === 'community' ? 15 : typo.fontSize.xs,
+          lineHeight: variant === 'community' ? 23 : undefined,
           fontFamily: 'Roboto-Light',
+          letterSpacing: 0,
         },
         metricsBlock: {
           gap: Spacing.md,
@@ -214,15 +238,22 @@ export default function OfferingTokenSlider({
           justifyContent: 'space-between',
         },
         metricLabel: {
-          fontSize: typo.fontSize.sm,
+          fontSize: variant === 'community' ? 15 : typo.fontSize.sm,
+          lineHeight: variant === 'community' ? 23 : undefined,
           fontFamily: 'Roboto-Light',
+          letterSpacing: 0,
         },
         metricValue: {
-          fontSize: typo.fontSize.sm,
-          fontFamily: 'Roboto-Regular',
+          fontSize: variant === 'community' ? 15 : typo.fontSize.sm,
+          lineHeight: variant === 'community' ? 23 : undefined,
+          fontFamily: 'Roboto-Light',
+          letterSpacing: 0,
+        },
+        communityWrap: {
+          marginTop: 0,
         },
       }),
-    [typo]
+    [typo, variant]
   );
 
   const metrics = useMemo(
@@ -236,60 +267,112 @@ export default function OfferingTokenSlider({
   );
 
   const locale = i18n.language;
-  const thumbPercent = `${displayRatio * 100}%`;
+  const thumbPercent = `${displayRatio * 100}%` as DimensionValue;
 
   const handleTrackLayout = (e: LayoutChangeEvent) => {
     trackLayoutRef.current.width = e.nativeEvent.layout.width;
     measureTrack();
   };
 
+  const handleDecrement = useCallback(() => {
+    if (clampedValue <= safeMin) return;
+    onChange(Math.max(safeMin, clampedValue - 1));
+  }, [clampedValue, onChange, safeMin]);
+
+  const handleIncrement = useCallback(() => {
+    if (clampedValue >= safeMax) return;
+    onChange(Math.min(safeMax, clampedValue + 1));
+  }, [clampedValue, onChange, safeMax]);
+
+  const isCommunity = variant === 'community';
+  const headerLabelKey = isCommunity
+    ? 'projectDetail.selectAmount'
+    : 'projectDetail.selectTokens';
+
   return (
     <View
       style={[
-        styles.card,
-        {
+        !isCommunity && styles.card,
+        !isCommunity && {
           backgroundColor: colors.background.card,
           borderColor: colors.border.primary,
         },
+        isCommunity && styles.communityWrap,
       ]}
     >
       <View style={styles.headerRow}>
         <Text style={[styles.headerLabel, { color: colors.text.secondary }]}>
-          {t('projectDetail.selectTokens')}
+          {t(headerLabelKey)}
         </Text>
         <Text style={[styles.headerValue, { color: colors.primary }]}>
           {displayTokens} {tokenSymbol}
         </Text>
       </View>
 
-      <View
-        ref={trackHitRef}
-        style={styles.trackHitArea}
-        onLayout={handleTrackLayout}
-        {...panResponder.panHandlers}
-      >
+      <View style={styles.sliderRow}>
+        <TouchableOpacity
+          style={[
+            styles.stepBtn,
+            {
+              backgroundColor:
+                clampedValue <= safeMin
+                  ? colors.interactive.disabled
+                  : colors.primary,
+            },
+          ]}
+          onPress={handleDecrement}
+          disabled={clampedValue <= safeMin}
+          activeOpacity={0.85}
+        >
+          <Minus size={16} color="#FFFFFF" />
+        </TouchableOpacity>
+
         <View
-          style={[styles.track, { backgroundColor: colors.border.secondary }]}
+          ref={trackHitRef}
+          style={styles.trackHitArea}
+          onLayout={handleTrackLayout}
+          {...panResponder.panHandlers}
         >
           <View
-            style={[
-              styles.trackFill,
-              {
-                backgroundColor: colors.primary,
-                width: thumbPercent,
-              },
-            ]}
-          />
-          <View
-            style={[
-              styles.thumb,
-              {
-                backgroundColor: colors.primary,
-                left: thumbPercent,
-              },
-            ]}
-          />
+            style={[styles.track, { backgroundColor: colors.border.secondary }]}
+          >
+            <View
+              style={[
+                styles.trackFill,
+                {
+                  backgroundColor: colors.primary,
+                  width: thumbPercent,
+                },
+              ]}
+            />
+            <View
+              style={[
+                styles.thumb,
+                {
+                  backgroundColor: colors.primary,
+                  left: thumbPercent,
+                },
+              ]}
+            />
+          </View>
         </View>
+
+        <TouchableOpacity
+          style={[
+            styles.stepBtn,
+            {
+              backgroundColor:
+                clampedValue >= safeMax
+                  ? colors.interactive.disabled
+                  : colors.primary,
+            },
+          ]}
+          onPress={handleIncrement}
+          disabled={clampedValue >= safeMax}
+          activeOpacity={0.85}
+        >
+          <Plus size={16} color="#FFFFFF" />
+        </TouchableOpacity>
       </View>
 
       <View style={styles.scaleRow}>
