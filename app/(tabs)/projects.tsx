@@ -9,10 +9,12 @@ import {
 } from 'react-native';
 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import { Search } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getColors } from '@/constants/theme';
+import { pillSearchBarStyle, pillSearchInputStyle } from '@/constants/textMetrics';
 import ArticleCard, { type ArticleListItem } from '@/components/ArticleCard';
 import ArticleExpandOverlay from '@/components/ArticleExpandOverlay';
 import type { CardLayout } from '@/components/RecipeCard';
@@ -48,6 +50,15 @@ export default function MagazinScreen() {
     article: ArticleListItem;
     layout: CardLayout;
   } | null>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        setSearch('');
+        setExpandedArticle(null);
+      };
+    }, []),
+  );
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -92,9 +103,9 @@ export default function MagazinScreen() {
           {t('magazinScreen.subtitle')}
         </Text>
 
-        <View style={[styles.searchBar, { backgroundColor: colors.background.secondary }]}>
+        <View style={[pillSearchBarStyle, { backgroundColor: colors.background.secondary, marginBottom: 66 }]}>
           <TextInput
-            style={[styles.searchInput, { color: colors.text.primary }]}
+            style={pillSearchInputStyle({ color: colors.text.primary })}
             placeholder={t('magazinScreen.searchPlaceholder')}
             placeholderTextColor={colors.text.primary}
             value={search}
@@ -137,7 +148,7 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: 'PlayfairDisplay_700Bold',
     fontSize: 80,
-    lineHeight: 84,
+    lineHeight: 108,
     letterSpacing: 0,
     marginBottom: 20,
   },
@@ -147,22 +158,6 @@ const styles = StyleSheet.create({
     lineHeight: 23,
     letterSpacing: 0,
     marginBottom: 33,
-  },
-  searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 9999,
-    paddingHorizontal: 22,
-    height: 45,
-    gap: 10,
-    marginBottom: 66,
-  },
-  searchInput: {
-    flex: 1,
-    fontFamily: 'Roboto-Light',
-    fontSize: 17,
-    lineHeight: 17,
-    letterSpacing: 0,
   },
   articles: { gap: 35 },
   emptyText: {

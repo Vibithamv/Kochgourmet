@@ -14,18 +14,19 @@ const TABS = [
   { route: '/projects',  labelKey: 'common.tabs.magazin',   Icon: ChefHat,     filledWhenActive: false, match: (p: string) => p.startsWith('/projects') || p.startsWith('/magazin') },
   { route: '/portfolio', labelKey: 'common.tabs.favoriten', Icon: Heart,       filledWhenActive: false, match: (p: string) => p.startsWith('/portfolio') || p.startsWith('/favoriten') },
   { route: '/offerings', labelKey: 'common.tabs.token',     Icon: TrendingUp,  filledWhenActive: false, match: (p: string) => p.startsWith('/offerings') || p.startsWith('/project') || p.startsWith('/investment') },
-  { route: '/account',   labelKey: 'common.tabs.menu',      Icon: Menu,        filledWhenActive: false, match: (p: string) => p.startsWith('/account') || p === '/auth/kycRequest' || p === '/screens/portfolio' || p === '/screens/projects' },
+  { route: '/account',   labelKey: 'common.tabs.menu',      Icon: Menu,        filledWhenActive: false, match: (p: string) => p.startsWith('/account') || p === '/screens/portfolio' || p === '/screens/projects' },
 ];
 
 const TAB_LABEL_ACTIVE_COLOR = '#EE7051';
 const TAB_LABEL_INACTIVE_COLOR = '#000000';
 
 const HIDDEN_PATHS = new Set([
-  '/auth/login', '/auth/register', '/auth/forgotPassword',
-  '/auth/callback', '/auth/whitelistRequest',
+  '/auth/login', '/auth/register', '/auth/registerConfirm', '/auth/forgotPassword',
+  '/auth/callback', '/auth/kycRequest', '/auth/whitelistRequest',
   '/screens/KYCWebView', '/screens/docSignWebview', '/screens/docWebview',
   '/screens/kycWaiting', '/screens/paymentWebView', '/screens/platformError',
   '/screens/whitelistRequest', '/screens/whitelistResponseWaiting',
+  '/recipe/filter',
   '/+not-found',
 ]);
 
@@ -129,8 +130,8 @@ const styles = StyleSheet.create({
   },
   label: {
     fontFamily: 'Roboto-Regular',
-    fontSize: 12,
-    lineHeight: 12,
+    fontSize: 11,
+    lineHeight: 11,
     letterSpacing: 0,
   },
 });

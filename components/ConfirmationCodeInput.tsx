@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Pressable, StyleSheet } from 'react-native';
+import { View, Text, TextInput, StyleSheet } from 'react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getColors } from '@/constants/theme';
 
@@ -43,8 +43,8 @@ export default function ConfirmationCodeInput({
   };
 
   return (
-    <Pressable onPress={() => inputRef?.current?.focus()} style={styles.pressable}>
-      <View style={styles.row}>
+    <View style={styles.container}>
+      <View style={styles.row} pointerEvents="none" importantForAccessibility="no-hide-descendants">
         {Array.from({ length: CONFIRMATION_CODE_LENGTH }, (_, index) => {
           const digit = value[index] ?? '';
           const isActive = focused && index === Math.min(value.length, CONFIRMATION_CODE_LENGTH - 1);
@@ -78,19 +78,22 @@ export default function ConfirmationCodeInput({
         autoComplete="one-time-code"
         maxLength={CONFIRMATION_CODE_LENGTH}
         caretHidden
-        style={styles.hiddenInput}
+        showSoftInputOnFocus
+        underlineColorAndroid="transparent"
+        style={styles.overlayInput}
         onFocus={handleFocus}
         onBlur={handleBlur}
         accessibilityLabel={accessibilityLabel}
       />
-    </Pressable>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  pressable: {
+  container: {
     position: 'relative',
     width: '100%',
+    minHeight: 48,
   },
   row: {
     flexDirection: 'row',
@@ -111,14 +114,14 @@ const styles = StyleSheet.create({
   digit: {
     fontSize: 20,
     fontFamily: 'Roboto-Regular',
-    lineHeight: 20,
+    lineHeight: 27,
     letterSpacing: 0,
     textAlign: 'center',
   },
-  hiddenInput: {
-    position: 'absolute',
-    opacity: 0,
-    width: 1,
-    height: 1,
+  overlayInput: {
+    ...StyleSheet.absoluteFillObject,
+    opacity: 0.02,
+    color: 'transparent',
+    fontSize: 1,
   },
 });

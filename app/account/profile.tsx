@@ -194,7 +194,7 @@ export default function ProfileScreen() {
         displayName: {
           fontFamily: 'PlayfairDisplay_700Bold',
           fontSize: 35,
-          lineHeight: 35,
+          lineHeight: 48,
           letterSpacing: 0,
           textTransform: 'lowercase',
           marginTop: 10,
@@ -217,7 +217,7 @@ export default function ProfileScreen() {
         sectionTitle: {
           fontFamily: 'Roboto-Regular',
           fontSize: 17,
-          lineHeight: 17,
+          lineHeight: 23,
           letterSpacing: 0,
         },
         sectionDesc: {
@@ -241,14 +241,14 @@ export default function ProfileScreen() {
         pillInputText: {
           fontFamily: 'Roboto-Light',
           fontSize: 16,
-          lineHeight: 16,
+          lineHeight: 22,
           letterSpacing: 0,
           flex: 1,
         },
         pillField: {
           fontFamily: 'Roboto-Light',
           fontSize: 16,
-          lineHeight: 16,
+          lineHeight: 22,
           letterSpacing: 0,
           paddingVertical: 0,
         },
@@ -275,7 +275,7 @@ export default function ProfileScreen() {
         cancelText: {
           fontFamily: 'Roboto-Light',
           fontSize: 17,
-          lineHeight: 17,
+          lineHeight: 23,
           letterSpacing: 0,
           textAlign: 'center',
         },
@@ -297,7 +297,7 @@ export default function ProfileScreen() {
           color: isDark ? '#0D1117' : '#FFFFFF',
           fontFamily: 'Roboto-Regular',
           fontSize: 17,
-          lineHeight: 17,
+          lineHeight: 23,
           letterSpacing: 0,
           textAlign: 'center',
         },
@@ -320,7 +320,7 @@ export default function ProfileScreen() {
           flex: 1,
           fontFamily: 'Roboto-Light',
           fontSize: 17,
-          lineHeight: 17,
+          lineHeight: 23,
           letterSpacing: 0,
         },
         deleteBtn: {
@@ -333,7 +333,7 @@ export default function ProfileScreen() {
           color: isDark ? '#0D1117' : '#FFFFFF',
           fontFamily: 'Roboto-Regular',
           fontSize: 17,
-          lineHeight: 17,
+          lineHeight: 23,
           letterSpacing: 0,
           textAlign: 'center',
         },
@@ -358,7 +358,7 @@ export default function ProfileScreen() {
         sheetTitle: {
           fontFamily: 'Roboto-Regular',
           fontSize: 17,
-          lineHeight: 17,
+          lineHeight: 23,
           marginBottom: 8,
         },
         sheetRow: {
@@ -371,7 +371,7 @@ export default function ProfileScreen() {
         sheetRowText: {
           fontFamily: 'Roboto-Light',
           fontSize: 16,
-          lineHeight: 16,
+          lineHeight: 22,
         },
       }),
     [colors.background.overlay, isDark]

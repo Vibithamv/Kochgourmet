@@ -14,6 +14,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import {
   ChevronRight, ChevronLeft, ChevronDown, ChevronUp, Check,
   Soup, Beef, Salad, Cookie, Sandwich, Apple, CakeSlice,
@@ -67,18 +68,28 @@ const FLAT_FILTER_LABELS: Record<FilterKey, string> = {
   zeit: 'Zeit',
 };
 
-const EXACT_MATCH_SWITCH_SIZE = {
-  width: 26.755584716796875,
-  height: 12.468358993530273,
-} as const;
+const EXACT_MATCH_SWITCH_TARGET = Platform.select({
+  ios: {
+    width: 26.755584716796875,
+    height: 12.468358993530273,
+  },
+  android: {
+    width: 42,
+    height: 18,
+  },
+  default: {
+    width: 26.755584716796875,
+    height: 12.468358993530273,
+  },
+}) as { width: number; height: number };
 
 const NATIVE_SWITCH_SIZE = Platform.select({
   ios: { width: 51, height: 31 },
   android: { width: 48, height: 28 },
   default: { width: 51, height: 31 },
-});
+}) as { width: number; height: number };
 
-const EXACT_MATCH_SWITCH_SCALE = EXACT_MATCH_SWITCH_SIZE.width / NATIVE_SWITCH_SIZE.width;
+const EXACT_MATCH_SWITCH_SCALE = EXACT_MATCH_SWITCH_TARGET.width / NATIVE_SWITCH_SIZE.width;
 
 const EXACT_MATCH_SWITCH_LAYOUT = {
   width: NATIVE_SWITCH_SIZE.width * EXACT_MATCH_SWITCH_SCALE,
@@ -109,21 +120,25 @@ interface ActionButtonsProps {
 }
 
 function ActionButtons({ colors, bottomInset, onCancel, onApply }: ActionButtonsProps) {
+  const { t } = useTranslation();
+
   return (
-    <View style={[styles.actions, { paddingBottom: Math.max(bottomInset, 16) + 90 }]}>
+    <View style={[styles.actions, { paddingBottom: Math.max(bottomInset, 16) + 16 }]}>
       <TouchableOpacity
         style={[styles.cancelBtn, { borderColor: colors.border.primary }]}
         onPress={onCancel}
         activeOpacity={0.7}
       >
-        <Text style={[styles.cancelText, { color: colors.text.primary }]}>Abbrechen</Text>
+        <Text style={[styles.cancelText, { color: colors.text.primary }]}>
+          {t('common.recipe.filterCancel')}
+        </Text>
       </TouchableOpacity>
       <TouchableOpacity
         style={[styles.applyBtn, { backgroundColor: colors.primary }]}
         onPress={onApply}
         activeOpacity={0.8}
       >
-        <Text style={styles.applyText}>Filter anwenden</Text>
+        <Text style={styles.applyText}>{t('common.recipe.filterApply')}</Text>
       </TouchableOpacity>
     </View>
   );
@@ -606,7 +621,7 @@ const styles = StyleSheet.create({
   titleDisplay: {
     fontFamily: 'PlayfairDisplay_700Bold',
     fontSize: 35,
-    lineHeight: 42,
+    lineHeight: 48,
     letterSpacing: 0,
   },
   subHeaderTitle: {
@@ -640,7 +655,7 @@ const styles = StyleSheet.create({
   infoIconLetter: {
     fontFamily: 'Roboto-Regular',
     fontSize: 11,
-    lineHeight: 13,
+    lineHeight: 15,
     letterSpacing: 0,
     marginTop: -0.5,
   },

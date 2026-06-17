@@ -317,7 +317,7 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: 'PlayfairDisplay_700Bold',
     fontSize: 35,
-    lineHeight: 35,
+    lineHeight: 48,
     letterSpacing: 0,
     marginTop: 20,
     marginBottom: 4,
@@ -391,13 +391,13 @@ const styles = StyleSheet.create({
   quoteMarks: {
     fontSize: 48,
     fontFamily: 'Inter-Bold',
-    lineHeight: 40,
+    lineHeight: 65,
     marginBottom: -8,
   },
   quoteText: {
     fontFamily: 'PlayfairDisplay_700Bold',
     fontSize: 35,
-    lineHeight: 45,
+    lineHeight: 48,
     letterSpacing: 0,
   },
   quoteAuthor: {
@@ -410,7 +410,7 @@ const styles = StyleSheet.create({
   quoteAuthorLabel: {
     fontFamily: 'Roboto-Regular',
     fontSize: 15,
-    lineHeight: 15,
+    lineHeight: 20,
     letterSpacing: 0,
     textTransform: 'uppercase',
   },

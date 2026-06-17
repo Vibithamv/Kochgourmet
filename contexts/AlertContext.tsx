@@ -6,7 +6,7 @@ import React, {
   useState,
   ReactNode,
 } from "react";
-import { Modal, View, Text, Pressable, StyleSheet, Platform } from "react-native";
+import { Modal, View, Text, Pressable, TouchableOpacity, StyleSheet, Platform } from "react-native";
 import { useTheme } from "@/contexts/ThemeContext";
 import { getColors, Typography } from "@/constants/theme";
 
@@ -76,7 +76,8 @@ export const AlertProvider = ({ children }: { children: ReactNode }) => {
     secondaryButtonCallback?.();
   };
 
-  const primaryBtnTextColor = colors.text.onPrimary;
+  const primaryBtnTextColor =
+    theme === 'dark' || theme === 'darkGreen' ? '#0D1117' : '#FFFFFF';
   const hasSecondary = secondaryButtonText != null && secondaryButtonText.length > 0;
 
   return (
@@ -106,23 +107,23 @@ export const AlertProvider = ({ children }: { children: ReactNode }) => {
             {/* Buttons */}
             {hasSecondary ? (
               <View style={styles.buttonRow}>
-                <Pressable
-                  style={({ pressed }) => [
+                <TouchableOpacity
+                  style={[
                     styles.button,
                     styles.secondaryButton,
-                    {
-                      borderColor: '#E0E0E0',
-                      backgroundColor: colors.background.primary,
-                      opacity: pressed && Platform.OS === 'ios' ? 0.75 : 1,
-                    },
+                    { borderColor: colors.border.primary },
                   ]}
-                  android_ripple={{ color: 'rgba(0, 0, 0, 0.08)' }}
                   onPress={handleSecondaryPress}
+                  activeOpacity={0.7}
                 >
-                  <Text style={[styles.secondaryButtonText, { color: colors.text.primary }]}>
+                  <Text
+                    style={[styles.secondaryButtonText, { color: colors.text.primary }]}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                  >
                     {secondaryButtonText}
                   </Text>
-                </Pressable>
+                </TouchableOpacity>
                 <Pressable
                   style={({ pressed }) => [
                     styles.button,
@@ -132,7 +133,11 @@ export const AlertProvider = ({ children }: { children: ReactNode }) => {
                   android_ripple={{ color: 'rgba(255, 255, 255, 0.2)' }}
                   onPress={handlePrimaryPress}
                 >
-                  <Text style={[styles.buttonText, { color: primaryBtnTextColor }]}>
+                  <Text
+                    style={[styles.buttonText, { color: primaryBtnTextColor }]}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                  >
                     {buttonText}
                   </Text>
                 </Pressable>
@@ -192,24 +197,25 @@ const styles = StyleSheet.create({
   message: {
     fontSize: Typography.fontSize.base,
     fontFamily: 'Roboto-Light',
-    textAlign: 'left',
+    textAlign: 'center',
     lineHeight: 22,
     marginBottom: 22,
     width: '100%',
   },
   buttonRow: {
-    flexDirection: "row",
-    width: "100%",
+    flexDirection: 'row',
+    width: '100%',
     gap: 10,
   },
   button: {
     flex: 1,
     minWidth: 0,
-    paddingVertical: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
     borderRadius: 9999,
-    alignItems: "center",
-    justifyContent: "center",
-    overflow: "hidden",
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
   },
   secondaryButton: {
     borderWidth: 1,
@@ -225,15 +231,17 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: 17,
     fontFamily: 'Roboto-Regular',
-    lineHeight: 17,
+    lineHeight: 23,
     letterSpacing: 0,
     textAlign: 'center',
+    width: '100%',
   },
   secondaryButtonText: {
     fontSize: 17,
     fontFamily: 'Roboto-Light',
-    lineHeight: 17,
+    lineHeight: 23,
     letterSpacing: 0,
     textAlign: 'center',
+    width: '100%',
   },
 });

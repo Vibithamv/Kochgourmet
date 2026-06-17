@@ -329,19 +329,19 @@ export default function LoginScreen() {
           t('auth.errors.loginFailed'),
           localizedAuthErrorMessage(response.error, t, 'auth.errors.loginFailed')
         );
+        setLoading(false);
         return;
       }
-      setEmail('');
-      setPassword('');
       await promptPushNotificationsAfterLogin({ showAlert, t });
       await navigateAfterLoginSuccess(
         response.data.data,
         checkVisibilityStatus,
         checkStatus
       );
+      setEmail('');
+      setPassword('');
     } catch (error: any) {
       showAlert(t('auth.errors.loginFailed'), error.message);
-    } finally {
       setLoading(false);
     }
   };
@@ -705,7 +705,7 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: 'PlayfairDisplay_700Bold',
     fontSize: 35,
-    lineHeight: 45,
+    lineHeight: 48,
     letterSpacing: 0,
     flex: 1,
     paddingRight: 12,
@@ -742,7 +742,7 @@ const styles = StyleSheet.create({
   fieldInput: {
     fontFamily: 'Roboto-Light',
     fontSize: 16,
-    lineHeight: 16,
+    lineHeight: 22,
     letterSpacing: 0,
   },
   pillInputWrap: {
@@ -805,7 +805,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontFamily: 'Roboto-Regular',
     fontSize: 17,
-    lineHeight: 17,
+    lineHeight: 23,
     letterSpacing: 0,
     textAlign: 'center',
   },
@@ -871,7 +871,7 @@ const styles = StyleSheet.create({
   signupActionText: {
     fontFamily: 'Roboto-Regular',
     fontSize: 15,
-    lineHeight: 15,
+    lineHeight: 20,
     letterSpacing: 0,
   },
   signupCheese: {

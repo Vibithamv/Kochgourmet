@@ -14,6 +14,7 @@ import { Search } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getColors } from '@/constants/theme';
+import { pillSearchBarStyle, pillSearchInputStyle } from '@/constants/textMetrics';
 import OptimizedImage from '@/components/OptimizedImage';
 import type { CardLayout } from '@/components/RecipeCard';
 import OfferingExpandOverlay, {
@@ -235,7 +236,15 @@ const OfferingsScreen = React.memo(() => {
     }
   }, [offeringsApi, showAlert, t]);
 
-  useFocusEffect(useCallback(() => { void loadProjects(); }, [loadProjects]));
+  useFocusEffect(
+    useCallback(() => {
+      void loadProjects();
+      return () => {
+        setSearchQuery('');
+        setExpandedOffering(null);
+      };
+    }, [loadProjects]),
+  );
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -259,14 +268,6 @@ const OfferingsScreen = React.memo(() => {
     ),
     [expandedOffering?.offering.id],
   );
-
-  const renderEmpty = useCallback(() => (
-    <View style={styles.emptyContainer}>
-      <Text style={[styles.emptyText, { color: colors.text.tertiary }]}>
-        {t('common.noResultsFound')}
-      </Text>
-    </View>
-  ), [t, colors]);
 
   const keyExtractor = useCallback((item: ExtendedProject) => item.id, []);
 
@@ -299,9 +300,9 @@ const OfferingsScreen = React.memo(() => {
       </View>
 
       <View style={styles.searchRow}>
-        <View style={[styles.searchBar, { backgroundColor: colors.background.secondary }]}>
+        <View style={[pillSearchBarStyle, { backgroundColor: colors.background.secondary }]}>
           <TextInput
-            style={[styles.searchInput, { color: colors.text.primary }]}
+            style={pillSearchInputStyle({ color: colors.text.primary })}
             value={searchQuery}
             onChangeText={setSearchQuery}
             placeholder={t('bonusScreen.searchPlaceholder')}
@@ -313,18 +314,27 @@ const OfferingsScreen = React.memo(() => {
 
       {loading ? (
         <BonusScreenShimmer />
+      ) : filteredProjects.length === 0 ? (
+        <View
+          style={[
+            styles.emptyStateFill,
+            { paddingBottom: TAB_BAR_HEIGHT + Math.max(insets.bottom, 12) + 16 },
+          ]}
+        >
+          <Text style={[styles.emptyText, { color: colors.text.tertiary }]}>
+            {t('common.noResultsFound')}
+          </Text>
+        </View>
       ) : (
         <FlatList
           ref={listRef}
           data={filteredProjects}
           renderItem={renderProject}
           ItemSeparatorComponent={renderSeparator}
-          ListEmptyComponent={renderEmpty}
           keyExtractor={keyExtractor}
           getItemLayout={getItemLayout}
           contentContainerStyle={[
             styles.listContent,
-            filteredProjects.length === 0 && styles.listContentCenter,
             { paddingBottom: TAB_BAR_HEIGHT + Math.max(insets.bottom, 12) + 16 },
           ]}
           refreshControl={
@@ -367,7 +377,7 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: 'PlayfairDisplay_700Bold',
     fontSize: 42,
-    lineHeight: 48,
+    lineHeight: 52,
     letterSpacing: 0,
   },
   subtitle: {
@@ -380,34 +390,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: COMMUNITY_SCREEN_PADDING,
     marginBottom: 20,
   },
-  searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 9999,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 8,
-    minHeight: 48,
-  },
-  searchInput: {
-    flex: 1,
-    fontFamily: 'Roboto-Light',
-    fontSize: 17,
-    lineHeight: 22,
-    letterSpacing: 0,
-    paddingVertical: 0,
-  },
   listContent: {
     paddingHorizontal: COMMUNITY_SCREEN_PADDING,
   },
-  listContentCenter: {
+  emptyStateFill: {
     flex: 1,
-    justifyContent: 'center',
-  },
-  emptyContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 60,
+    paddingHorizontal: COMMUNITY_SCREEN_PADDING,
   },
   emptyText: {
     fontSize: 15,

@@ -172,7 +172,7 @@ const styles = StyleSheet.create({
   metaTextRezepte: {
     fontFamily: 'Roboto-Light',
     fontSize: 12,
-    lineHeight: 12,
+    lineHeight: 16,
     letterSpacing: 0,
     color: REZEPE_META_COLOR,
     marginTop: 1,

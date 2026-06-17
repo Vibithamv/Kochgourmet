@@ -466,7 +466,7 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: 'PlayfairDisplay_700Bold',
     fontSize: 35,
-    lineHeight: 35,
+    lineHeight: 48,
     letterSpacing: 0,
     flex: 1,
     paddingRight: 12,
@@ -502,7 +502,7 @@ const styles = StyleSheet.create({
   fieldInput: {
     fontFamily: 'Roboto-Light',
     fontSize: 16,
-    lineHeight: 16,
+    lineHeight: 22,
     letterSpacing: 0,
   },
   pillInputWrap: {
@@ -549,7 +549,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontFamily: 'Roboto-Regular',
     fontSize: 17,
-    lineHeight: 17,
+    lineHeight: 23,
     letterSpacing: 0,
     textAlign: 'center',
   },
@@ -588,7 +588,7 @@ const styles = StyleSheet.create({
   signupActionText: {
     fontFamily: 'Roboto-Regular',
     fontSize: 15,
-    lineHeight: 15,
+    lineHeight: 20,
     letterSpacing: 0,
   },
   signupCheese: {

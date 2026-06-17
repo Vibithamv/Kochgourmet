@@ -221,7 +221,7 @@ const styles = StyleSheet.create({
   titleLine: {
     fontFamily: 'PlayfairDisplay_700Bold',
     fontSize: 35,
-    lineHeight: 42,
+    lineHeight: 48,
     letterSpacing: 0,
   },
   floatingActions: {

@@ -93,7 +93,7 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: 'PlayfairDisplay_700Bold',
     fontSize: 35,
-    lineHeight: 42,
+    lineHeight: 48,
     letterSpacing: 0,
     marginBottom: 16,
   },

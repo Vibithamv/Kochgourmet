@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Stack, useRouter, type Router } from 'expo-router';
-import { Alert, AppState, LogBox, Platform } from 'react-native';
+import { Alert, AppState, LogBox, Platform, Text, TextInput } from 'react-native';
 import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
 import {
   PlayfairDisplay_500Medium,
@@ -41,6 +41,19 @@ import { ThemedStatusBar } from '@/components/ThemedStatusBar';
 import { persistPlatformSignInOptionsFromValidateResponse } from '@/constants/platformSignInOptions';
 
 void SplashScreen.preventAutoHideAsync();
+
+// Prevent Android extra font padding that clips descenders (g, j, p, y, etc.).
+if (Platform.OS === 'android') {
+  const textDefaults = { includeFontPadding: false } as const;
+  (Text as unknown as { defaultProps?: { includeFontPadding?: boolean } }).defaultProps = {
+    ...(Text as unknown as { defaultProps?: object }).defaultProps,
+    ...textDefaults,
+  };
+  (TextInput as unknown as { defaultProps?: { includeFontPadding?: boolean } }).defaultProps = {
+    ...(TextInput as unknown as { defaultProps?: object }).defaultProps,
+    ...textDefaults,
+  };
+}
 
 // Complete error suppression for Samsung devices
 LogBox.ignoreAllLogs(true);

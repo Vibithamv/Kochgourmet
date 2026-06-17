@@ -23,6 +23,7 @@ import { useGlobalAlert } from '@/contexts/AlertContext';
 import { replaceLoginClearingAuthStack } from '@/utils/authNavigation';
 import LanguageSelector from '@/components/LanguageSelector';
 import ConfirmationCodeInput, { CONFIRMATION_CODE_LENGTH } from '@/components/ConfirmationCodeInput';
+import { localizedAuthErrorMessage } from '@/utils/apiErrorMessage';
 
 export default function RegisterConfirmScreen() {
   const { t } = useTranslation();
@@ -39,6 +40,7 @@ export default function RegisterConfirmScreen() {
   const [loadingConfirm, setLoadingConfirm] = useState(false);
   const [loadingResend, setLoadingResend] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const keyboardVisibleRef = useRef(false);
   const codeInputRef = useRef<TextInput>(null);
 
   useLayoutEffect(() => {
@@ -59,7 +61,11 @@ export default function RegisterConfirmScreen() {
     useCallback(() => {
       const tId = setTimeout(() => codeInputRef.current?.focus(), 200);
       const sub = BackHandler.addEventListener('hardwareBackPress', () => {
-        Keyboard.dismiss();
+        if (keyboardVisibleRef.current) {
+          Keyboard.dismiss();
+          codeInputRef.current?.blur();
+          return true;
+        }
         setPending(null);
         replaceLoginClearingAuthStack();
         return true;
@@ -72,8 +78,14 @@ export default function RegisterConfirmScreen() {
   );
 
   useEffect(() => {
-    const show = Keyboard.addListener('keyboardDidShow', (e) => setKeyboardHeight(e.endCoordinates.height));
-    const hide = Keyboard.addListener('keyboardDidHide', () => setKeyboardHeight(0));
+    const show = Keyboard.addListener('keyboardDidShow', (e) => {
+      keyboardVisibleRef.current = true;
+      setKeyboardHeight(e.endCoordinates.height);
+    });
+    const hide = Keyboard.addListener('keyboardDidHide', () => {
+      keyboardVisibleRef.current = false;
+      setKeyboardHeight(0);
+    });
     return () => {
       show.remove();
       hide.remove();
@@ -105,7 +117,7 @@ export default function RegisterConfirmScreen() {
       }
       showAlert(
         t('common.failed'),
-        result.error.error.message || t('auth.forgotPassword.sendResetCodeFailed')
+        localizedAuthErrorMessage(result.error, t, 'auth.forgotPassword.sendResetCodeFailed'),
       );
     } catch (err) {
       console.error('Resend OTP error:', err);
@@ -136,7 +148,10 @@ export default function RegisterConfirmScreen() {
         router.replace('/auth/registerSuccess');
         return;
       }
-      showAlert(t('common.failed'), result.error.error.message);
+      showAlert(
+        t('common.failed'),
+        localizedAuthErrorMessage(result.error, t, 'auth.register.registerFailed'),
+      );
     } catch (err) {
       console.error('Registration confirmation error:', err);
       showAlert(t('common.failed'), t('auth.register.registerFailed'));
@@ -264,7 +279,7 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: 'PlayfairDisplay_700Bold',
     fontSize: 35,
-    lineHeight: 35,
+    lineHeight: 48,
     letterSpacing: 0,
     textAlign: 'center',
     width: '100%',
@@ -292,10 +307,10 @@ const styles = StyleSheet.create({
   label: {
     fontFamily: 'Roboto-Light',
     fontSize: 16,
-    lineHeight: 16,
+    lineHeight: 22,
     letterSpacing: 0,
-    textAlign: 'center',
-    width: '100%',
+    textAlign: 'left',
+    alignSelf: 'flex-start',
     marginBottom: 14,
   },
   errorText: {
@@ -317,7 +332,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontFamily: 'Roboto-Regular',
     fontSize: 17,
-    lineHeight: 17,
+    lineHeight: 23,
     letterSpacing: 0,
     textAlign: 'center',
   },
@@ -333,7 +348,7 @@ const styles = StyleSheet.create({
   resendText: {
     fontFamily: 'Roboto-Light',
     fontSize: 17,
-    lineHeight: 17,
+    lineHeight: 23,
     letterSpacing: 0,
     textAlign: 'center',
   },

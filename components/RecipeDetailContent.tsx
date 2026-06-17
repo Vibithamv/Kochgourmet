@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -25,7 +25,7 @@ import { getColors, getTypography } from '@/constants/theme';
 import { mobileAppRecipes } from '@/hooks/mobileApp';
 import { mapRecipeDetail, getRecipePrepStepSets } from '@/utils/mobileAppMappers';
 import type { RecipeDetail as UiRecipeDetail } from '@/utils/mockRecipeDetails';
-import { ProjectDetailShimmer } from '@/components/Shimmer';
+import { ProjectDetailShimmer, RecipeDetailBodyShimmer } from '@/components/Shimmer';
 import {
   getStatusBarStripHeight,
   getHeroStatusBarStripBackground,
@@ -62,6 +62,8 @@ export interface RecipeDetailContentProps {
   readonly recipeId: string;
   readonly onClose: () => void;
   readonly showHeroImage?: boolean;
+  readonly heroImageUriOverride?: string;
+  readonly bodyOnlyLoading?: boolean;
   readonly floatingActionsBottom?: number;
   readonly overlayContentPadding?: boolean;
   readonly manageStatusBar?: boolean;
@@ -69,10 +71,56 @@ export interface RecipeDetailContentProps {
   readonly onScrollOffsetChange?: (offsetY: number) => void;
 }
 
+function RecipeDetailScrollLoading({
+  heroImageUri,
+  overlayContentPadding,
+  onScrollOffsetChange,
+  bottomSpacer,
+}: Readonly<{
+  heroImageUri: string;
+  overlayContentPadding: boolean;
+  onScrollOffsetChange?: (offsetY: number) => void;
+  bottomSpacer: number;
+}>) {
+  const { theme } = useTheme();
+  const colors = getColors(theme);
+
+  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    onScrollOffsetChange?.(event.nativeEvent.contentOffset.y);
+  };
+
+  return (
+    <ScrollView
+      style={{ flex: 1, backgroundColor: colors.background.secondary }}
+      showsVerticalScrollIndicator={false}
+      onScroll={onScrollOffsetChange ? handleScroll : undefined}
+      scrollEventThrottle={16}
+    >
+      <View style={[styles.heroWrap, { backgroundColor: colors.background.secondary }]}>
+        <Image source={{ uri: heroImageUri }} style={styles.heroImage} resizeMode="cover" />
+        <View style={heroSteamOverlayStyle.icon}>
+          <HeroSteamIcon />
+        </View>
+      </View>
+      <View
+        style={[
+          styles.content,
+          overlayContentPadding ? styles.contentOverlayHandoff : styles.contentDefault,
+        ]}
+      >
+        <RecipeDetailBodyShimmer />
+        <View style={{ height: bottomSpacer }} />
+      </View>
+    </ScrollView>
+  );
+}
+
 export default function RecipeDetailContent({
   recipeId,
   onClose,
   showHeroImage = true,
+  heroImageUriOverride,
+  bodyOnlyLoading = false,
   floatingActionsBottom,
   overlayContentPadding = false,
   manageStatusBar = false,
@@ -109,9 +157,13 @@ export default function RecipeDetailContent({
   const [isFavourite, setIsFavourite] = useState(false);
   const [rating, setRating] = useState(0);
   const [shortDescription, setShortDescription] = useState('');
+  const recipeRef = useRef(recipe);
+  recipeRef.current = recipe;
 
   const loadRecipe = useCallback(async () => {
-    setLoading(true);
+    if (recipeRef.current === null) {
+      setLoading(true);
+    }
     const response = await recipesApi.getRecipe(recipeId);
     if (response.success && response.data) {
       const mapped = mapRecipeDetail(response.data);
@@ -213,8 +265,64 @@ export default function RecipeDetailContent({
     void loadRecipe().finally(() => setRefreshing(false));
   };
 
+  const bottomSpacer = Math.max(insets.bottom, 16) + 180;
+
   if (loading && !recipe) {
-    return <ProjectDetailShimmer />;
+    const loadingShell = (
+      <>
+        {bodyOnlyLoading && showHeroImage && heroImageUriOverride ? (
+          <RecipeDetailScrollLoading
+            heroImageUri={heroImageUriOverride}
+            overlayContentPadding={overlayContentPadding}
+            onScrollOffsetChange={onScrollOffsetChange}
+            bottomSpacer={bottomSpacer}
+          />
+        ) : bodyOnlyLoading ? (
+          <View
+            style={[
+              styles.fill,
+              styles.content,
+              overlayContentPadding ? styles.contentOverlayHandoff : styles.contentDefault,
+              { backgroundColor: colors.background.secondary },
+            ]}
+          >
+            <RecipeDetailBodyShimmer />
+          </View>
+        ) : (
+          <ProjectDetailShimmer />
+        )}
+        <View style={[styles.floatingActions, { bottom: actionsBottom }]} pointerEvents="box-none">
+          <TouchableOpacity
+            style={[styles.closeBtn, { backgroundColor: colors.background.card, borderColor: colors.border.primary }]}
+            onPress={onClose}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.closeBtnText, { color: colors.text.primary }]}>Schließen</Text>
+          </TouchableOpacity>
+        </View>
+      </>
+    );
+
+    if (ownsStatusBar) {
+      return (
+        <View style={[styles.fill, { backgroundColor: colors.background.secondary }]}>
+          <StatusBar style={statusBarConfig.expo} />
+          <View
+            pointerEvents="none"
+            style={[
+              styles.statusBarOverlay,
+              {
+                height: statusBarStripHeight,
+                backgroundColor: statusBarStripBackground,
+              },
+            ]}
+          />
+          {loadingShell}
+        </View>
+      );
+    }
+
+    return <View style={[styles.fill, { backgroundColor: colors.background.secondary }]}>{loadingShell}</View>;
   }
 
   if (!recipe) {
@@ -225,12 +333,7 @@ export default function RecipeDetailContent({
     <View style={[styles.fill, { backgroundColor: colors.background.secondary }]}>
       {ownsStatusBar && (
         <>
-          <StatusBar
-            style={statusBarConfig.expo}
-            {...(Platform.OS === 'android'
-              ? { backgroundColor: statusBarStripBackground }
-              : {})}
-          />
+          <StatusBar style={statusBarConfig.expo} />
           <View
             pointerEvents="none"
             style={[
@@ -336,7 +439,7 @@ export default function RecipeDetailContent({
             </View>
             {recipe.nutrition.map((n, index) => (
               <View
-                key={n.label}
+                key={`${n.label}-${n.value}-${index}`}
                 style={[
                   styles.nutritionRow,
                   index < recipe.nutrition.length - 1 && styles.nutritionRowDivider,
@@ -454,7 +557,7 @@ export default function RecipeDetailContent({
             Guten Appetit 👏
           </Text>
 
-          <View style={{ height: Math.max(insets.bottom, 16) + 180 }} />
+          <View style={{ height: bottomSpacer }} />
         </View>
       </ScrollView>
 
@@ -542,7 +645,7 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: 'PlayfairDisplay_700Bold',
     fontSize: 35,
-    lineHeight: 35,
+    lineHeight: 48,
     letterSpacing: 0,
     marginBottom: 12,
   },
@@ -575,7 +678,7 @@ const styles = StyleSheet.create({
   metaText: {
     fontFamily: 'Roboto-Light',
     fontSize: 15,
-    lineHeight: 15,
+    lineHeight: 20,
     letterSpacing: 0,
   },
 
@@ -606,7 +709,7 @@ const styles = StyleSheet.create({
   authorName: {
     fontFamily: 'PlayfairDisplay_500Medium',
     fontSize: 20,
-    lineHeight: 20,
+    lineHeight: 27,
     letterSpacing: 0,
   },
 
@@ -637,7 +740,7 @@ const styles = StyleSheet.create({
   closeBtnText: {
     fontFamily: 'Roboto-Light',
     fontSize: 17,
-    lineHeight: 17,
+    lineHeight: 23,
     letterSpacing: 0,
     textAlign: 'center',
   },
@@ -667,7 +770,7 @@ const styles = StyleSheet.create({
   servingsText: {
     fontFamily: 'Roboto-Light',
     fontSize: 17,
-    lineHeight: 17,
+    lineHeight: 23,
     letterSpacing: 0,
   },
 
@@ -682,7 +785,7 @@ const styles = StyleSheet.create({
   zubereitungText: {
     fontFamily: 'Roboto-Light',
     fontSize: 17,
-    lineHeight: 17,
+    lineHeight: 23,
     letterSpacing: 0,
   },
 
@@ -690,7 +793,7 @@ const styles = StyleSheet.create({
   ingredientSectionTitle: {
     fontFamily: 'Roboto-Regular',
     fontSize: 17,
-    lineHeight: 17,
+    lineHeight: 23,
     letterSpacing: 0,
     marginBottom: 10,
     marginTop: 10,
@@ -699,7 +802,7 @@ const styles = StyleSheet.create({
   ingredientAmount: {
     fontFamily: 'Roboto-Light',
     fontSize: 17,
-    lineHeight: 17,
+    lineHeight: 23,
     letterSpacing: 0,
     width: 108,
     flexShrink: 0,
@@ -707,7 +810,7 @@ const styles = StyleSheet.create({
   ingredientName: {
     fontFamily: 'Roboto-Light',
     fontSize: 17,
-    lineHeight: 17,
+    lineHeight: 23,
     letterSpacing: 0,
   },
 
@@ -729,7 +832,7 @@ const styles = StyleSheet.create({
   appetit: {
     fontFamily: 'PlayfairDisplay_700Bold',
     fontSize: 35,
-    lineHeight: 45,
+    lineHeight: 48,
     letterSpacing: 0,
     marginTop: 20,
   },

@@ -11,6 +11,8 @@ export function messageFromApiError(error: unknown, fallback: string): string {
 
 const AUTH_ERROR_I18N_KEYS: Record<string, string> = {
   'User is not confirmed.': 'auth.errors.userNotConfirmed',
+  'User not found.': 'auth.errors.userNotFound',
+  'Invalid or expired code.': 'auth.forgotPassword.invalidOrExpiredCode',
   'User already exists': 'auth.register.userAlreadyExists',
   'An account with this email already exists. Please try logging in instead.':
     'auth.register.userAlreadyExists',

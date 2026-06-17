@@ -14,8 +14,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getColors } from '@/constants/theme';
+import { pillSearchBarStyle, pillSearchInputStyle } from '@/constants/textMetrics';
 import { Search, X, Sparkles, ChevronRight } from 'lucide-react-native';
-import RecipeCard, { type Recipe, type CardLayout } from '@/components/RecipeCard';
+import RecipeCard, {
+  type Recipe,
+  type CardLayout,
+  REZEPE_CARD_IMAGE_SIZE,
+} from '@/components/RecipeCard';
 import RecipeExpandOverlay from '@/components/RecipeExpandOverlay';
 import { useFavourites } from '@/contexts/FavouritesContext';
 import { useRecipeFilters } from '@/contexts/RecipeFiltersContext';
@@ -27,7 +32,8 @@ import { mobileAppRecipes } from '@/hooks/mobileApp';
 import { mapRecipeListItem } from '@/utils/mobileAppMappers';
 import { useGlobalAlert } from '@/contexts/AlertContext';
 import { replaceLoginClearingAuthStack } from '@/utils/authNavigation';
-import { DashboardShimmer } from '@/components/Shimmer';
+import { RezepteGridShimmer, ShimmerBlock, useShimmerAnim } from '@/components/Shimmer';
+import OptimizedImage from '@/components/OptimizedImage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { RECIPES_PER_PAGE } from '@/constants/recipeListDefaults';
 
@@ -134,23 +140,31 @@ export default function RezepteScreen() {
   const [hasMore, setHasMore] = useState(true);
   const [userName, setUserName] = useState('');
   const [profilePictureUrl, setProfilePictureUrl] = useState<string | null>(null);
+  const [profileLoading, setProfileLoading] = useState(true);
+  const avatarShimmerAnim = useShimmerAnim();
   const [showBanner, setShowBanner] = useState(false);
   const bannerShownRef = useRef(false);
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const tabBlurredRef = useRef(false);
   const [expandedRecipe, setExpandedRecipe] = useState<{
     recipe: Recipe;
     layout: CardLayout;
   } | null>(null);
+  const recipesRef = useRef(recipes);
+  recipesRef.current = recipes;
 
   const loadRecipes = useCallback(
-    async (options: { page?: number; append?: boolean; search?: string } = {}) => {
+    async (
+      options: { page?: number; append?: boolean; search?: string; silent?: boolean } = {},
+    ) => {
       const nextPage = options.page ?? 1;
       const append = options.append ?? false;
       const search = options.search ?? searchQuery;
+      const silent = options.silent ?? false;
 
       if (append) {
         setLoadingMore(true);
-      } else if (nextPage === 1) {
+      } else if (nextPage === 1 && !silent && recipesRef.current.length === 0) {
         setLoading(true);
       }
 
@@ -187,9 +201,33 @@ export default function RezepteScreen() {
     [recipesApi, searchQuery, selection, showAlert, syncRecipesFromList],
   );
 
+  const loadRecipesRef = useRef(loadRecipes);
+  loadRecipesRef.current = loadRecipes;
+
   useFocusEffect(
     useCallback(() => {
+      if (tabBlurredRef.current) {
+        setSearchQuery('');
+        if (searchDebounceRef.current) {
+          clearTimeout(searchDebounceRef.current);
+        }
+        void loadRecipesRef.current({ page: 1, search: '', silent: true });
+      }
+      return () => {
+        tabBlurredRef.current = true;
+        if (searchDebounceRef.current) {
+          clearTimeout(searchDebounceRef.current);
+        }
+        setSearchQuery('');
+      };
+    }, []),
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
       userAccount.getUser().then((res) => {
+        if (cancelled) return;
         if (res.success && res.data) {
           const u = res.data.data.user;
           setUserName(u.first_name ?? '');
@@ -203,13 +241,20 @@ export default function RezepteScreen() {
           showAlert('Sitzung abgelaufen', 'Bitte melde dich erneut an.');
           replaceLoginClearingAuthStack();
         }
+        setProfileLoading(false);
       });
+      return () => {
+        cancelled = true;
+      };
     }, [showAlert, userAccount]),
   );
 
   useEffect(() => {
     if (searchDebounceRef.current) {
       clearTimeout(searchDebounceRef.current);
+    }
+    if (!refreshing && recipesRef.current.length === 0) {
+      setLoading(true);
     }
     searchDebounceRef.current = setTimeout(() => {
       void loadRecipes({ page: 1, search: searchQuery });
@@ -252,8 +297,22 @@ export default function RezepteScreen() {
     <View style={[styles.screen, { backgroundColor: colors.background.primary }]}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: Math.max(insets.top, 44) + 12 }]}>
-        {profilePictureUrl ? (
-          <Image source={{ uri: profilePictureUrl }} style={styles.avatar} />
+        {profileLoading ? (
+          <ShimmerBlock anim={avatarShimmerAnim} width={52} height={52} borderRadius={26} />
+        ) : profilePictureUrl ? (
+          <OptimizedImage
+            source={{ uri: profilePictureUrl }}
+            style={styles.avatar}
+            resizeMode="cover"
+            placeholder={
+              <ShimmerBlock
+                anim={avatarShimmerAnim}
+                width={52}
+                height={52}
+                borderRadius={26}
+              />
+            }
+          />
         ) : (
           <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: colors.primary }]}>
             <Text style={styles.avatarInitial}>
@@ -273,9 +332,9 @@ export default function RezepteScreen() {
 
       {/* Search bar */}
       <View style={styles.searchRow}>
-        <View style={[styles.searchBar, { backgroundColor: colors.background.secondary }]}>
+        <View style={[pillSearchBarStyle, { flex: 1, backgroundColor: colors.background.secondary }]}>
           <TextInput
-            style={[styles.searchInput, { color: colors.text.primary }]}
+            style={pillSearchInputStyle({ color: colors.text.primary })}
             placeholder="Rezeptsuche"
             placeholderTextColor={colors.text.tertiary}
             value={searchQuery}
@@ -324,8 +383,8 @@ export default function RezepteScreen() {
       )}
 
       {/* Recipe grid / empty state */}
-      {loading && recipes.length === 0 ? (
-        <DashboardShimmer />
+      {loading && !refreshing && recipes.length === 0 ? (
+        <RezepteGridShimmer itemCount={RECIPES_PER_PAGE} />
       ) : recipes.length === 0 ? (
         <View style={styles.emptyState}>
           <Text style={[styles.emptyTitle, { color: colors.text.primary }]}>
@@ -372,6 +431,7 @@ export default function RezepteScreen() {
               <RecipeCard
                 recipe={item}
                 variant="rezepte"
+                imageSize={REZEPE_CARD_IMAGE_SIZE}
                 hidden={expandedRecipe?.recipe.id === item.id}
                 onPressWithLayout={(layout) => setExpandedRecipe({ recipe: item, layout })}
                 onToggleFavourite={() => handleToggleFavourite(item)}
@@ -440,24 +500,6 @@ const styles = StyleSheet.create({
     marginTop: 50,
     marginBottom: 16,
   },
-  searchBar: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 9999,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    gap: 8,
-    minHeight: 44,
-  },
-  searchInput: {
-    flex: 1,
-    fontFamily: 'Roboto-Light',
-    fontSize: 17,
-    lineHeight: 22,
-    letterSpacing: 0,
-    paddingVertical: 0,
-  },
   filterButton: {
     width: 46,
     height: 46,
@@ -490,7 +532,7 @@ const styles = StyleSheet.create({
   chipText: {
     color: '#fff',
     fontSize: 12,
-    lineHeight: 14,
+    lineHeight: 16,
     fontFamily: 'Inter-Medium',
   },
   list: {
@@ -523,7 +565,7 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontFamily: 'PlayfairDisplay_700Bold',
     fontSize: 35,
-    lineHeight: 35,
+    lineHeight: 48,
     letterSpacing: 0,
   },
   emptySubtitle: {

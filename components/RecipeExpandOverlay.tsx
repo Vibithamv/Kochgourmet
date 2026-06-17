@@ -7,7 +7,6 @@ import {
   StyleSheet,
   Dimensions,
   Pressable,
-  Platform,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -22,6 +21,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getColors } from '@/constants/theme';
 import type { Recipe, CardLayout } from '@/components/RecipeCard';
+import { REZEPE_CARD_IMAGE_SIZE } from '@/components/RecipeCard';
 import RecipeDetailContent, { RECIPE_HERO_IMAGE_HEIGHT } from '@/components/RecipeDetailContent';
 import { normalizeCardLayoutForModal } from '@/utils/normalizeCardLayoutForModal';
 import {
@@ -69,13 +69,15 @@ export default function RecipeExpandOverlay({
   const statusBarStripHeight = getStatusBarStripHeight(insets.top);
 
   const progress = useSharedValue(0);
+  const isClosing = useSharedValue(0);
   const [detailInteractive, setDetailInteractive] = useState(false);
   const [scrollLayoutReady, setScrollLayoutReady] = useState(false);
   const [closing, setClosing] = useState(false);
   const [scrollY, setScrollY] = useState(0);
 
   const normalizedLayout = normalizeCardLayoutForModal(sourceLayout);
-  const sourceImageHeight = normalizedLayout.width * (3 / 4);
+  const sourceImageHeight =
+    normalizedLayout.width * (REZEPE_CARD_IMAGE_SIZE.height / REZEPE_CARD_IMAGE_SIZE.width);
 
   const heroAtTop = detailInteractive
     ? isHeroAtTop(scrollY, true, HERO_HEIGHT)
@@ -95,9 +97,9 @@ export default function RecipeExpandOverlay({
     if (closing) return;
     setClosing(true);
     setDetailInteractive(false);
-    setScrollLayoutReady(false);
+    isClosing.value = 1;
     progress.value = withSpring(0, COLLAPSE_SPRING);
-  }, [closing, progress]);
+  }, [closing, isClosing, progress]);
 
   useEffect(() => {
     progress.value = withSpring(1, EXPAND_SPRING);
@@ -125,6 +127,8 @@ export default function RecipeExpandOverlay({
     return () => clearTimeout(timer);
   }, [closing, onClose]);
 
+  const heroLayoutActive = scrollLayoutReady || detailInteractive || closing;
+
   const backdropStyle = useAnimatedStyle(() => ({
     opacity: interpolate(progress.value, [0, 1], [0, 0.55], Extrapolation.CLAMP),
   }));
@@ -147,9 +151,23 @@ export default function RecipeExpandOverlay({
     width: '100%',
   }));
 
-  const cardPreviewStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(progress.value, [0, 0.7, 0.9], [1, 1, 0], Extrapolation.CLAMP),
-  }));
+  const cardPreviewStyle = useAnimatedStyle(() => {
+    const p = progress.value;
+    const imageHeight = interpolate(p, [0, 1], [sourceImageHeight, HERO_HEIGHT], Extrapolation.CLAMP);
+    const opacity = isClosing.value
+      ? 1
+      : interpolate(p, [0, 0.7, 0.9], [1, 1, 0], Extrapolation.CLAMP);
+
+    return {
+      opacity,
+      top: imageHeight,
+      left: 0,
+      right: 0,
+      paddingHorizontal: 10,
+      paddingTop: 10,
+      gap: 6,
+    };
+  });
 
   const detailStyle = useAnimatedStyle(() => ({
     opacity: interpolate(progress.value, [0.75, 1], [0, 1], Extrapolation.CLAMP),
@@ -165,12 +183,7 @@ export default function RecipeExpandOverlay({
       onRequestClose={handleClose}
     >
       <View style={styles.root}>
-        <StatusBar
-          style={statusBarConfig.expo}
-          {...(Platform.OS === 'android'
-            ? { backgroundColor: statusBarStripBackground }
-            : {})}
-        />
+        <StatusBar style={statusBarConfig.expo} />
         <View
           pointerEvents="none"
           style={[
@@ -192,54 +205,59 @@ export default function RecipeExpandOverlay({
           <Animated.View
             style={[
               imageStyle,
-              (scrollLayoutReady || detailInteractive) && styles.expandHeroAbsolute,
-              detailInteractive && styles.expandHeroHidden,
+              heroLayoutActive && styles.expandHeroAbsolute,
+              detailInteractive && !closing && styles.expandHeroHidden,
             ]}
             pointerEvents="none"
           >
             <Image source={{ uri: recipe.imageUrl }} style={styles.image} resizeMode="cover" />
           </Animated.View>
 
+          {!detailInteractive && (
+            <Animated.View style={[styles.cardPreview, cardPreviewStyle]}>
+              <Text
+                style={[styles.previewTitle, { color: colors.text.primary }]}
+                numberOfLines={2}
+              >
+                {recipe.title}
+              </Text>
+              <View style={styles.previewMeta}>
+                <View style={styles.metaItem}>
+                  <Clock size={13} color={colors.text.tertiary} />
+                  <Text style={[styles.previewMetaText, { color: colors.text.tertiary }]}>
+                    {recipe.durationMinutes} Min
+                  </Text>
+                </View>
+                <View style={styles.metaItem}>
+                  <Star size={13} color={colors.text.tertiary} />
+                  <Text style={[styles.previewMetaText, { color: colors.text.tertiary }]}>
+                    {recipe.rating}
+                  </Text>
+                </View>
+              </View>
+            </Animated.View>
+          )}
+
           <View
             style={[
               styles.bodyArea,
               scrollLayoutReady && styles.bodyAreaExpanded,
-              scrollLayoutReady && !detailInteractive && { paddingTop: HERO_HEIGHT },
+              scrollLayoutReady && !detailInteractive && !closing && { paddingTop: HERO_HEIGHT },
             ]}
           >
-            {!detailInteractive && (
-              <Animated.View style={[styles.cardPreview, cardPreviewStyle]}>
-                <Text
-                  style={[styles.previewTitle, { color: colors.text.primary }]}
-                  numberOfLines={2}
-                >
-                  {recipe.title}
-                </Text>
-                <View style={styles.previewMeta}>
-                  <View style={styles.metaItem}>
-                    <Clock size={13} color={colors.text.tertiary} />
-                    <Text style={[styles.previewMetaText, { color: colors.text.tertiary }]}>
-                      {recipe.durationMinutes} Min
-                    </Text>
-                  </View>
-                  <View style={styles.metaItem}>
-                    <Star size={13} color={colors.text.tertiary} />
-                    <Text style={[styles.previewMetaText, { color: colors.text.tertiary }]}>
-                      {recipe.rating}
-                    </Text>
-                  </View>
-                </View>
-              </Animated.View>
-            )}
-
             <Animated.View
-              style={detailInteractive ? styles.detailExpanded : detailStyle}
-              pointerEvents={detailInteractive ? 'auto' : 'none'}
+              style={[
+                detailInteractive && !closing ? styles.detailExpanded : detailStyle,
+                closing && styles.detailCollapsed,
+              ]}
+              pointerEvents={detailInteractive && !closing ? 'auto' : 'none'}
             >
               <RecipeDetailContent
                 recipeId={recipe.id}
                 onClose={handleClose}
-                showHeroImage={detailInteractive}
+                showHeroImage={detailInteractive && !closing}
+                heroImageUriOverride={recipe.imageUrl}
+                bodyOnlyLoading
                 deferStatusBarToParent
                 overlayContentPadding
                 onScrollOffsetChange={handleScrollOffsetChange}
@@ -279,11 +297,12 @@ const styles = StyleSheet.create({
   detailExpanded: {
     flex: 1,
   },
+  detailCollapsed: {
+    opacity: 0,
+  },
   cardPreview: {
-    ...StyleSheet.absoluteFillObject,
-    paddingTop: 15,
-    paddingHorizontal: 10,
-    gap: 6,
+    position: 'absolute',
+    zIndex: 3,
   },
   previewTitle: {
     fontFamily: 'Roboto-Regular',

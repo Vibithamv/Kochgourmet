@@ -21,12 +21,21 @@ import LanguageSelector from '@/components/LanguageSelector';
 import { userForgotPassword } from '@/hooks/userForgotPassword';
 import { useGlobalAlert } from '@/contexts/AlertContext';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+import {
+  localizedAuthErrorMessage,
+  messageFromApiError,
+} from '@/utils/apiErrorMessage';
 
 type FieldErrors = { [key: string]: string };
 
 function validateEmail(email: string) {
   const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return regex.test(email);
+}
+
+function isUserNotFoundMessage(message: unknown): boolean {
+  const raw = typeof message === 'string' ? message : messageFromApiError(message, '');
+  return raw === 'User not found.';
 }
 
 function buildEmailFieldErrors(email: string, t: TFunction): FieldErrors {
@@ -255,19 +264,28 @@ export default function ForgotPassword() {
     setLoading(true);
     try {
       const result = await resetPassword.forgotPassword('FORGOT_PASSWORD', email, '', '');
+      const showUserNotFoundAlert = () => {
+        showAlert(t('common.alert'), t('auth.errors.userNotFound'), {
+          buttonText: t('auth.login.signUp'),
+          buttonCallback: () => router.replace('/auth/register'),
+          secondaryButtonText: t('common.cancel'),
+        });
+      };
+
       if (result.success) {
-        if (result.data.data.message === 'User not found.') {
-          showAlert(t('common.alert'), t('auth.forgotPassword.emailNotRegistered'), {
-            buttonText: 'Signup',
-            buttonCallback: () => router.replace('/auth/register'),
-            secondaryButtonText: 'Cancel',
-          });
+        if (isUserNotFoundMessage(result.data.data.message)) {
+          showUserNotFoundAlert();
           return;
         }
         showAlert(t('common.alert'), t('auth.forgotPassword.checkEmailCode'));
         setShowResetFields(true);
+      } else if (result.status === 404 || isUserNotFoundMessage(result.error)) {
+        showUserNotFoundAlert();
       } else {
-        showAlert(t('common.failed'), result.error.error.message || t('auth.forgotPassword.sendResetCodeFailed'));
+        showAlert(
+          t('common.failed'),
+          localizedAuthErrorMessage(result.error, t, 'auth.forgotPassword.sendResetCodeFailed'),
+        );
       }
     } catch (err) {
       console.error('Forgot password error:', err);
@@ -296,7 +314,10 @@ export default function ForgotPassword() {
           showAlert(t('common.failed'), t('profile.validationError'));
           return;
         }
-        showAlert(t('common.failed'), result.error.error.message || t('auth.forgotPassword.invalidCodeOrPassword'));
+        showAlert(
+          t('common.failed'),
+          localizedAuthErrorMessage(result.error, t, 'auth.forgotPassword.invalidCodeOrPassword'),
+        );
       }
     } catch (err) {
       console.error('Reset password error:', err);
@@ -428,7 +449,7 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: 'PlayfairDisplay_700Bold',
     fontSize: 35,
-    lineHeight: 35,
+    lineHeight: 48,
     letterSpacing: 0,
     flex: 1,
     paddingRight: 12,
@@ -465,7 +486,7 @@ const styles = StyleSheet.create({
   fieldInput: {
     fontFamily: 'Roboto-Light',
     fontSize: 16,
-    lineHeight: 16,
+    lineHeight: 22,
     letterSpacing: 0,
   },
   pillInputWrap: {
@@ -489,8 +510,8 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-SemiBold',
     textTransform: 'uppercase',
     letterSpacing: 0.6,
-    marginBottom: 8,
-    marginLeft: 22,
+    marginBottom: 10,
+    marginLeft: 5,
   },
 
   errorText: {
@@ -520,7 +541,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontFamily: 'Roboto-Regular',
     fontSize: 17,
-    lineHeight: 17,
+    lineHeight: 23,
     letterSpacing: 0,
     textAlign: 'center',
   },
@@ -558,7 +579,7 @@ const styles = StyleSheet.create({
   signupActionText: {
     fontFamily: 'Roboto-Regular',
     fontSize: 15,
-    lineHeight: 15,
+    lineHeight: 20,
     letterSpacing: 0,
   },
   signupCheese: {

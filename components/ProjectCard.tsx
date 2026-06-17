@@ -472,7 +472,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Roboto-Light',
     letterSpacing: 0,
     textAlign: 'center',
-    lineHeight: 12,
+    lineHeight: 14,
   },
   progressSection: {
     marginBottom: Spacing.lg,
@@ -535,7 +535,7 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontFamily: 'Roboto-Regular',
     letterSpacing: 0,
-    lineHeight: 17,
+    lineHeight: 23,
   },
   investButtonTextDisabled: {
     color: '#636B78',

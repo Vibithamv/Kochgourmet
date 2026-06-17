@@ -454,7 +454,7 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: 'PlayfairDisplay_700Bold',
     fontSize: 45,
-    lineHeight: 45,
+    lineHeight: 61,
     letterSpacing: 0,
   },
   addButton: {
@@ -626,7 +626,7 @@ const styles = StyleSheet.create({
   renameCancelText: {
     fontSize: 17,
     fontFamily: 'Roboto-Light',
-    lineHeight: 17,
+    lineHeight: 23,
     letterSpacing: 0,
     textAlign: 'center',
   },
@@ -640,7 +640,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 17,
     fontFamily: 'Roboto-Regular',
-    lineHeight: 17,
+    lineHeight: 23,
     letterSpacing: 0,
     textAlign: 'center',
   },

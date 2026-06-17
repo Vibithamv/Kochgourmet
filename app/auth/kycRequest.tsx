@@ -255,7 +255,7 @@ const styles = StyleSheet.create({
   },
   primaryBtnText: {
     fontSize: 17,
-    lineHeight: 17,
+    lineHeight: 23,
     letterSpacing: 0,
     textAlign: 'center',
   },

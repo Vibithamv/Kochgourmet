@@ -15,6 +15,10 @@
       "portfolio": "Portafolio",
       "account": "Cuenta"
     },
+    "recipe": {
+      "filterApply": "Aplicar filtros",
+      "filterCancel": "Cancelar"
+    },
     "success": "Éxito",
     "cancel": "Cancelar",
     "close": "Cerrar",
@@ -122,6 +126,7 @@
       "enterNewPassword": "Por favor ingrese nueva contraseña",
       "enterConfirmationCode": "Por favor ingrese código de confirmación",
       "invalidCodeOrPassword": "Código o contraseña inválidos.",
+      "invalidOrExpiredCode": "Código inválido o expirado.",
       "allFieldsRequired": "Todos los campos son obligatorios",
       "loginNow": "Iniciar sesión ahora",
       "rememberPassword": "¿Recordaste tu contraseña? "
@@ -139,7 +144,8 @@
       "passwordTooShort": "La contraseña debe tener al menos 6 caracteres",
       "loginFailed": "Error de inicio de sesión",
       "registrationFailed": "Error de registro",
-      "userNotConfirmed": "Su cuenta no ha sido confirmada."
+      "userNotConfirmed": "Su cuenta no ha sido confirmada.",
+      "userNotFound": "Usuario no encontrado."
     }
   },
   "dashboard": {

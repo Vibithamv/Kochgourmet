@@ -70,11 +70,11 @@
       "subtitle": "Melde dich an, um weitere Features unserer App zu verwenden.",
       "email": "E-Mail Adresse",
       "password": "Passwort",
-      "signIn": "Anmelden",
+      "signIn": "Einloggen",
       "signingIn": "Anmeldung läuft...",
       "forgotPassword": "Passwort vergessen?",
       "noAccount": "Noch kein Konto?",
-      "signUp": "Registrieren",
+      "signUp": "Jetzt Registrieren",
       "orContinueWith": "Oder fortfahren mit",
       "google": "Google",
       "apple": "Apple",
@@ -98,7 +98,7 @@
       "createAccount": "Konto erstellen",
       "creatingAccount": "Konto wird erstellt...",
       "alreadyHaveAccount": "Bereits ein Konto?",
-      "signIn": "Anmelden",
+      "signIn": "Einloggen",
       "registerSuccess": "Registrierung erfolgreich abgeschlossen, bitte melden Sie sich an.",
       "successScreenTitle": "Registrierung erfolgreich",
       "registerFailed": "Registrierung fehlgeschlagen. Bitte versuchen Sie es erneut.",
@@ -139,6 +139,7 @@
       "enterNewPassword": "Bitte geben Sie ein neues Passwort ein",
       "enterConfirmationCode": "Bitte geben Sie den Bestätigungscode ein",
       "invalidCodeOrPassword": "Ungültiger Code oder Passwort.",
+      "invalidOrExpiredCode": "Ungültiger oder abgelaufener Code.",
       "allFieldsRequired": "Alle Felder sind erforderlich",
       "loginNow": "Jetzt anmelden",
       "rememberPassword": "Passwort wiedergefunden? "
@@ -156,7 +157,8 @@
       "passwordTooShort": "Passwort muss mindestens 6 Zeichen lang sein",
       "loginFailed": "Anmeldung fehlgeschlagen",
       "registrationFailed": "Registrierung fehlgeschlagen",
-      "userNotConfirmed": "Ihr Konto wurde nicht bestätigt."
+      "userNotConfirmed": "Ihr Konto wurde nicht bestätigt.",
+      "userNotFound": "Benutzer nicht gefunden."
     }
   },
   "dashboard": {

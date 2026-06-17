@@ -6,11 +6,14 @@ import {
   ScrollView,
   Image,
   StyleSheet,
+  useWindowDimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getColors } from '@/constants/theme';
+import { RECIPES_PER_PAGE } from '@/constants/recipeListDefaults';
+import { REZEPE_CARD_IMAGE_SIZE } from '@/components/RecipeCard';
 
 // ---------------------------------------------------------------------------
 // Hook
@@ -214,6 +217,103 @@ export function DashboardShimmer() {
         <ProjectCardShimmer anim={anim} />
       </View>
     </View>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// RezepteGridShimmer — 2-column recipe grid (Rezepte tab search / filter)
+// Pixel-matched to RecipeCard variant="rezepte" + imageSize={REZEPE_CARD_IMAGE_SIZE}.
+// ---------------------------------------------------------------------------
+
+const REZEPE_TAB_BAR_HEIGHT = 80;
+const REZEPE_GRID_PADDING = 20;
+const REZEPE_GRID_GAP = 12;
+const REZEPE_TITLE_LINE_HEIGHT = 21;
+const REZEPE_TITLE_LINES = 2;
+const REZEPE_BODY_PADDING = 10;
+const REZEPE_BODY_GAP = 6;
+const REZEPE_META_HEIGHT = 16;
+
+function useRezepteCardWidth(): number {
+  const { width } = useWindowDimensions();
+  return (width - REZEPE_GRID_PADDING * 2 - REZEPE_GRID_GAP) / 2;
+}
+
+function rezepteImageHeight(cardWidth: number): number {
+  return cardWidth * (REZEPE_CARD_IMAGE_SIZE.height / REZEPE_CARD_IMAGE_SIZE.width);
+}
+
+function RezepteCardShimmer({
+  anim,
+  cardWidth,
+}: Readonly<{ anim: Animated.Value; cardWidth: number }>) {
+  const { theme } = useTheme();
+  const colors = getColors(theme);
+  const imageHeight = rezepteImageHeight(cardWidth);
+
+  return (
+    <View
+      style={{
+        width: cardWidth,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: colors.border.primary,
+        backgroundColor: colors.background.primary,
+        overflow: 'hidden',
+      }}
+    >
+      <ShimmerBlock anim={anim} width={cardWidth} height={imageHeight} borderRadius={0} />
+      <View style={{ padding: REZEPE_BODY_PADDING, gap: REZEPE_BODY_GAP }}>
+        <ShimmerBlock
+          anim={anim}
+          width={cardWidth - REZEPE_BODY_PADDING * 2}
+          height={REZEPE_TITLE_LINE_HEIGHT * REZEPE_TITLE_LINES}
+          borderRadius={4}
+        />
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+            <ShimmerBlock anim={anim} width={52} height={REZEPE_META_HEIGHT} borderRadius={4} />
+            <ShimmerBlock anim={anim} width={36} height={REZEPE_META_HEIGHT} borderRadius={4} />
+          </View>
+          <ShimmerBlock anim={anim} width={16} height={16} borderRadius={8} />
+        </View>
+      </View>
+    </View>
+  );
+}
+
+export function RezepteGridShimmer({
+  itemCount = RECIPES_PER_PAGE,
+}: Readonly<{ itemCount?: number }>) {
+  const { theme } = useTheme();
+  const colors = getColors(theme);
+  const insets = useSafeAreaInsets();
+  const anim = useShimmerAnim();
+  const cardWidth = useRezepteCardWidth();
+  const tabBarPadding = REZEPE_TAB_BAR_HEIGHT + Math.max(insets.bottom, 12) + 16;
+  const rowCount = Math.ceil(itemCount / 2);
+
+  return (
+    <ScrollView
+      style={{ flex: 1, backgroundColor: colors.background.primary }}
+      contentContainerStyle={{
+        paddingHorizontal: REZEPE_GRID_PADDING,
+        gap: REZEPE_GRID_GAP,
+        paddingBottom: tabBarPadding,
+      }}
+      showsVerticalScrollIndicator={false}
+    >
+      {Array.from({ length: rowCount }, (_, row) => {
+        const leftIndex = row * 2;
+        const rightIndex = leftIndex + 1;
+        return (
+          <View key={row} style={{ flexDirection: 'row', gap: REZEPE_GRID_GAP }}>
+            <RezepteCardShimmer anim={anim} cardWidth={cardWidth} />
+            {rightIndex < itemCount ? <RezepteCardShimmer anim={anim} cardWidth={cardWidth} /> : null}
+          </View>
+        );
+      })}
+    </ScrollView>
   );
 }
 
@@ -427,6 +527,72 @@ export function ProjectDetailCommunityBodyShimmer() {
         <ShimmerBlock anim={anim} width="85%" height={14} borderRadius={4} />
         <ShimmerBlock anim={anim} width="100%" height={48} borderRadius={9999} />
       </View>
+    </View>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// RecipeDetailBodyShimmer — detail content below hero (hero shown separately)
+// ---------------------------------------------------------------------------
+
+const RECIPE_DETAIL_BODY_GAP = 20;
+
+export function RecipeDetailBodyShimmer() {
+  const { theme } = useTheme();
+  const colors = getColors(theme);
+  const anim = useShimmerAnim();
+
+  return (
+    <View style={{ backgroundColor: colors.background.secondary, gap: RECIPE_DETAIL_BODY_GAP }}>
+        <ShimmerBlock anim={anim} width="85%" height={48} borderRadius={8} />
+        <ShimmerBlock anim={anim} width="100%" height={16} borderRadius={4} />
+        <ShimmerBlock anim={anim} width="72%" height={16} borderRadius={4} />
+
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <View style={{ flexDirection: 'row', gap: 12, flex: 1 }}>
+            <ShimmerBlock anim={anim} width={100} height={20} borderRadius={4} />
+            <ShimmerBlock anim={anim} width={90} height={20} borderRadius={4} />
+          </View>
+          <ShimmerBlock anim={anim} width={16} height={16} borderRadius={8} />
+        </View>
+
+        <View style={{ gap: 8 }}>
+          {[0, 1, 2, 3, 4].map((row) => (
+            <View key={row} style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+              <ShimmerBlock anim={anim} width="40%" height={30} borderRadius={4} />
+              <ShimmerBlock anim={anim} width="18%" height={30} borderRadius={4} />
+            </View>
+          ))}
+        </View>
+
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          <ShimmerBlock anim={anim} width={36} height={36} borderRadius={18} />
+          <ShimmerBlock anim={anim} width="45%" height={27} borderRadius={6} />
+        </View>
+
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <ShimmerBlock anim={anim} width="35%" height={32} borderRadius={6} />
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            <ShimmerBlock anim={anim} width={28} height={28} borderRadius={14} />
+            <ShimmerBlock anim={anim} width={36} height={28} borderRadius={6} />
+            <ShimmerBlock anim={anim} width={28} height={28} borderRadius={14} />
+          </View>
+        </View>
+
+        <View style={{ gap: 10 }}>
+          <ShimmerBlock anim={anim} width="30%" height={22} borderRadius={4} />
+          {[0, 1, 2, 3].map((row) => (
+            <View key={row} style={{ flexDirection: 'row', gap: 12 }}>
+              <ShimmerBlock anim={anim} width={56} height={20} borderRadius={4} />
+              <ShimmerBlock anim={anim} width="55%" height={20} borderRadius={4} style={{ flex: 1 }} />
+            </View>
+          ))}
+        </View>
+
+        <ShimmerBlock anim={anim} width="40%" height={32} borderRadius={6} />
+        <ShimmerBlock anim={anim} width="100%" height={16} borderRadius={4} />
+        <ShimmerBlock anim={anim} width="95%" height={16} borderRadius={4} />
+        <ShimmerBlock anim={anim} width="88%" height={16} borderRadius={4} />
     </View>
   );
 }
