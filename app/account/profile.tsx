@@ -32,6 +32,8 @@ import { messageFromApiError } from '@/utils/apiErrorMessage';
 import { prepareProfilePicturePayload, type ProfilePicturePayload } from '@/utils/profilePictureUpload';
 import { replaceLoginClearingAuthStack } from '@/utils/authNavigation';
 import { ProfileScreenShimmer } from '@/components/Shimmer';
+import { ProfilePhotoTopLeftIcon } from '@/components/ProfilePhotoTopLeftIcon';
+import { ProfilePhotoBottomRightIcon } from '@/components/ProfilePhotoBottomRightIcon';
 
 const ANREDE_OPTIONS = ['Herr', 'Frau', 'Divers', 'Keine Angabe'];
 
@@ -193,8 +195,9 @@ export default function ProfileScreen() {
           overflow: 'visible',
         },
         photoOuter: {
-          width: 181,
-          minHeight: 181,
+          position: 'relative',
+          width: 196,
+          minHeight: 196,
           alignItems: 'center',
           justifyContent: 'flex-start',
           overflow: 'visible',
@@ -204,6 +207,15 @@ export default function ProfileScreen() {
           width: 160,
           height: 160,
           overflow: 'visible',
+          zIndex: 2,
+        },
+        photoTopLeftIcon: {
+          top: 0,
+          left: -35,
+        },
+        photoBottomRightIcon: {
+          bottom: 10,
+          right: -45,
         },
         profilePhoto: { width: 160, height: 160, borderRadius: 80 },
         avatarFallback: { alignItems: 'center', justifyContent: 'center' },
@@ -217,7 +229,7 @@ export default function ProfileScreen() {
           borderRadius: 18,
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 2,
+          zIndex: 5,
         },
         displayName: {
           fontFamily: 'PlayfairDisplay_700Bold',
@@ -284,8 +296,16 @@ export default function ProfileScreen() {
           letterSpacing: 0,
           paddingVertical: 0,
         },
+        passwordPillInput: {
+          paddingVertical: 12,
+          minHeight: 40,
+        },
         eyeButton: {
           padding: 6,
+          marginLeft: 4,
+        },
+        passwordEyeButton: {
+          padding: 2,
           marginLeft: 4,
         },
         row2: {
@@ -554,13 +574,6 @@ export default function ProfileScreen() {
     const profilePayload = {
       firstName,
       lastName,
-      address: street,
-      telephone: phone,
-      email,
-      zip: postal,
-      city,
-      country,
-      username,
       profileImageUrl: profilePictureUrl,
       newsletterDaily: dailyNewsletter,
       newsletterWeekly: weeklyNewsletter,
@@ -722,7 +735,6 @@ export default function ProfileScreen() {
       >
         <View style={styles.photoBlock}>
           <View style={styles.photoOuter}>
-            {/* <ProfilePhotoDecorations color={colors.primary} /> */}
             <View style={styles.photoContainer}>
               {profilePictureUrl ? (
                 <Image source={{ uri: profilePictureUrl }} style={styles.profilePhoto} />
@@ -733,6 +745,8 @@ export default function ProfileScreen() {
                   </Text>
                 </View>
               )}
+              <ProfilePhotoTopLeftIcon style={styles.photoTopLeftIcon} />
+              <ProfilePhotoBottomRightIcon style={styles.photoBottomRightIcon} />
               <TouchableOpacity
                 style={[
                   styles.photoUploadBtn,
@@ -794,7 +808,7 @@ export default function ProfileScreen() {
             placeholder={t('profile.profileScreen.strasse')}
             placeholderTextColor={placeholderColor}
             value={street}
-            onChangeText={setStreet}
+            editable={false}
           />
 
           <View style={styles.row2}>
@@ -803,15 +817,14 @@ export default function ProfileScreen() {
               placeholder={t('profile.profileScreen.plz')}
               placeholderTextColor={placeholderColor}
               value={postal}
-              onChangeText={setPostal}
-              keyboardType="number-pad"
+              editable={false}
             />
             <TextInput
               style={[styles.pillInput, styles.pillField, styles.flex1, pillBorder, fieldColor]}
               placeholder={t('profile.profileScreen.ort')}
               placeholderTextColor={placeholderColor}
               value={city}
-              onChangeText={setCity}
+              editable={false}
             />
           </View>
 
@@ -820,7 +833,7 @@ export default function ProfileScreen() {
             placeholder={t('profile.profileScreen.land')}
             placeholderTextColor={placeholderColor}
             value={country}
-            onChangeText={setCountry}
+            editable={false}
           />
 
           <TextInput
@@ -828,8 +841,7 @@ export default function ProfileScreen() {
             placeholder={t('profile.profileScreen.telefonnummer')}
             placeholderTextColor={placeholderColor}
             value={phone}
-            onChangeText={setPhone}
-            keyboardType="phone-pad"
+            editable={false}
           />
         </View>
 
@@ -887,19 +899,18 @@ export default function ProfileScreen() {
             placeholder={t('profile.profileScreen.email')}
             placeholderTextColor={placeholderColor}
             value={email}
-            onChangeText={setEmail}
+            editable={false}
             autoCapitalize="none"
-            keyboardType="email-address"
           />
           <TextInput
             style={[styles.pillInput, styles.pillField, pillBorder, fieldColor]}
             placeholder={t('profile.profileScreen.username')}
             placeholderTextColor={placeholderColor}
             value={username}
-            onChangeText={setUsername}
+            editable={false}
             autoCapitalize="none"
           />
-          <View style={[styles.pillInput, pillBorder, { backgroundColor: colors.background.card }]}>
+          <View style={[styles.pillInput, styles.passwordPillInput, pillBorder]}>
             <TextInput
               style={[styles.pillField, styles.flex1, fieldColor]}
               placeholder={t('profile.currentPassword')}
@@ -910,7 +921,7 @@ export default function ProfileScreen() {
               autoComplete="password"
             />
             <TouchableOpacity
-              style={styles.eyeButton}
+              style={styles.passwordEyeButton}
               onPress={() => setShowCurrentPassword((prev) => !prev)}
               hitSlop={8}
               activeOpacity={0.7}
@@ -922,7 +933,7 @@ export default function ProfileScreen() {
               )}
             </TouchableOpacity>
           </View>
-          <View style={[styles.pillInput, pillBorder, { backgroundColor: colors.background.card }]}>
+          <View style={[styles.pillInput, styles.passwordPillInput, pillBorder]}>
             <TextInput
               style={[styles.pillField, styles.flex1, fieldColor]}
               placeholder={t('profile.newPassword')}
@@ -933,7 +944,7 @@ export default function ProfileScreen() {
               autoComplete="password-new"
             />
             <TouchableOpacity
-              style={styles.eyeButton}
+              style={styles.passwordEyeButton}
               onPress={() => setShowPassword((prev) => !prev)}
               hitSlop={8}
               activeOpacity={0.7}
@@ -945,7 +956,7 @@ export default function ProfileScreen() {
               )}
             </TouchableOpacity>
           </View>
-          <View style={[styles.pillInput, pillBorder, { backgroundColor: colors.background.card }]}>
+          <View style={[styles.pillInput, styles.passwordPillInput, pillBorder]}>
             <TextInput
               style={[styles.pillField, styles.flex1, fieldColor]}
               placeholder={t('profile.confirmPassword')}
@@ -956,7 +967,7 @@ export default function ProfileScreen() {
               autoComplete="password-new"
             />
             <TouchableOpacity
-              style={styles.eyeButton}
+              style={styles.passwordEyeButton}
               onPress={() => setShowConfirmPassword((prev) => !prev)}
               hitSlop={8}
               activeOpacity={0.7}

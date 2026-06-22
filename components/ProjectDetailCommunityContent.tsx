@@ -100,6 +100,10 @@ export default function ProjectDetailCommunityContent({
       : '#FFFFFF';
 
   const investorCount = formatInvestorCount(project.investors, i18n.language);
+  const displayedMinTokens = Math.max(
+    Math.round(project.minimum_investment),
+    Math.round(selectedTokens),
+  );
   const floatingBottom =
     floatingActionsBottom ?? Math.max(insets.bottom, 12) + 16;
 
@@ -195,7 +199,7 @@ export default function ProjectDetailCommunityContent({
             <Coins size={14} color={colors.text.primary} />
             <Text style={[styles.metaPillText, { color: colors.text.primary }]}>
               {t('projectDetail.minTokens', {
-                count: Math.round(project.minimum_investment),
+                count: displayedMinTokens,
                 symbol: project.asset_symbol,
               })}
             </Text>

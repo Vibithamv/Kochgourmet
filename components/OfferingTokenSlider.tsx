@@ -21,7 +21,7 @@ import {
   offeringSliderScaleLabels,
 } from '@/utils/offeringTokenMetrics';
 
-const THUMB_SIZE = 24;
+const THUMB_SIZE = 16;
 const TRACK_HEIGHT = 6;
 
 type TrackLayout = {
@@ -192,11 +192,13 @@ export default function OfferingTokenSlider({
           marginBottom: Spacing.sm,
         },
         stepBtn: {
-          width: 32,
-          height: 32,
+          width: 25,
+          height: 25,
           borderRadius: 16,
           alignItems: 'center',
           justifyContent: 'center',
+          marginRight: 4,
+          marginLeft: 4,
         },
         track: {
           height: TRACK_HEIGHT,
@@ -324,7 +326,7 @@ export default function OfferingTokenSlider({
           disabled={clampedValue <= safeMin}
           activeOpacity={0.85}
         >
-          <Minus size={16} color="#FFFFFF" />
+          <Minus size={12} color="#FFFFFF" strokeWidth={2.5} />
         </TouchableOpacity>
 
         <View
@@ -371,7 +373,7 @@ export default function OfferingTokenSlider({
           disabled={clampedValue >= safeMax}
           activeOpacity={0.85}
         >
-          <Plus size={16} color="#FFFFFF" />
+          <Plus size={12} color="#FFFFFF" strokeWidth={2.5} />
         </TouchableOpacity>
       </View>
 

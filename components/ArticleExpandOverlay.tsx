@@ -5,7 +5,6 @@ import {
   Image,
   Modal,
   StyleSheet,
-  Dimensions,
   Pressable,
   Platform,
 } from 'react-native';
@@ -22,6 +21,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { getColors } from '@/constants/theme';
 import type { CardLayout } from '@/components/RecipeCard';
 import type { ArticleListItem } from '@/components/ArticleCard';
+import { ARTICLE_CARD_IMAGE_HEIGHT } from '@/components/ArticleCard';
 import MagazinDetailContent, { MAGAZINE_HERO_IMAGE_HEIGHT } from '@/components/MagazinDetailContent';
 import { normalizeCardLayoutForModal } from '@/utils/normalizeCardLayoutForModal';
 import {
@@ -30,10 +30,13 @@ import {
   isHeroAtTop,
 } from '@/utils/statusBarLayout';
 import { useDetailScreenStatusBar } from '@/hooks/useStatusBarStyle';
+import { suppressTabBar, restoreTabBar } from '@/utils/tabBarStore';
+import {
+  MODAL_ANDROID_BOTTOM_BLEED,
+  getOverlayFloatingActionsBottom,
+  useModalScreenSize,
+} from '@/utils/modalScreenMetrics';
 
-const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
-
-const LIST_IMAGE_HEIGHT = 252;
 const HERO_HEIGHT = MAGAZINE_HERO_IMAGE_HEIGHT;
 const CARD_RADIUS = 15;
 
@@ -51,7 +54,6 @@ const COLLAPSE_SPRING = {
 
 const EXPAND_DETAIL_DELAY_MS = 820;
 const COLLAPSE_CLOSE_DELAY_MS = 820;
-const TAB_BAR_CLEARANCE = 90;
 
 export interface ArticleExpandOverlayProps {
   readonly article: ArticleListItem;
@@ -67,13 +69,20 @@ export default function ArticleExpandOverlay({
   const { theme } = useTheme();
   const colors = getColors(theme);
   const insets = useSafeAreaInsets();
+  const { width: screenW, height: screenH } = useModalScreenSize();
   const statusBarStripHeight = getStatusBarStripHeight(insets.top);
+  const shellBottomBleed = Platform.OS === 'android' ? MODAL_ANDROID_BOTTOM_BLEED : 0;
+  const floatingActionsBottom = getOverlayFloatingActionsBottom(insets.bottom, shellBottomBleed);
 
   const progress = useSharedValue(0);
+  const isClosing = useSharedValue(0);
   const [detailInteractive, setDetailInteractive] = useState(false);
   const [scrollLayoutReady, setScrollLayoutReady] = useState(false);
   const [closing, setClosing] = useState(false);
   const [scrollY, setScrollY] = useState(0);
+
+  const normalizedLayout = normalizeCardLayoutForModal(sourceLayout);
+  const sourceImageHeight = ARTICLE_CARD_IMAGE_HEIGHT;
 
   const heroAtTop = detailInteractive
     ? isHeroAtTop(scrollY, true, HERO_HEIGHT)
@@ -89,16 +98,19 @@ export default function ArticleExpandOverlay({
     statusBarStripBackground,
   );
 
-  const normalizedLayout = normalizeCardLayoutForModal(sourceLayout);
-
   const handleClose = useCallback(() => {
     if (closing) return;
-
     setClosing(true);
     setDetailInteractive(false);
     setScrollLayoutReady(false);
+    isClosing.value = 1;
     progress.value = withSpring(0, COLLAPSE_SPRING);
-  }, [closing, progress]);
+  }, [closing, isClosing, progress]);
+
+  useEffect(() => {
+    suppressTabBar();
+    return () => restoreTabBar();
+  }, []);
 
   useEffect(() => {
     progress.value = withSpring(1, EXPAND_SPRING);
@@ -122,10 +134,11 @@ export default function ArticleExpandOverlay({
 
   useEffect(() => {
     if (!closing) return;
-
     const timer = setTimeout(() => onClose(), COLLAPSE_CLOSE_DELAY_MS);
     return () => clearTimeout(timer);
   }, [closing, onClose]);
+
+  const heroLayoutActive = scrollLayoutReady || detailInteractive || closing;
 
   const backdropStyle = useAnimatedStyle(() => ({
     opacity: interpolate(progress.value, [0, 1], [0, 0.55], Extrapolation.CLAMP),
@@ -133,26 +146,55 @@ export default function ArticleExpandOverlay({
 
   const shellStyle = useAnimatedStyle(() => {
     const p = progress.value;
+    const initialRight = screenW - normalizedLayout.x - normalizedLayout.width;
+    const initialBottom = screenH - normalizedLayout.y - normalizedLayout.height;
 
     return {
       position: 'absolute',
-      left: interpolate(p, [0, 1], [normalizedLayout.x, 0], Extrapolation.CLAMP),
       top: interpolate(p, [0, 1], [normalizedLayout.y, 0], Extrapolation.CLAMP),
-      width: interpolate(p, [0, 1], [normalizedLayout.width, SCREEN_W], Extrapolation.CLAMP),
-      height: interpolate(p, [0, 1], [normalizedLayout.height, SCREEN_H], Extrapolation.CLAMP),
+      left: interpolate(p, [0, 1], [normalizedLayout.x, 0], Extrapolation.CLAMP),
+      right: interpolate(p, [0, 1], [initialRight, 0], Extrapolation.CLAMP),
+      bottom: interpolate(
+        p,
+        [0, 1],
+        [initialBottom, -shellBottomBleed],
+        Extrapolation.CLAMP,
+      ),
       borderRadius: interpolate(p, [0, 1], [CARD_RADIUS, 0], Extrapolation.CLAMP),
       overflow: 'hidden',
     };
-  });
+  }, [
+    normalizedLayout.height,
+    normalizedLayout.width,
+    normalizedLayout.x,
+    normalizedLayout.y,
+    screenH,
+    screenW,
+    shellBottomBleed,
+  ]);
 
   const imageStyle = useAnimatedStyle(() => ({
-    height: interpolate(progress.value, [0, 1], [LIST_IMAGE_HEIGHT, HERO_HEIGHT], Extrapolation.CLAMP),
+    height: interpolate(progress.value, [0, 1], [sourceImageHeight, HERO_HEIGHT], Extrapolation.CLAMP),
     width: '100%',
   }));
 
-  const cardPreviewStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(progress.value, [0, 0.7, 0.9], [1, 1, 0], Extrapolation.CLAMP),
-  }));
+  const cardPreviewStyle = useAnimatedStyle(() => {
+    const p = progress.value;
+    const imageHeight = interpolate(p, [0, 1], [sourceImageHeight, HERO_HEIGHT], Extrapolation.CLAMP);
+    const opacity = isClosing.value
+      ? 1
+      : interpolate(p, [0, 0.7, 0.9], [1, 1, 0], Extrapolation.CLAMP);
+
+    return {
+      opacity,
+      top: imageHeight,
+      left: 0,
+      right: 0,
+      paddingHorizontal: 10,
+      paddingTop: 10,
+      gap: 6,
+    };
+  });
 
   const detailStyle = useAnimatedStyle(() => ({
     opacity: interpolate(progress.value, [0.75, 1], [0, 1], Extrapolation.CLAMP),
@@ -167,13 +209,8 @@ export default function ArticleExpandOverlay({
       statusBarTranslucent
       onRequestClose={handleClose}
     >
-      <View style={styles.root}>
-        <StatusBar
-          style={statusBarConfig.expo}
-          {...(Platform.OS === 'android'
-            ? { backgroundColor: statusBarStripBackground }
-            : {})}
-        />
+      <View style={[styles.root, { minHeight: screenH, width: screenW }]}>
+        <StatusBar style={statusBarConfig.expo} />
         <View
           pointerEvents="none"
           style={[
@@ -191,52 +228,68 @@ export default function ArticleExpandOverlay({
           <Pressable style={StyleSheet.absoluteFill} onPress={handleClose} />
         </Animated.View>
 
-        <Animated.View
-          style={[shellStyle, { backgroundColor: colors.background.primary }]}
-        >
+        <Animated.View style={[shellStyle, { backgroundColor: colors.background.primary }]}>
+          {shellBottomBleed > 0 ? (
+            <View
+              pointerEvents="none"
+              style={[
+                styles.shellBottomBleed,
+                {
+                  height: shellBottomBleed,
+                  backgroundColor: colors.background.secondary,
+                },
+              ]}
+            />
+          ) : null}
           <Animated.View
             style={[
               imageStyle,
-              (scrollLayoutReady || detailInteractive) && styles.expandHeroAbsolute,
-              detailInteractive && styles.expandHeroHidden,
+              heroLayoutActive && styles.expandHeroAbsolute,
+              detailInteractive && !closing && styles.expandHeroHidden,
             ]}
             pointerEvents="none"
           >
             <Image source={{ uri: article.imageUrl }} style={styles.image} resizeMode="cover" />
           </Animated.View>
 
+          {!detailInteractive && (
+            <Animated.View style={[styles.cardPreview, cardPreviewStyle]}>
+              <Text
+                style={[styles.previewTitle, { color: colors.text.primary }]}
+                numberOfLines={2}
+              >
+                {article.title}
+              </Text>
+            </Animated.View>
+          )}
+
           <View
             style={[
               styles.bodyArea,
-              scrollLayoutReady && styles.bodyAreaExpanded,
-              scrollLayoutReady && !detailInteractive && { paddingTop: HERO_HEIGHT },
+              scrollLayoutReady && !closing && styles.bodyAreaExpanded,
+              scrollLayoutReady && !detailInteractive && !closing && { paddingTop: HERO_HEIGHT },
             ]}
           >
-            {!detailInteractive && (
-              <Animated.View style={[styles.cardPreview, cardPreviewStyle]}>
-                <Text
-                  style={[styles.previewTitle, { color: colors.text.primary }]}
-                  numberOfLines={2}
-                >
-                  {article.title}
-                </Text>
+            {scrollLayoutReady && !closing ? (
+              <Animated.View
+                style={[
+                  detailInteractive ? styles.detailExpanded : detailStyle,
+                ]}
+                pointerEvents={detailInteractive ? 'auto' : 'none'}
+              >
+                <MagazinDetailContent
+                  articleId={article.id}
+                  onClose={handleClose}
+                  showHeroImage={detailInteractive}
+                  heroImageUriOverride={article.imageUrl}
+                  bodyOnlyLoading
+                  deferStatusBarToParent
+                  overlayContentPadding
+                  floatingActionsBottom={floatingActionsBottom}
+                  onScrollOffsetChange={handleScrollOffsetChange}
+                />
               </Animated.View>
-            )}
-
-            <Animated.View
-              style={detailInteractive ? styles.detailExpanded : detailStyle}
-              pointerEvents={detailInteractive ? 'auto' : 'none'}
-            >
-              <MagazinDetailContent
-                articleId={article.id}
-                onClose={handleClose}
-                showHeroImage={detailInteractive}
-                deferStatusBarToParent
-                overlayContentPadding
-                onScrollOffsetChange={handleScrollOffsetChange}
-                floatingActionsBottom={Math.max(insets.bottom, 12) + TAB_BAR_CLEARANCE}
-              />
-            </Animated.View>
+            ) : null}
           </View>
         </Animated.View>
       </View>
@@ -246,6 +299,12 @@ export default function ArticleExpandOverlay({
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
+  shellBottomBleed: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: -MODAL_ANDROID_BOTTOM_BLEED,
+  },
   statusBarOverlay: {
     position: 'absolute',
     top: 0,
@@ -271,9 +330,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   cardPreview: {
-    ...StyleSheet.absoluteFillObject,
-    paddingTop: 15,
-    paddingHorizontal: 10,
+    position: 'absolute',
+    zIndex: 3,
   },
   previewTitle: {
     fontFamily: 'Roboto-Regular',

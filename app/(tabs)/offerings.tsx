@@ -10,6 +10,7 @@ import {
   type ListRenderItem,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 import { Search } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -187,6 +188,16 @@ const OfferingsScreen = React.memo(() => {
     offering: BonusOfferingPreview;
     layout: CardLayout;
   } | null>(null);
+  const [investNavigating, setInvestNavigating] = useState(false);
+
+  const handleBonusInvest = useCallback((params: { offeringId: string; tokens: number }) => {
+    setInvestNavigating(true);
+    router.push({
+      pathname: '/investment/[id]',
+      params: { id: params.offeringId, tokens: String(params.tokens) },
+    });
+    setExpandedOffering(null);
+  }, []);
 
   const { showAlert } = useGlobalAlert();
   const offeringsApi = useMemo(() => listOfferings(), []);
@@ -238,6 +249,7 @@ const OfferingsScreen = React.memo(() => {
 
   useFocusEffect(
     useCallback(() => {
+      setInvestNavigating(false);
       void loadProjects();
       return () => {
         setSearchQuery('');
@@ -353,11 +365,19 @@ const OfferingsScreen = React.memo(() => {
         />
       )}
 
+      {investNavigating ? (
+        <View
+          pointerEvents="none"
+          style={[styles.investTransitionCover, { backgroundColor: colors.background.secondary }]}
+        />
+      ) : null}
+
       {expandedOffering ? (
         <OfferingExpandOverlay
           offering={expandedOffering.offering}
           sourceLayout={expandedOffering.layout}
           onClose={() => setExpandedOffering(null)}
+          onInvestNavigate={handleBonusInvest}
         />
       ) : null}
     </View>
@@ -369,6 +389,10 @@ export default OfferingsScreen;
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  investTransitionCover: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 998,
+  },
   header: {
     paddingHorizontal: COMMUNITY_SCREEN_PADDING,
     paddingBottom: 20,

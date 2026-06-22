@@ -153,6 +153,15 @@ export default function RezepteScreen() {
     recipe: Recipe;
     layout: CardLayout;
   } | null>(null);
+
+  const openRecipeDetail = useCallback((recipe: Recipe, layout: CardLayout) => {
+    setExpandedRecipe({ recipe, layout });
+  }, []);
+
+  const closeRecipeDetail = useCallback(() => {
+    setExpandedRecipe(null);
+  }, []);
+
   const recipesRef = useRef(recipes);
   recipesRef.current = recipes;
 
@@ -436,7 +445,7 @@ export default function RezepteScreen() {
                 variant="rezepte"
                 imageSize={REZEPE_CARD_IMAGE_SIZE}
                 hidden={expandedRecipe?.recipe.id === item.id}
-                onPressWithLayout={(layout) => setExpandedRecipe({ recipe: item, layout })}
+                onPressWithLayout={(layout) => openRecipeDetail(item, layout)}
                 onToggleFavourite={() => handleToggleFavourite(item)}
               />
             </View>
@@ -448,7 +457,7 @@ export default function RezepteScreen() {
         <RecipeExpandOverlay
           recipe={expandedRecipe.recipe}
           sourceLayout={expandedRecipe.layout}
-          onClose={() => setExpandedRecipe(null)}
+          onClose={closeRecipeDetail}
         />
       )}
     </View>

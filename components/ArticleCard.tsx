@@ -4,6 +4,9 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { getColors } from '@/constants/theme';
 import type { CardLayout } from '@/components/RecipeCard';
 
+/** Magazine list card hero image height (matches ArticleCard styles). */
+export const ARTICLE_CARD_IMAGE_HEIGHT = 252;
+
 export interface ArticleListItem {
   id: string;
   title: string;
@@ -55,7 +58,7 @@ const styles = StyleSheet.create({
   wrapper: { gap: 15 },
   hidden: { opacity: 0 },
   card: { gap: 15 },
-  image: { width: '100%', height: 252, borderRadius: 15 },
+  image: { width: '100%', height: ARTICLE_CARD_IMAGE_HEIGHT, borderRadius: 15 },
   title: {
     fontFamily: 'Roboto-Regular',
     fontSize: 16,

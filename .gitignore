@@ -10,6 +10,7 @@ dist/
 web-build/
 
 # Native
+.venv-icons/
 *.orig.*
 *.jks
 *.p8

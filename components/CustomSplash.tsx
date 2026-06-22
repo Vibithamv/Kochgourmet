@@ -2,7 +2,7 @@ import React from 'react';
 import { ActivityIndicator, Image, Modal, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/contexts/ThemeContext';
-import { SPLASH_ICON_SIZE } from '@/constants/splash';
+import { getSplashBackground, SPLASH_ICON_SIZE } from '@/constants/splash';
 import { getColors } from '@/constants/theme';
 
 type CustomSplashProps = Readonly<{
@@ -16,7 +16,7 @@ export default function CustomSplash({ visible }: CustomSplashProps) {
 
   return (
     <Modal animationType="none" transparent={false} visible={visible}>
-      <View style={[styles.root, { backgroundColor: colors.background.primary }]}>
+      <View style={[styles.root, { backgroundColor: getSplashBackground(theme) }]}>
         <Image
           source={require('../assets/images/kochgourmet-splash-icon.png')}
           style={[styles.logo, { width: SPLASH_ICON_SIZE, height: SPLASH_ICON_SIZE }]}

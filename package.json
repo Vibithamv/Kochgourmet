@@ -15,7 +15,7 @@
     "lint": "expo lint",
     "android": "expo run:android",
     "ios": "expo run:ios",
-    "androidRelease": "react-native bundle --platform android --dev false --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/build/intermediates/res/merged/release/ --reset-cache && rm -rf android/app/src/main/res/drawable-* && rm -rf android/app/src/main/res/raw/* && cd android && ./gradlew assembleRelease && cd .."
+    "androidRelease": "react-native bundle --platform android --dev false --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/build/intermediates/res/merged/release/ --reset-cache && rm -rf android/app/src/main/res/drawable-* && rm -rf android/app/src/main/res/raw/* && node scripts/generate-splash-screens.js && cd android && ./gradlew assembleRelease && cd .."
   },
   "dependencies": {
     "@aws-sdk/client-lambda": "^3.936.0",

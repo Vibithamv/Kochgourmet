@@ -12,26 +12,26 @@
       "image": "./assets/images/kochgourmet-splash-icon.png",
       "resizeMode": "contain",
       "imageWidth": 200,
-      "backgroundColor": "#FFFFFF",
+      "backgroundColor": "#FFF9F0",
       "dark": {
         "image": "./assets/images/kochgourmet-splash-icon.png",
         "resizeMode": "contain",
-        "backgroundColor": "#0D1117"
+        "backgroundColor": "#171311"
       }
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/kochgourmet-app-icon.png",
-        "backgroundColor": "#FFFFFF"
+        "foregroundImage": "./assets/images/kochgourmet-app-icon-foreground.png",
+        "backgroundColor": "#FFF9F0"
       },
       "splash": {
         "image": "./assets/images/kochgourmet-splash-icon.png",
         "resizeMode": "contain",
-        "backgroundColor": "#FFFFFF",
+        "backgroundColor": "#FFF9F0",
         "dark": {
           "image": "./assets/images/kochgourmet-splash-icon.png",
           "resizeMode": "contain",
-          "backgroundColor": "#0D1117"
+          "backgroundColor": "#171311"
         }
       },
       "package": "com.Kochgourmet.stapp",
@@ -57,11 +57,11 @@
       "splash": {
         "image": "./assets/images/kochgourmet-splash-icon.png",
         "resizeMode": "contain",
-        "backgroundColor": "#FFFFFF",
+        "backgroundColor": "#FFF9F0",
         "dark": {
           "image": "./assets/images/kochgourmet-splash-icon.png",
           "resizeMode": "contain",
-          "backgroundColor": "#0D1117"
+          "backgroundColor": "#171311"
         }
       },
       "infoPlist": {
@@ -93,11 +93,11 @@
           "image": "./assets/images/kochgourmet-splash-icon.png",
           "resizeMode": "contain",
           "imageWidth": 200,
-          "backgroundColor": "#FFFFFF",
+          "backgroundColor": "#FFF9F0",
           "dark": {
             "image": "./assets/images/kochgourmet-splash-icon.png",
             "resizeMode": "contain",
-            "backgroundColor": "#0D1117"
+            "backgroundColor": "#171311"
           }
         }
       ],

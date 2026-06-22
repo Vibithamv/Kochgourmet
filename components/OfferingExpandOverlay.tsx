@@ -5,7 +5,6 @@ import {
   Image,
   Modal,
   StyleSheet,
-  Dimensions,
   Pressable,
   Platform,
 } from 'react-native';
@@ -31,12 +30,15 @@ import {
   isHeroAtTop,
 } from '@/utils/statusBarLayout';
 import { useDetailScreenStatusBar } from '@/hooks/useStatusBarStyle';
+import { suppressTabBar, restoreTabBar } from '@/utils/tabBarStore';
+import {
+  MODAL_ANDROID_BOTTOM_BLEED,
+  getOverlayFloatingActionsBottom,
+  useModalScreenSize,
+} from '@/utils/modalScreenMetrics';
 
-const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
-
-const BONUS_CARD_HEIGHT = 470;
+const HERO_HEIGHT = PROJECT_DETAIL_HERO_HEIGHT;
 const CARD_RADIUS = 20;
-const TAB_BAR_CLEARANCE = 90;
 
 const EXPAND_SPRING = {
   damping: 28,
@@ -50,7 +52,7 @@ const COLLAPSE_SPRING = {
   mass: 1.5,
 };
 
-const EXPAND_LAYOUT_DELAY_MS = 820;
+const EXPAND_DETAIL_DELAY_MS = 820;
 const COLLAPSE_CLOSE_DELAY_MS = 820;
 
 export interface BonusOfferingPreview {
@@ -65,34 +67,38 @@ export interface OfferingExpandOverlayProps {
   readonly offering: BonusOfferingPreview;
   readonly sourceLayout: CardLayout;
   readonly onClose: () => void;
+  readonly onInvestNavigate?: (params: { offeringId: string; tokens: number }) => void;
 }
 
 export default function OfferingExpandOverlay({
   offering,
   sourceLayout,
   onClose,
+  onInvestNavigate,
 }: OfferingExpandOverlayProps) {
   const { theme } = useTheme();
   const colors = getColors(theme);
   const insets = useSafeAreaInsets();
+  const { width: screenW, height: screenH } = useModalScreenSize();
   const statusBarStripHeight = getStatusBarStripHeight(insets.top);
+  const shellBottomBleed = Platform.OS === 'android' ? MODAL_ANDROID_BOTTOM_BLEED : 0;
+  const floatingActionsBottom = getOverlayFloatingActionsBottom(insets.bottom, shellBottomBleed);
 
   const progress = useSharedValue(0);
-  const [scrollLayoutReady, setScrollLayoutReady] = useState(false);
+  const isClosing = useSharedValue(0);
   const [detailInteractive, setDetailInteractive] = useState(false);
+  const [scrollLayoutReady, setScrollLayoutReady] = useState(false);
   const [closing, setClosing] = useState(false);
   const [scrollY, setScrollY] = useState(0);
 
   const normalizedLayout = normalizeCardLayoutForModal(sourceLayout);
-  const fallbackImage =
-    'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800';
-  const imageUri = offering.imageUrl || fallbackImage;
+  const sourceImageHeight = normalizedLayout.height;
 
   const heroAtTop = detailInteractive
-    ? isHeroAtTop(scrollY, true, PROJECT_DETAIL_HERO_HEIGHT)
+    ? isHeroAtTop(scrollY, true, HERO_HEIGHT)
     : true;
   const statusBarStripBackground = detailInteractive
-    ? getHeroStatusBarStripBackground(colors, scrollY, true, PROJECT_DETAIL_HERO_HEIGHT)
+    ? getHeroStatusBarStripBackground(colors, scrollY, true, HERO_HEIGHT)
     : 'transparent';
 
   const statusBarConfig = useDetailScreenStatusBar(
@@ -107,13 +113,19 @@ export default function OfferingExpandOverlay({
     setClosing(true);
     setDetailInteractive(false);
     setScrollLayoutReady(false);
+    isClosing.value = 1;
     progress.value = withSpring(0, COLLAPSE_SPRING);
-  }, [closing, progress]);
+  }, [closing, isClosing, progress]);
+
+  useEffect(() => {
+    suppressTabBar();
+    return () => restoreTabBar();
+  }, []);
 
   useEffect(() => {
     progress.value = withSpring(1, EXPAND_SPRING);
-    const layoutTimer = setTimeout(() => setScrollLayoutReady(true), EXPAND_LAYOUT_DELAY_MS - 70);
-    const detailTimer = setTimeout(() => setDetailInteractive(true), EXPAND_LAYOUT_DELAY_MS);
+    const layoutTimer = setTimeout(() => setScrollLayoutReady(true), EXPAND_DETAIL_DELAY_MS - 70);
+    const detailTimer = setTimeout(() => setDetailInteractive(true), EXPAND_DETAIL_DELAY_MS);
     return () => {
       clearTimeout(layoutTimer);
       clearTimeout(detailTimer);
@@ -136,35 +148,67 @@ export default function OfferingExpandOverlay({
     return () => clearTimeout(timer);
   }, [closing, onClose]);
 
+  const heroLayoutActive = scrollLayoutReady || detailInteractive || closing;
+
   const backdropStyle = useAnimatedStyle(() => ({
     opacity: interpolate(progress.value, [0, 1], [0, 0.55], Extrapolation.CLAMP),
   }));
 
   const shellStyle = useAnimatedStyle(() => {
     const p = progress.value;
+    const initialRight = screenW - normalizedLayout.x - normalizedLayout.width;
+    const initialBottom = screenH - normalizedLayout.y - normalizedLayout.height;
+
     return {
       position: 'absolute',
-      left: interpolate(p, [0, 1], [normalizedLayout.x, 0], Extrapolation.CLAMP),
       top: interpolate(p, [0, 1], [normalizedLayout.y, 0], Extrapolation.CLAMP),
-      width: interpolate(p, [0, 1], [normalizedLayout.width, SCREEN_W], Extrapolation.CLAMP),
-      height: interpolate(p, [0, 1], [normalizedLayout.height, SCREEN_H], Extrapolation.CLAMP),
+      left: interpolate(p, [0, 1], [normalizedLayout.x, 0], Extrapolation.CLAMP),
+      right: interpolate(p, [0, 1], [initialRight, 0], Extrapolation.CLAMP),
+      bottom: interpolate(
+        p,
+        [0, 1],
+        [initialBottom, -shellBottomBleed],
+        Extrapolation.CLAMP,
+      ),
       borderRadius: interpolate(p, [0, 1], [CARD_RADIUS, 0], Extrapolation.CLAMP),
       overflow: 'hidden',
     };
-  });
+  }, [
+    normalizedLayout.height,
+    normalizedLayout.width,
+    normalizedLayout.x,
+    normalizedLayout.y,
+    screenH,
+    screenW,
+    shellBottomBleed,
+  ]);
 
   const imageStyle = useAnimatedStyle(() => ({
-    height: interpolate(
-      progress.value,
-      [0, 1],
-      [BONUS_CARD_HEIGHT, PROJECT_DETAIL_HERO_HEIGHT],
-      Extrapolation.CLAMP,
-    ),
+    height: interpolate(progress.value, [0, 1], [sourceImageHeight, HERO_HEIGHT], Extrapolation.CLAMP),
     width: '100%',
   }));
 
-  const cardPreviewStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(progress.value, [0, 0.65, 0.85], [1, 1, 0], Extrapolation.CLAMP),
+  const cardPreviewStyle = useAnimatedStyle(() => {
+    const p = progress.value;
+    const imageHeight = interpolate(p, [0, 1], [sourceImageHeight, HERO_HEIGHT], Extrapolation.CLAMP);
+    const opacity = isClosing.value
+      ? 1
+      : interpolate(p, [0, 0.7, 0.9], [1, 1, 0], Extrapolation.CLAMP);
+
+    return {
+      opacity,
+      top: imageHeight,
+      left: 0,
+      right: 0,
+      paddingHorizontal: 10,
+      paddingTop: 10,
+      gap: 6,
+    };
+  });
+
+  const detailStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(progress.value, [0.75, 1], [0, 1], Extrapolation.CLAMP),
+    flex: 1,
   }));
 
   return (
@@ -175,13 +219,8 @@ export default function OfferingExpandOverlay({
       statusBarTranslucent
       onRequestClose={handleClose}
     >
-      <View style={styles.root}>
-        <StatusBar
-          style={statusBarConfig.expo}
-          {...(Platform.OS === 'android'
-            ? { backgroundColor: statusBarStripBackground }
-            : {})}
-        />
+      <View style={[styles.root, { minHeight: screenH, width: screenW }]}>
+        <StatusBar style={statusBarConfig.expo} />
         <View
           pointerEvents="none"
           style={[
@@ -200,48 +239,89 @@ export default function OfferingExpandOverlay({
         </Animated.View>
 
         <Animated.View style={[shellStyle, { backgroundColor: colors.background.primary }]}>
+          {shellBottomBleed > 0 ? (
+            <View
+              pointerEvents="none"
+              style={[
+                styles.shellBottomBleed,
+                {
+                  height: shellBottomBleed,
+                  backgroundColor: colors.background.secondary,
+                },
+              ]}
+            />
+          ) : null}
+
           <Animated.View
             style={[
               imageStyle,
-              (scrollLayoutReady || detailInteractive) && styles.expandHeroAbsolute,
-              detailInteractive && styles.expandHeroHidden,
+              heroLayoutActive && styles.expandHeroAbsolute,
+              detailInteractive && !closing && styles.expandHeroHidden,
             ]}
             pointerEvents="none"
           >
-            <Image source={{ uri: imageUri }} style={styles.image} resizeMode="cover" />
-            {detailInteractive ? null : (
-              <Animated.View style={[styles.cardPreview, cardPreviewStyle]}>
-                <Text style={styles.previewTitle} numberOfLines={2}>
-                  {offering.title}
-                </Text>
-                <View style={styles.previewBadges}>
-                  <View style={styles.previewBadge}>
-                    <Text style={styles.previewBadgeText}>{offering.durationLabel}</Text>
-                  </View>
-                  <View style={styles.previewBadge}>
-                    <Text style={styles.previewBadgeText}>{offering.priceLabel}</Text>
-                  </View>
-                </View>
-              </Animated.View>
-            )}
+            <Image source={{ uri: offering.imageUrl }} style={styles.image} resizeMode="cover" />
           </Animated.View>
+
+          {!detailInteractive && (
+            <Animated.View style={[styles.cardPreview, cardPreviewStyle]}>
+              <Text
+                style={[styles.previewTitle, { color: colors.text.primary }]}
+                numberOfLines={2}
+              >
+                {offering.title}
+              </Text>
+              <View style={styles.previewMeta}>
+                <View
+                  style={[
+                    styles.previewPill,
+                    { backgroundColor: colors.background.secondary },
+                  ]}
+                >
+                  <Text style={[styles.previewPillText, { color: colors.text.primary }]}>
+                    {offering.durationLabel}
+                  </Text>
+                </View>
+                <View
+                  style={[
+                    styles.previewPill,
+                    { backgroundColor: colors.background.secondary },
+                  ]}
+                >
+                  <Text style={[styles.previewPillText, { color: colors.text.primary }]}>
+                    {offering.priceLabel}
+                  </Text>
+                </View>
+              </View>
+            </Animated.View>
+          )}
 
           <View
             style={[
               styles.bodyArea,
-              scrollLayoutReady && styles.bodyAreaExpanded,
-              scrollLayoutReady && !detailInteractive && { paddingTop: PROJECT_DETAIL_HERO_HEIGHT },
+              scrollLayoutReady && !closing && styles.bodyAreaExpanded,
+              scrollLayoutReady && !detailInteractive && !closing && { paddingTop: HERO_HEIGHT },
             ]}
           >
-            <OfferingDetailContent
-              offeringId={offering.id}
-              onClose={handleClose}
-              showHeroImage={detailInteractive}
-              heroImageUriOverride={imageUri}
-              bodyOnlyLoading
-              onScrollOffsetChange={handleScrollOffsetChange}
-              floatingActionsBottom={Math.max(insets.bottom, 12) + TAB_BAR_CLEARANCE}
-            />
+            {scrollLayoutReady && !closing ? (
+              <Animated.View
+                style={[
+                  detailInteractive ? styles.detailExpanded : detailStyle,
+                ]}
+                pointerEvents={detailInteractive ? 'auto' : 'none'}
+              >
+                <OfferingDetailContent
+                  offeringId={offering.id}
+                  onClose={handleClose}
+                  showHeroImage={detailInteractive}
+                  heroImageUriOverride={offering.imageUrl}
+                  bodyOnlyLoading
+                  onScrollOffsetChange={handleScrollOffsetChange}
+                  onInvestNavigate={onInvestNavigate}
+                  floatingActionsBottom={floatingActionsBottom}
+                />
+              </Animated.View>
+            ) : null}
           </View>
         </Animated.View>
       </View>
@@ -251,6 +331,12 @@ export default function OfferingExpandOverlay({
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
+  shellBottomBleed: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: -MODAL_ANDROID_BOTTOM_BLEED,
+  },
   statusBarOverlay: {
     position: 'absolute',
     top: 0,
@@ -268,45 +354,38 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
   expandHeroHidden: { opacity: 0 },
-  bodyArea: {
-    flex: 1,
-    overflow: 'hidden',
-    opacity: 0,
-  },
+  bodyArea: { flex: 1, overflow: 'hidden' },
   bodyAreaExpanded: {
     ...StyleSheet.absoluteFillObject,
-    opacity: 1,
+  },
+  detailExpanded: {
+    flex: 1,
   },
   cardPreview: {
-    ...StyleSheet.absoluteFillObject,
-    justifyContent: 'space-between',
-    paddingTop: 18,
-    paddingHorizontal: 18,
-    paddingBottom: 18,
+    position: 'absolute',
+    zIndex: 3,
   },
   previewTitle: {
     fontFamily: 'Roboto-Regular',
-    fontSize: 17,
-    lineHeight: 22,
+    fontSize: 16,
+    lineHeight: 21,
     letterSpacing: 0,
-    color: '#FFFFFF',
   },
-  previewBadges: {
+  previewMeta: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     gap: 10,
   },
-  previewBadge: {
-    backgroundColor: 'rgba(255, 249, 240, 0.92)',
+  previewPill: {
     borderRadius: 9999,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
   },
-  previewBadgeText: {
-    color: '#141414',
+  previewPillText: {
     fontFamily: 'Roboto-Light',
-    fontSize: 15,
-    lineHeight: 18,
+    fontSize: 12,
+    lineHeight: 16,
     letterSpacing: 0,
   },
 });

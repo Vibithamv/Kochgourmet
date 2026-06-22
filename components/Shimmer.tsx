@@ -348,6 +348,112 @@ export function ProjectsShimmer() {
 }
 
 // ---------------------------------------------------------------------------
+// MagazinDetailBodyShimmer — article detail below hero (overlay expand)
+// ---------------------------------------------------------------------------
+
+export function MagazinDetailBodyShimmer() {
+  const { theme } = useTheme();
+  const colors = getColors(theme);
+  const anim = useShimmerAnim();
+
+  return (
+    <View style={{ backgroundColor: colors.background.secondary, gap: 20 }}>
+      <ShimmerBlock anim={anim} width="92%" height={48} borderRadius={8} />
+      <ShimmerBlock anim={anim} width="100%" height={16} borderRadius={4} />
+      <ShimmerBlock anim={anim} width="98%" height={16} borderRadius={4} />
+      <ShimmerBlock anim={anim} width="94%" height={16} borderRadius={4} />
+      <ShimmerBlock anim={anim} width="88%" height={16} borderRadius={4} />
+      <ShimmerBlock anim={anim} width="96%" height={16} borderRadius={4} />
+      <ShimmerBlock anim={anim} width="72%" height={16} borderRadius={4} />
+    </View>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// MagazinScreenShimmer — matches app/(tabs)/projects magazine list layout
+// ---------------------------------------------------------------------------
+
+const MAGAZIN_SCREEN_PADDING = 26;
+const MAGAZIN_TAB_BAR_HEIGHT = 90;
+const MAGAZIN_ARTICLE_IMAGE_HEIGHT = 252;
+const MAGAZIN_ARTICLE_IMAGE_RADIUS = 15;
+const MAGAZIN_ARTICLE_ITEM_GAP = 15;
+const MAGAZIN_ARTICLE_ITEM_MARGIN = 35;
+const MAGAZIN_TITLE_HEIGHT = 80;
+const MAGAZIN_SUBTITLE_HEIGHT = 23;
+const MAGAZIN_SEARCH_HEIGHT = 48;
+
+interface ArticleCardShimmerProps {
+  anim: Animated.Value;
+}
+
+function ArticleCardShimmer({ anim }: Readonly<ArticleCardShimmerProps>) {
+  return (
+    <View style={magazinShimmerStyles.articleItem}>
+      <ShimmerBlock
+        anim={anim}
+        width="100%"
+        height={MAGAZIN_ARTICLE_IMAGE_HEIGHT}
+        borderRadius={MAGAZIN_ARTICLE_IMAGE_RADIUS}
+      />
+      <ShimmerBlock anim={anim} width="88%" height={21} borderRadius={4} />
+    </View>
+  );
+}
+
+export function MagazinScreenShimmer() {
+  const { theme } = useTheme();
+  const colors = getColors(theme);
+  const insets = useSafeAreaInsets();
+  const anim = useShimmerAnim();
+
+  return (
+    <View style={{ flex: 1, backgroundColor: colors.background.primary }}>
+      <ScrollView
+        contentContainerStyle={{
+          paddingHorizontal: MAGAZIN_SCREEN_PADDING,
+          paddingBottom: MAGAZIN_TAB_BAR_HEIGHT + Math.max(insets.bottom, 12) + 16,
+        }}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={{ height: Math.max(insets.top, 50) + 32 }} />
+        <ShimmerBlock
+          anim={anim}
+          width="52%"
+          height={MAGAZIN_TITLE_HEIGHT}
+          borderRadius={8}
+          style={{ marginBottom: 20 }}
+        />
+        <ShimmerBlock
+          anim={anim}
+          width="78%"
+          height={MAGAZIN_SUBTITLE_HEIGHT}
+          borderRadius={4}
+          style={{ marginBottom: 33 }}
+        />
+        <ShimmerBlock
+          anim={anim}
+          width="100%"
+          height={MAGAZIN_SEARCH_HEIGHT}
+          borderRadius={9999}
+          style={{ marginBottom: 66 }}
+        />
+        <ArticleCardShimmer anim={anim} />
+        <ArticleCardShimmer anim={anim} />
+        <ArticleCardShimmer anim={anim} />
+      </ScrollView>
+    </View>
+  );
+}
+
+const magazinShimmerStyles = StyleSheet.create({
+  articleItem: {
+    gap: MAGAZIN_ARTICLE_ITEM_GAP,
+    marginBottom: MAGAZIN_ARTICLE_ITEM_MARGIN,
+  },
+});
+
+// ---------------------------------------------------------------------------
 // BonusScreenShimmer — matches app/(tabs)/offerings community card layout
 // ---------------------------------------------------------------------------
 
@@ -470,6 +576,119 @@ export function PortfolioInvestmentRowShimmer({ anim }: Readonly<PortfolioInvest
       <View style={{ flex: 1, gap: 6 }}>
         <ShimmerBlock anim={anim} width="50%" height={14} borderRadius={4} />
         <ShimmerBlock anim={anim} width="30%" height={10} borderRadius={4} />
+      </View>
+    </View>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// CommunityOfferingExpandShimmer — full-screen overlay detail while loading
+// ---------------------------------------------------------------------------
+
+const COMMUNITY_EXPAND_HERO_HEIGHT = 320;
+const COMMUNITY_EXPAND_HERO_RADIUS = 24;
+
+interface CommunityOfferingExpandShimmerProps {
+  readonly heroHeight?: number;
+  readonly floatingActionsBottom?: number;
+}
+
+export function CommunityOfferingExpandShimmer({
+  heroHeight = COMMUNITY_EXPAND_HERO_HEIGHT,
+  floatingActionsBottom = 90,
+}: Readonly<CommunityOfferingExpandShimmerProps>) {
+  const { theme } = useTheme();
+  const colors = getColors(theme);
+  const { height: windowHeight } = useWindowDimensions();
+  const anim = useShimmerAnim();
+
+  return (
+    <View style={{ flex: 1, backgroundColor: colors.background.primary }}>
+      <ShimmerBlock
+        anim={anim}
+        width="100%"
+        height={heroHeight}
+        borderRadius={0}
+        style={{
+          borderBottomLeftRadius: COMMUNITY_EXPAND_HERO_RADIUS,
+          borderBottomRightRadius: COMMUNITY_EXPAND_HERO_RADIUS,
+        }}
+      />
+
+      <View
+        style={{
+          flex: 1,
+          minHeight: windowHeight - heroHeight - floatingActionsBottom - 72,
+          marginTop: -COMMUNITY_EXPAND_HERO_RADIUS,
+          borderTopLeftRadius: COMMUNITY_EXPAND_HERO_RADIUS,
+          borderTopRightRadius: COMMUNITY_EXPAND_HERO_RADIUS,
+          backgroundColor: colors.background.primary,
+          paddingHorizontal: COMMUNITY_DETAIL_PADDING,
+          paddingTop: 24,
+          gap: 20,
+        }}
+      >
+        <ShimmerBlock anim={anim} width="75%" height={48} borderRadius={8} />
+
+        <View style={{ gap: 16, paddingVertical: 4 }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+            <ShimmerBlock anim={anim} width="40%" height={23} borderRadius={6} />
+            <ShimmerBlock anim={anim} width="22%" height={23} borderRadius={6} />
+          </View>
+          <ShimmerBlock anim={anim} width="100%" height={44} borderRadius={9999} />
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <ShimmerBlock anim={anim} width={32} height={32} borderRadius={16} />
+            <ShimmerBlock
+              anim={anim}
+              width={undefined}
+              height={6}
+              borderRadius={3}
+              style={{ flex: 1, marginHorizontal: 12 }}
+            />
+            <ShimmerBlock anim={anim} width={32} height={32} borderRadius={16} />
+          </View>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+            <ShimmerBlock anim={anim} width={28} height={23} borderRadius={4} />
+            <ShimmerBlock anim={anim} width={28} height={23} borderRadius={4} />
+            <ShimmerBlock anim={anim} width={28} height={23} borderRadius={4} />
+          </View>
+        </View>
+
+        <ShimmerBlock anim={anim} width="100%" height={52} borderRadius={16} />
+
+        <View style={{ flexDirection: 'row', gap: 10 }}>
+          <ShimmerBlock anim={anim} width={undefined} height={36} borderRadius={9999} style={{ flex: 1 }} />
+          <ShimmerBlock anim={anim} width={undefined} height={36} borderRadius={9999} style={{ flex: 1 }} />
+        </View>
+
+        <ShimmerBlock anim={anim} width="100%" height={14} borderRadius={4} />
+        <ShimmerBlock anim={anim} width="92%" height={14} borderRadius={4} />
+        <ShimmerBlock anim={anim} width="85%" height={14} borderRadius={4} />
+
+        <View style={{ gap: 12, paddingTop: 8 }}>
+          <ShimmerBlock anim={anim} width="38%" height={28} borderRadius={6} />
+          <ShimmerBlock anim={anim} width="100%" height={72} borderRadius={12} />
+          <ShimmerBlock anim={anim} width="100%" height={72} borderRadius={12} />
+        </View>
+      </View>
+
+      <View
+        style={{
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          bottom: floatingActionsBottom,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 10,
+          paddingHorizontal: COMMUNITY_DETAIL_PADDING,
+        }}
+        pointerEvents="none"
+      >
+        <ShimmerBlock anim={anim} width={undefined} height={45} borderRadius={9999} style={{ flex: 1 }} />
+        <ShimmerBlock anim={anim} width={undefined} height={45} borderRadius={9999} style={{ flex: 1 }} />
+        <ShimmerBlock anim={anim} width={44} height={44} borderRadius={22} />
       </View>
     </View>
   );

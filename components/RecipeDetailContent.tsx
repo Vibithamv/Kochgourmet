@@ -34,6 +34,7 @@ import {
 import { useDetailScreenStatusBar } from '@/hooks/useStatusBarStyle';
 import { useFavourites } from '@/contexts/FavouritesContext';
 import { useRecipeFavorite } from '@/hooks/useRecipeFavorite';
+import { MODAL_OVERLAY_FLOATING_ACTIONS_OFFSET } from '@/utils/modalScreenMetrics';
 
 const PREP_STYLE_KEYS = ['normal', 'thermomix', 'airfryer'] as const;
 const PREP_STYLE_LABELS: Record<(typeof PREP_STYLE_KEYS)[number], string> = {
@@ -133,7 +134,9 @@ export default function RecipeDetailContent({
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const statusBarStripHeight = getStatusBarStripHeight(insets.top);
-  const actionsBottom = floatingActionsBottom ?? Math.max(insets.bottom, 12) + 90;
+  const actionsBottom =
+    floatingActionsBottom ??
+    Math.max(insets.bottom, 12) + (overlayContentPadding ? MODAL_OVERLAY_FLOATING_ACTIONS_OFFSET : 90);
   const recipesApi = useMemo(() => mobileAppRecipes(), []);
 
   const [recipe, setRecipe] = useState<UiRecipeDetail | null>(null);
@@ -717,11 +720,13 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
+    zIndex: 20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 12,
     paddingHorizontal: 20,
+    paddingBottom: 40,
   },
   closeBtn: {
     flexDirection: 'row',

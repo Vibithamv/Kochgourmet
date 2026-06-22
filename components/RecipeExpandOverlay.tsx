@@ -5,8 +5,8 @@ import {
   Image,
   Modal,
   StyleSheet,
-  Dimensions,
   Pressable,
+  Platform,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -30,8 +30,12 @@ import {
   isHeroAtTop,
 } from '@/utils/statusBarLayout';
 import { useDetailScreenStatusBar } from '@/hooks/useStatusBarStyle';
-
-const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
+import { suppressTabBar, restoreTabBar } from '@/utils/tabBarStore';
+import {
+  MODAL_ANDROID_BOTTOM_BLEED,
+  getOverlayFloatingActionsBottom,
+  useModalScreenSize,
+} from '@/utils/modalScreenMetrics';
 
 const HERO_HEIGHT = RECIPE_HERO_IMAGE_HEIGHT;
 const CARD_RADIUS = 12;
@@ -50,7 +54,6 @@ const COLLAPSE_SPRING = {
 
 const EXPAND_DETAIL_DELAY_MS = 820;
 const COLLAPSE_CLOSE_DELAY_MS = 820;
-const TAB_BAR_CLEARANCE = 90;
 
 export interface RecipeExpandOverlayProps {
   readonly recipe: Recipe;
@@ -66,7 +69,10 @@ export default function RecipeExpandOverlay({
   const { theme } = useTheme();
   const colors = getColors(theme);
   const insets = useSafeAreaInsets();
+  const { width: screenW, height: screenH } = useModalScreenSize();
   const statusBarStripHeight = getStatusBarStripHeight(insets.top);
+  const shellBottomBleed = Platform.OS === 'android' ? MODAL_ANDROID_BOTTOM_BLEED : 0;
+  const floatingActionsBottom = getOverlayFloatingActionsBottom(insets.bottom, shellBottomBleed);
 
   const progress = useSharedValue(0);
   const isClosing = useSharedValue(0);
@@ -97,9 +103,15 @@ export default function RecipeExpandOverlay({
     if (closing) return;
     setClosing(true);
     setDetailInteractive(false);
+    setScrollLayoutReady(false);
     isClosing.value = 1;
     progress.value = withSpring(0, COLLAPSE_SPRING);
   }, [closing, isClosing, progress]);
+
+  useEffect(() => {
+    suppressTabBar();
+    return () => restoreTabBar();
+  }, []);
 
   useEffect(() => {
     progress.value = withSpring(1, EXPAND_SPRING);
@@ -135,16 +147,32 @@ export default function RecipeExpandOverlay({
 
   const shellStyle = useAnimatedStyle(() => {
     const p = progress.value;
+    const initialRight = screenW - normalizedLayout.x - normalizedLayout.width;
+    const initialBottom = screenH - normalizedLayout.y - normalizedLayout.height;
+
     return {
       position: 'absolute',
-      left: interpolate(p, [0, 1], [normalizedLayout.x, 0], Extrapolation.CLAMP),
       top: interpolate(p, [0, 1], [normalizedLayout.y, 0], Extrapolation.CLAMP),
-      width: interpolate(p, [0, 1], [normalizedLayout.width, SCREEN_W], Extrapolation.CLAMP),
-      height: interpolate(p, [0, 1], [normalizedLayout.height, SCREEN_H], Extrapolation.CLAMP),
+      left: interpolate(p, [0, 1], [normalizedLayout.x, 0], Extrapolation.CLAMP),
+      right: interpolate(p, [0, 1], [initialRight, 0], Extrapolation.CLAMP),
+      bottom: interpolate(
+        p,
+        [0, 1],
+        [initialBottom, -shellBottomBleed],
+        Extrapolation.CLAMP,
+      ),
       borderRadius: interpolate(p, [0, 1], [CARD_RADIUS, 0], Extrapolation.CLAMP),
       overflow: 'hidden',
     };
-  });
+  }, [
+    normalizedLayout.height,
+    normalizedLayout.width,
+    normalizedLayout.x,
+    normalizedLayout.y,
+    screenH,
+    screenW,
+    shellBottomBleed,
+  ]);
 
   const imageStyle = useAnimatedStyle(() => ({
     height: interpolate(progress.value, [0, 1], [sourceImageHeight, HERO_HEIGHT], Extrapolation.CLAMP),
@@ -182,7 +210,7 @@ export default function RecipeExpandOverlay({
       statusBarTranslucent
       onRequestClose={handleClose}
     >
-      <View style={styles.root}>
+      <View style={[styles.root, { minHeight: screenH, width: screenW }]}>
         <StatusBar style={statusBarConfig.expo} />
         <View
           pointerEvents="none"
@@ -202,6 +230,18 @@ export default function RecipeExpandOverlay({
         </Animated.View>
 
         <Animated.View style={[shellStyle, { backgroundColor: colors.background.primary }]}>
+          {shellBottomBleed > 0 ? (
+            <View
+              pointerEvents="none"
+              style={[
+                styles.shellBottomBleed,
+                {
+                  height: shellBottomBleed,
+                  backgroundColor: colors.background.secondary,
+                },
+              ]}
+            />
+          ) : null}
           <Animated.View
             style={[
               imageStyle,
@@ -241,29 +281,30 @@ export default function RecipeExpandOverlay({
           <View
             style={[
               styles.bodyArea,
-              scrollLayoutReady && styles.bodyAreaExpanded,
+              scrollLayoutReady && !closing && styles.bodyAreaExpanded,
               scrollLayoutReady && !detailInteractive && !closing && { paddingTop: HERO_HEIGHT },
             ]}
           >
-            <Animated.View
-              style={[
-                detailInteractive && !closing ? styles.detailExpanded : detailStyle,
-                closing && styles.detailCollapsed,
-              ]}
-              pointerEvents={detailInteractive && !closing ? 'auto' : 'none'}
-            >
-              <RecipeDetailContent
-                recipeId={recipe.id}
-                onClose={handleClose}
-                showHeroImage={detailInteractive && !closing}
-                heroImageUriOverride={recipe.imageUrl}
-                bodyOnlyLoading
-                deferStatusBarToParent
-                overlayContentPadding
-                onScrollOffsetChange={handleScrollOffsetChange}
-                floatingActionsBottom={Math.max(insets.bottom, 12) + TAB_BAR_CLEARANCE}
-              />
-            </Animated.View>
+            {scrollLayoutReady && !closing ? (
+              <Animated.View
+                style={[
+                  detailInteractive ? styles.detailExpanded : detailStyle,
+                ]}
+                pointerEvents={detailInteractive ? 'auto' : 'none'}
+              >
+                <RecipeDetailContent
+                  recipeId={recipe.id}
+                  onClose={handleClose}
+                  showHeroImage={detailInteractive}
+                  heroImageUriOverride={recipe.imageUrl}
+                  bodyOnlyLoading
+                  deferStatusBarToParent
+                  overlayContentPadding
+                  floatingActionsBottom={floatingActionsBottom}
+                  onScrollOffsetChange={handleScrollOffsetChange}
+                />
+              </Animated.View>
+            ) : null}
           </View>
         </Animated.View>
       </View>
@@ -273,6 +314,12 @@ export default function RecipeExpandOverlay({
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
+  shellBottomBleed: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: -MODAL_ANDROID_BOTTOM_BLEED,
+  },
   statusBarOverlay: {
     position: 'absolute',
     top: 0,
@@ -296,9 +343,6 @@ const styles = StyleSheet.create({
   },
   detailExpanded: {
     flex: 1,
-  },
-  detailCollapsed: {
-    opacity: 0,
   },
   cardPreview: {
     position: 'absolute',

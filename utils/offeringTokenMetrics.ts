@@ -17,7 +17,7 @@ export function computeOfferingTokenMetrics(
 ): OfferingTokenMetrics {
   const safeTokens = Math.max(0, tokens);
   const annualIncome =
-    annualIncomeBase > 0 ? (annualIncomeBase * safeTokens) / 12 : 0;
+    annualIncomeBase > 0 ? (annualIncomeBase * safeTokens) : 0;
   const monthlyIncome = annualIncome / 12;
   const projected5Year = annualIncome * 5;
   const ownershipPercent =
@@ -49,7 +49,7 @@ export function formatSliderScaleLabel(value: number): string {
 }
 
 export function formatOwnershipPercent(percent: number): string {
-  return `${percent.toFixed(4)}%`;
+  return `${percent.toFixed(2)}%`;
 }
 
 export function formatOfferingCurrency(

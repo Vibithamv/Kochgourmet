@@ -112,6 +112,12 @@ export interface OfferingDetailContentProps {
   readonly heroImageUriOverride?: string;
   readonly floatingActionsBottom?: number;
   readonly onScrollOffsetChange?: (offsetY: number) => void;
+  readonly onInvestNavigate?: (params: { offeringId: string; tokens: number }) => void;
+  readonly onDetailLoaded?: (payload: { heroImageUri: string }) => void;
+  /** When false, keep body shimmer even after API load (overlay waits for hero prefetch). */
+  readonly heroReady?: boolean;
+  /** When true, fetch data but render nothing (overlay owns loading UI). */
+  readonly suppressRenderedContent?: boolean;
 }
 
 function OfferingDetailScrollLoading({
@@ -162,6 +168,10 @@ export default function OfferingDetailContent({
   heroImageUriOverride,
   floatingActionsBottom,
   onScrollOffsetChange,
+  onInvestNavigate,
+  onDetailLoaded,
+  heroReady = true,
+  suppressRenderedContent = false,
 }: OfferingDetailContentProps) {
   const { t } = useTranslation();
   const { theme } = useTheme();
@@ -249,6 +259,19 @@ export default function OfferingDetailContent({
     };
   }, [offeringApi, offeringId]);
 
+  useEffect(() => {
+    if (loading || !onDetailLoaded) return;
+
+    const localizedLang = i18n.language;
+    const heroUri = project
+      ? heroImageUriOverride ||
+        projectDetailPageImage(project, localizedLang) ||
+        project.image_url
+      : heroImageUriOverride || '';
+
+    onDetailLoaded({ heroImageUri: heroUri });
+  }, [loading, project, heroImageUriOverride, onDetailLoaded]);
+
   const handleInvestNow = () => {
     if (!project) return;
     if (
@@ -257,7 +280,14 @@ export default function OfferingDetailContent({
       project.status === 'privatesale' ||
       project.status === 'presaleannouncement'
     ) {
-      router.push(`/investment/${project.id}`);
+      if (onInvestNavigate) {
+        onInvestNavigate({ offeringId: project.id, tokens: selectedTokens });
+        return;
+      }
+      router.push({
+        pathname: '/investment/[id]',
+        params: { id: project.id, tokens: String(selectedTokens) },
+      });
     } else if (project.status === 'announcement') {
       showAlert(
         'Coming Soon',
@@ -273,13 +303,24 @@ export default function OfferingDetailContent({
     }
   };
 
-  if (loading) {
+  if (suppressRenderedContent) {
+    return null;
+  }
+
+  if (loading || (bodyOnlyLoading && !showHeroImage)) {
     if (bodyOnlyLoading && showHeroImage && heroImageUriOverride) {
       return (
         <OfferingDetailScrollLoading
           heroImageUri={heroImageUriOverride}
           onScrollOffsetChange={onScrollOffsetChange}
         />
+      );
+    }
+    if (bodyOnlyLoading && !showHeroImage) {
+      return (
+        <View style={{ flex: 1, backgroundColor: colors.background.primary }}>
+          <ProjectDetailCommunityBodyShimmer />
+        </View>
       );
     }
     return bodyOnlyLoading ? <ProjectDetailCommunityBodyShimmer /> : <ProjectDetailShimmer />;

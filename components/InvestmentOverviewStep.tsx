@@ -5,6 +5,7 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  useWindowDimensions,
 } from 'react-native';
 import { Check } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
@@ -87,6 +88,11 @@ export default function InvestmentOverviewStep({
 }: InvestmentOverviewStepProps) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
+
+  const topInset = Math.max(insets.top, 16) + 16;
+  const bottomReserve = floatingBottom + 120;
+  const contentMinHeight = windowHeight - topInset - bottomReserve;
 
   const showBankDetails =
     selectedPayment?.providerType === 'CUSTOMIBAN' &&
@@ -100,11 +106,15 @@ export default function InvestmentOverviewStep({
   return (
     <ScrollView
       showsVerticalScrollIndicator={false}
-      contentContainerStyle={{
-        paddingTop: Math.max(insets.top, 16) + 16,
-        paddingHorizontal: INVESTMENT_CONTENT_PADDING,
-        paddingBottom: floatingBottom + 120,
-      }}
+      contentContainerStyle={[
+        styles.scrollContent,
+        {
+          minHeight: contentMinHeight,
+          paddingTop: topInset,
+          paddingHorizontal: INVESTMENT_CONTENT_PADDING,
+          paddingBottom: bottomReserve,
+        },
+      ]}
     >
       <InvestmentScreenTitle
         line1={t('investment.overviewOrderTitle')}
@@ -201,6 +211,10 @@ export default function InvestmentOverviewStep({
 }
 
 const styles = StyleSheet.create({
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+  },
   summaryBlock: {
     marginBottom: 28,
   },

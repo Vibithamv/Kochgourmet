@@ -17,7 +17,7 @@ import { getColors } from '@/constants/theme';
 import { pillSearchBarStyle, pillSearchInputStyle } from '@/constants/textMetrics';
 import ArticleCard, { type ArticleListItem } from '@/components/ArticleCard';
 import ArticleExpandOverlay from '@/components/ArticleExpandOverlay';
-import { ProjectsShimmer } from '@/components/Shimmer';
+import { MagazinScreenShimmer } from '@/components/Shimmer';
 import type { CardLayout } from '@/components/RecipeCard';
 import { mobileAppMagazine } from '@/hooks/mobileApp';
 import { mapMagazineListItems } from '@/utils/mobileAppMappers';
@@ -42,6 +42,14 @@ export default function MagazinScreen() {
     article: ArticleListItem;
     layout: CardLayout;
   } | null>(null);
+
+  const openArticleDetail = useCallback((article: ArticleListItem, layout: CardLayout) => {
+    setExpandedArticle({ article, layout });
+  }, []);
+
+  const closeArticleDetail = useCallback(() => {
+    setExpandedArticle(null);
+  }, []);
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const articlesRef = useRef(articles);
   articlesRef.current = articles;
@@ -131,7 +139,7 @@ export default function MagazinScreen() {
   }, [loadingMore, hasMore, loading, loadArticles, page, search]);
 
   if (loading && articles.length === 0) {
-    return <ProjectsShimmer />;
+    return <MagazinScreenShimmer />;
   }
 
   const listHeader = (
@@ -200,7 +208,7 @@ export default function MagazinScreen() {
             <ArticleCard
               article={item}
               hidden={expandedArticle?.article.id === item.id}
-              onPressWithLayout={(layout) => setExpandedArticle({ article: item, layout })}
+              onPressWithLayout={(layout) => openArticleDetail(item, layout)}
             />
           </View>
         )}
@@ -210,7 +218,7 @@ export default function MagazinScreen() {
         <ArticleExpandOverlay
           article={expandedArticle.article}
           sourceLayout={expandedArticle.layout}
-          onClose={() => setExpandedArticle(null)}
+          onClose={closeArticleDetail}
         />
       )}
     </View>

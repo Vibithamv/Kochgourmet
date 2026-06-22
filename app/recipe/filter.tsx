@@ -215,6 +215,11 @@ function getActiveFilterSections(options: RecipeFilterOptions): FilterSectionKey
   });
 }
 
+function capitalizeFilterMenuLabel(label: string): string {
+  if (!label) return label;
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
 export default function FilterScreen() {
   const { t } = useTranslation();
   const { theme } = useTheme();
@@ -373,7 +378,7 @@ export default function FilterScreen() {
                 activeOpacity={0.7}
               >
                 <Text style={[styles.rowLabel, { color: colors.text.primary }]}>
-                  {sectionKey}
+                  {capitalizeFilterMenuLabel(sectionKey)}
                 </Text>
                 <View style={styles.rowRight}>
                   {badge > 0 && (
@@ -399,7 +404,7 @@ export default function FilterScreen() {
             </View>
             <View style={styles.toggleLabelRow}>
               <Text style={[styles.rowLabel, { color: colors.text.primary }]}>
-                exactMatch
+                {capitalizeFilterMenuLabel('exactMatch')}
               </Text>
               <TouchableOpacity
                 style={[styles.infoCircle, { borderColor: colors.border.secondary }]}
@@ -419,7 +424,7 @@ export default function FilterScreen() {
   if (screen === 'categories') {
     return (
       <View style={[styles.screen, { backgroundColor: colors.background.primary }]}>
-        <SubHeader title="categories" {...subHeaderProps} />
+        <SubHeader title={capitalizeFilterMenuLabel('categories')} {...subHeaderProps} />
         <ScrollView contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false}>
           {categories.map((cat) => {
             const isExpanded = expandedCategories.includes(cat.uid);
@@ -480,7 +485,7 @@ export default function FilterScreen() {
   if (screen === 'countries') {
     return (
       <View style={[styles.screen, { backgroundColor: colors.background.primary }]}>
-        <SubHeader title="countries" {...subHeaderProps} />
+        <SubHeader title={capitalizeFilterMenuLabel('countries')} {...subHeaderProps} />
         <FlatList
           data={countries}
           keyExtractor={(item: RecipeFilterCountry) => String(item.uid)}
@@ -513,7 +518,7 @@ export default function FilterScreen() {
     const difficulties = options?.difficulties ?? [];
     return (
       <View style={[styles.screen, { backgroundColor: colors.background.primary }]}>
-        <SubHeader title="difficulties" {...subHeaderProps} />
+        <SubHeader title={capitalizeFilterMenuLabel('difficulties')} {...subHeaderProps} />
         <FlatList
           data={difficulties}
           keyExtractor={(item) => String(item.uid)}
@@ -543,7 +548,7 @@ export default function FilterScreen() {
     const timeBuckets = options?.timeBuckets ?? [];
     return (
       <View style={[styles.screen, { backgroundColor: colors.background.primary }]}>
-        <SubHeader title="timeBuckets" {...subHeaderProps} />
+        <SubHeader title={capitalizeFilterMenuLabel('timeBuckets')} {...subHeaderProps} />
         <FlatList
           data={timeBuckets}
           keyExtractor={(item) => timeBucketKey(item)}
@@ -583,7 +588,7 @@ export default function FilterScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.background.primary }]}>
-      <SubHeader title={flatKey} {...subHeaderProps} />
+      <SubHeader title={capitalizeFilterMenuLabel(flatKey)} {...subHeaderProps} />
       <FlatList
         data={flatOptions}
         keyExtractor={(item) => String(item.uid)}

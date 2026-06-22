@@ -492,7 +492,7 @@ const styles = StyleSheet.create({
   signupCardLeft: { flex: 1, gap: 14, paddingRight: 120 },
   signupTitle: {
     fontFamily: 'PlayfairDisplay_700Bold',
-    fontSize: 22,
+    fontSize: 20,
     lineHeight: 30,
     letterSpacing: 0,
   },

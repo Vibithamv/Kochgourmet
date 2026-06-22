@@ -119,7 +119,7 @@ type SigningItem = {
 
 export default function InvestmentScreen() {
   const { t } = useTranslation();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, tokens: tokensParam } = useLocalSearchParams<{ id: string; tokens?: string }>();
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const [project, setProject] = useState<ExtendedProject | null>(null);
@@ -237,9 +237,15 @@ export default function InvestmentScreen() {
           1,
           Number(projectData.minimum_investment) || 0
         );
-        setTokenAmount(minimumTokenCount);
+        const parsedFromSlider = tokensParam
+          ? Number.parseInt(String(tokensParam), 10)
+          : Number.NaN;
+        const initialTokenCount = Number.isFinite(parsedFromSlider)
+          ? Math.max(minimumTokenCount, parsedFromSlider)
+          : minimumTokenCount;
+        setTokenAmount(initialTokenCount);
         calculateTotalAmount(
-          minimumTokenCount,
+          initialTokenCount,
           projectData.currency,
           projectData.id
         );

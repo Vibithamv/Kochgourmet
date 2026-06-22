@@ -8,7 +8,6 @@ import {
   StyleSheet,
   Share,
   Platform,
-  ActivityIndicator,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
 } from 'react-native';
@@ -19,13 +18,14 @@ import { router } from 'expo-router';
 import { Share2 } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/contexts/ThemeContext';
-import { getColors, getTypography } from '@/constants/theme';
+import { getColors } from '@/constants/theme';
 import {
   getStatusBarStripHeight,
   getHeroStatusBarStripBackground,
   isHeroAtTop,
 } from '@/utils/statusBarLayout';
 import { useDetailScreenStatusBar } from '@/hooks/useStatusBarStyle';
+import { ProjectDetailShimmer, RecipeDetailBodyShimmer } from '@/components/Shimmer';
 import RecipeCard from '@/components/RecipeCard';
 import ContentPageHtml from '@/components/ContentPageHtml';
 import { useFavourites } from '@/contexts/FavouritesContext';
@@ -35,6 +35,7 @@ import {
   mapMagazineRelatedRecipe,
 } from '@/utils/mobileAppMappers';
 import type { MagazinePostDetail } from '@/types/mobileAppApi';
+import { MODAL_OVERLAY_FLOATING_ACTIONS_OFFSET } from '@/utils/modalScreenMetrics';
 
 export const MAGAZINE_HERO_IMAGE_HEIGHT = 260;
 
@@ -42,6 +43,8 @@ export interface MagazinDetailContentProps {
   readonly articleId: string;
   readonly onClose: () => void;
   readonly showHeroImage?: boolean;
+  readonly heroImageUriOverride?: string;
+  readonly bodyOnlyLoading?: boolean;
   readonly floatingActionsBottom?: number;
   readonly overlayContentPadding?: boolean;
   readonly manageStatusBar?: boolean;
@@ -49,10 +52,53 @@ export interface MagazinDetailContentProps {
   readonly onScrollOffsetChange?: (offsetY: number) => void;
 }
 
+function MagazinDetailScrollLoading({
+  heroImageUri,
+  overlayContentPadding,
+  onScrollOffsetChange,
+  bottomSpacer,
+}: Readonly<{
+  heroImageUri: string;
+  overlayContentPadding: boolean;
+  onScrollOffsetChange?: (offsetY: number) => void;
+  bottomSpacer: number;
+}>) {
+  const { theme } = useTheme();
+  const colors = getColors(theme);
+
+  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    onScrollOffsetChange?.(event.nativeEvent.contentOffset.y);
+  };
+
+  return (
+    <ScrollView
+      style={{ flex: 1, backgroundColor: colors.background.secondary }}
+      showsVerticalScrollIndicator={false}
+      onScroll={onScrollOffsetChange ? handleScroll : undefined}
+      scrollEventThrottle={16}
+    >
+      <View style={[styles.heroWrap, { backgroundColor: colors.background.secondary }]}>
+        <Image source={{ uri: heroImageUri }} style={styles.heroImage} resizeMode="cover" />
+      </View>
+      <View
+        style={[
+          styles.content,
+          overlayContentPadding ? styles.contentOverlayHandoff : styles.contentDefault,
+        ]}
+      >
+        <RecipeDetailBodyShimmer />
+        <View style={{ height: bottomSpacer }} />
+      </View>
+    </ScrollView>
+  );
+}
+
 export default function MagazinDetailContent({
   articleId,
   onClose,
   showHeroImage = true,
+  heroImageUriOverride,
+  bodyOnlyLoading = false,
   floatingActionsBottom,
   overlayContentPadding = false,
   manageStatusBar = false,
@@ -62,11 +108,12 @@ export default function MagazinDetailContent({
   const { t } = useTranslation();
   const { theme } = useTheme();
   const colors = getColors(theme);
-  const typography = getTypography(theme);
   const insets = useSafeAreaInsets();
   const magazineApi = useMemo(() => mobileAppMagazine(), []);
   const statusBarStripHeight = getStatusBarStripHeight(insets.top);
-  const actionsBottom = floatingActionsBottom ?? Math.max(insets.bottom, 12) + 90;
+  const actionsBottom =
+    floatingActionsBottom ??
+    Math.max(insets.bottom, 12) + (overlayContentPadding ? MODAL_OVERLAY_FLOATING_ACTIONS_OFFSET : 90);
 
   const [article, setArticle] = useState<MagazinePostDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -134,28 +181,76 @@ export default function MagazinDetailContent({
     await Share.share({ message: article.title });
   };
 
-  if (loading) {
-    return (
-      <View style={[styles.fill, styles.centered, { backgroundColor: colors.background.secondary }]}>
-        <ActivityIndicator size="large" color={colors.primary} />
-      </View>
+  const bottomSpacer = Math.max(insets.bottom, 16) + 180;
+
+  if (loading && !article) {
+    const loadingShell = (
+      <>
+        {bodyOnlyLoading && showHeroImage && heroImageUriOverride ? (
+          <MagazinDetailScrollLoading
+            heroImageUri={heroImageUriOverride}
+            overlayContentPadding={overlayContentPadding}
+            onScrollOffsetChange={onScrollOffsetChange}
+            bottomSpacer={bottomSpacer}
+          />
+        ) : bodyOnlyLoading ? (
+          <View
+            style={[
+              styles.fill,
+              styles.content,
+              overlayContentPadding ? styles.contentOverlayHandoff : styles.contentDefault,
+              { backgroundColor: colors.background.secondary },
+            ]}
+          >
+            <RecipeDetailBodyShimmer />
+          </View>
+        ) : (
+          <ProjectDetailShimmer />
+        )}
+        <View style={[styles.floatingActions, { bottom: actionsBottom }]} pointerEvents="box-none">
+          <TouchableOpacity
+            style={[styles.closeBtn, { backgroundColor: colors.background.card, borderColor: colors.border.primary }]}
+            onPress={onClose}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.closeBtnText, { color: colors.text.primary }]}>{t('common.close')}</Text>
+          </TouchableOpacity>
+        </View>
+      </>
     );
+
+    if (ownsStatusBar) {
+      return (
+        <View style={[styles.fill, { backgroundColor: colors.background.secondary }]}>
+          <StatusBar
+            style={statusBarConfig.expo}
+            {...(Platform.OS === 'android'
+              ? { backgroundColor: statusBarStripBackground }
+              : {})}
+          />
+          <View
+            pointerEvents="none"
+            style={[
+              styles.statusBarOverlay,
+              {
+                height: statusBarStripHeight,
+                backgroundColor: statusBarStripBackground,
+              },
+            ]}
+          />
+          {loadingShell}
+        </View>
+      );
+    }
+
+    return <View style={[styles.fill, { backgroundColor: colors.background.secondary }]}>{loadingShell}</View>;
   }
 
   if (!article) {
-    return (
-      <View style={[styles.fill, styles.centered, { backgroundColor: colors.background.secondary }]}>
-        <Text style={[styles.bodyContent, { color: colors.text.tertiary }]}>
-          {t('magazinScreen.emptyArticles')}
-        </Text>
-        <TouchableOpacity onPress={onClose} style={styles.retryBtn}>
-          <Text style={{ color: colors.primary }}>{t('common.close')}</Text>
-        </TouchableOpacity>
-      </View>
-    );
+    return null;
   }
 
-  const heroImageUrl = magazineHeroImage(article);
+  const heroImageUrl = heroImageUriOverride ?? magazineHeroImage(article);
 
   return (
     <View style={[styles.fill, { backgroundColor: colors.background.secondary }]}>
@@ -261,22 +356,20 @@ export default function MagazinDetailContent({
           onPress={onClose}
           activeOpacity={0.7}
         >
-          <Text style={[styles.closeBtnText, { color: colors.text.primary, fontFamily: typography.fontFamily.regular }]}>
-            {t('common.close')}
-          </Text>
+          <Text style={[styles.closeBtnText, { color: colors.text.primary }]}>{t('common.close')}</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[
             styles.shareBtn,
             {
-              backgroundColor: colors.background.card,
+              backgroundColor: '#FFFFFF',
               borderColor: colors.border.primary,
             },
           ]}
           onPress={onShare}
           activeOpacity={0.8}
         >
-          <Share2 size={16} color={colors.text.primary} />
+          <Share2 size={16} color="#141414" />
         </TouchableOpacity>
       </View>
     </View>
@@ -298,6 +391,10 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 30,
+  },
+  heroWrap: {
+    width: '100%',
+    overflow: 'hidden',
   },
   heroImage: {
     width: '100%',
@@ -333,11 +430,13 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
+    zIndex: 20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 12,
     paddingHorizontal: 20,
+    paddingBottom: 40,
   },
   closeBtn: {
     flexDirection: 'row',
@@ -353,7 +452,13 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 6,
   },
-  closeBtnText: { fontSize: 14, letterSpacing: 0.1 },
+  closeBtnText: {
+    fontFamily: 'Roboto-Light',
+    fontSize: 17,
+    lineHeight: 23,
+    letterSpacing: 0,
+    textAlign: 'center',
+  },
   shareBtn: {
     width: 44,
     height: 44,

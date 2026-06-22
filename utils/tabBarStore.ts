@@ -20,10 +20,14 @@ export function restoreTabBar() {
 }
 
 export function useTabBarSuppressed(): boolean {
-  const [suppressed, setSuppressed] = useState(false);
+  const [suppressed, setSuppressed] = useState(() => suppressCount > 0);
+
   useEffect(() => {
     listeners.add(setSuppressed);
-    return () => { listeners.delete(setSuppressed); };
+    return () => {
+      listeners.delete(setSuppressed);
+    };
   }, []);
+
   return suppressed;
 }

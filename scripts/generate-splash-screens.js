@@ -96,11 +96,21 @@ function createSplashScreens() {
     const splashLogo = path.join(folderPath, 'splashscreen_logo.png');
     resizeImage(sourceImage, splashLogo, size);
   }
+
+  // Base drawable/ copy survives `androidRelease` cleanup (rm -rf drawable-*).
+  const baseDrawablePath = path.join(androidResPath, 'drawable');
+  if (!fs.existsSync(baseDrawablePath)) {
+    fs.mkdirSync(baseDrawablePath, { recursive: true });
+  }
+  const baseSplashLogo = path.join(baseDrawablePath, 'splashscreen_logo.png');
+  console.log(`📦 Creating base drawable splashscreen_logo (${splashSizes['drawable-xxhdpi']}x${splashSizes['drawable-xxhdpi']}px)...`);
+  resizeImage(sourceImage, baseSplashLogo, splashSizes['drawable-xxhdpi']);
   
   console.log('\n✅ Android splash screen logos generated successfully!');
   createIosSplashScreens();
   console.log('\n📝 Splash screen configuration:');
-  console.log('   - Background color: #FFFFFF (white)');
+  console.log('   - Light background: #FFF9F0 (white coral)');
+  console.log('   - Dark background: #171311');
   console.log('   - Android logo: splashscreen_logo.png → splashscreen_icon.xml');
   console.log('   - iOS logo: SplashScreenLegacy.imageset');
   console.log('   - Rebuild native app after running this script (yarn android / yarn ios)');

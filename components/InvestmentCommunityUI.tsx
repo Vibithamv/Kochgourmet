@@ -217,12 +217,14 @@ const styles = StyleSheet.create({
   titleBlock: {
     marginBottom: 28,
     gap: 2,
+    alignItems: 'flex-start',
   },
   titleLine: {
     fontFamily: 'PlayfairDisplay_700Bold',
     fontSize: 35,
     lineHeight: 48,
     letterSpacing: 0,
+    textAlign: 'left',
   },
   floatingActions: {
     position: 'absolute',

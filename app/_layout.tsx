@@ -375,6 +375,7 @@ export default function RootLayout() {
                     <Stack screenOptions={{ headerShown: false }}>
                       <Stack.Screen name="auth" />
                       <Stack.Screen name="(tabs)" />
+                      <Stack.Screen name="investment" options={{ headerShown: false }} />
                       <Stack.Screen name="recipe"    options={{ animation: 'slide_from_bottom', presentation: 'card', headerShown: false }} />
                       <Stack.Screen name="magazin"   options={{ animation: 'slide_from_bottom', presentation: 'card', headerShown: false }} />
                       <Stack.Screen name="favoriten" options={{ animation: 'slide_from_bottom', presentation: 'card', headerShown: false }} />
