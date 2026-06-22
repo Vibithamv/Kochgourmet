@@ -209,7 +209,7 @@ export default function PersonalInfoScreen() {
         showAlert(t('common.failed'), prepareErrorMessage(prepared.error));
         return;
       }
-      await doUploadPhoto(prepared.payload.image, prepared.payload.contentType);
+      await doUploadPhoto(prepared.payload.fileBase64, prepared.payload.contentType);
     } catch (err: unknown) {
       showAlert(t('common.error'), err instanceof Error ? err.message : t('profile.photoUpdateFailed'));
     }

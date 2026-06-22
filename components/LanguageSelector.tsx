@@ -8,10 +8,12 @@ import {
   Modal,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Globe, Check, X } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getColors, getTypography, Typography } from '@/constants/theme';
 import { suppressTabBar, restoreTabBar } from '@/utils/tabBarStore';
+import { LANGUAGE_STORAGE_KEY } from '@/i18n/index';
 
 interface Language {
   code: string;
@@ -37,8 +39,11 @@ export default function LanguageSelector() {
   const closeModal = () => { restoreTabBar(); setModalVisible(false); };
 
   const changeLanguage = (languageCode: string) => {
-    i18n.changeLanguage(languageCode);
-    closeModal();
+    void (async () => {
+      await i18n.changeLanguage(languageCode);
+      await AsyncStorage.setItem(LANGUAGE_STORAGE_KEY, languageCode);
+      closeModal();
+    })();
   };
 
   const currentLang =

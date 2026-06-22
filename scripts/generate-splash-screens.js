@@ -9,17 +9,23 @@ const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
-const sourceImage = path.join(__dirname, '../assets/images/kochgourmet-app-icon.png');
+const sourceImage = path.join(__dirname, '../assets/images/kochgourmet-splash-icon.png');
 const androidResPath = path.join(__dirname, '../android/app/src/main/res');
+const iosSplashPath = path.join(
+  __dirname,
+  '../ios/boltexponativewind/Images.xcassets/SplashScreenLegacy.imageset'
+);
 
-// Android splash screen logo sizes for different densities
-// Splash screen logos are typically larger than launcher icons
+/** Must match constants/splash.ts and app.json expo-splash-screen imageWidth */
+const SPLASH_ICON_SIZE = 200;
+
+// Android splash bitmap sizes per density bucket (dp × multiplier)
 const splashSizes = {
-  'drawable-mdpi': 144,    // 1.5x base size
-  'drawable-hdpi': 216,    // 2x base size
-  'drawable-xhdpi': 288,   // 3x base size
-  'drawable-xxhdpi': 432,  // 4x base size
-  'drawable-xxxhdpi': 576, // 5x base size
+  'drawable-mdpi': SPLASH_ICON_SIZE,
+  'drawable-hdpi': SPLASH_ICON_SIZE * 1.5,
+  'drawable-xhdpi': SPLASH_ICON_SIZE * 2,
+  'drawable-xxhdpi': SPLASH_ICON_SIZE * 3,
+  'drawable-xxxhdpi': SPLASH_ICON_SIZE * 4,
 };
 
 function checkDependencies() {
@@ -40,6 +46,28 @@ function resizeImage(inputPath, outputPath, size) {
     console.error(`Error resizing image: ${error.message}`);
     throw error;
   }
+}
+
+const iosSplashSizes = {
+  'image.png': SPLASH_ICON_SIZE,
+  'image@2x.png': SPLASH_ICON_SIZE * 2,
+  'image@3x.png': SPLASH_ICON_SIZE * 3,
+};
+
+function createIosSplashScreens() {
+  console.log('🍎 Generating iOS splash screen images...\n');
+
+  if (!fs.existsSync(iosSplashPath)) {
+    console.warn(`⚠️  iOS splash folder not found: ${iosSplashPath}`);
+    return;
+  }
+
+  for (const [filename, size] of Object.entries(iosSplashSizes)) {
+    console.log(`📦 Creating iOS splash ${filename} (${size}x${size}px)...`);
+    resizeImage(sourceImage, path.join(iosSplashPath, filename), size);
+  }
+
+  console.log('\n✅ iOS splash screen images generated successfully!');
 }
 
 function createSplashScreens() {
@@ -70,10 +98,12 @@ function createSplashScreens() {
   }
   
   console.log('\n✅ Android splash screen logos generated successfully!');
+  createIosSplashScreens();
   console.log('\n📝 Splash screen configuration:');
   console.log('   - Background color: #FFFFFF (white)');
-  console.log('   - Logo: splashscreen_logo.png in each drawable folder');
-  console.log('   - Configured in: android/app/src/main/res/values/styles.xml');
+  console.log('   - Android logo: splashscreen_logo.png → splashscreen_icon.xml');
+  console.log('   - iOS logo: SplashScreenLegacy.imageset');
+  console.log('   - Rebuild native app after running this script (yarn android / yarn ios)');
 }
 
 // Run the script

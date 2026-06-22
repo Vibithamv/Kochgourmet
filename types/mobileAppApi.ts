@@ -81,7 +81,7 @@ export interface MobileAppUser {
   email: string;
   username?: string;
   displayName?: string;
-  gender?: string;
+  gender?: number | string;
   firstName: string;
   lastName: string;
   address?: string;
@@ -90,15 +90,20 @@ export interface MobileAppUser {
   country?: string;
   telephone?: string;
   image?: string;
-  profileImageUrl?: string;
+  profileImageUrl?: string | null;
   newsletterDaily: boolean;
   newsletterWeekly: boolean;
 }
 
 export interface MobileAppAuthResponse {
   token: string;
-  expiresAt: string;
-  user: MobileAppUser;
+  expiresAt?: string;
+  refreshToken?: string;
+  user?: MobileAppUser;
+  email?: string;
+  firstName?: string;
+  lastName?: string;
+  uid?: number;
 }
 
 export interface RegisterUserPayload {
@@ -114,16 +119,25 @@ export interface RegisterUserPayload {
 }
 
 export interface UpdateProfilePayload {
-  gender?: string;
   firstName?: string;
   lastName?: string;
   address?: string;
+  telephone?: string;
+  email?: string;
   zip?: string;
   city?: string;
   country?: string;
-  telephone?: string;
+  username?: string;
+  profileImageUrl?: string | null;
   newsletterDaily?: boolean;
   newsletterWeekly?: boolean;
+  gender?: number | string;
+}
+
+export interface UploadProfileImagePayload {
+  fileBase64: string;
+  fileName: string;
+  contentType: string;
 }
 
 export interface ChangePasswordPayload {
@@ -196,6 +210,11 @@ export interface RecipeListParams {
 export interface MagazinePostListItem {
   uid: number;
   title: string;
+  imageThumbnailUrl?: string;
+  publishedAt?: string;
+  readingTime?: number;
+  teaser?: string;
+  '@id'?: string;
   categories?: { uid: number; title: string }[];
 }
 

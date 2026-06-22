@@ -1,18 +1,16 @@
-import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useState } from 'react';
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   StyleSheet,
-  Keyboard,
   ActivityIndicator,
   BackHandler,
 } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { router, useNavigation } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
-import { ArrowLeft } from 'lucide-react-native';
+import { ArrowLeft, Mail } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -22,26 +20,20 @@ import { useRegisterPending } from '@/contexts/RegisterPendingContext';
 import { useGlobalAlert } from '@/contexts/AlertContext';
 import { replaceLoginClearingAuthStack } from '@/utils/authNavigation';
 import LanguageSelector from '@/components/LanguageSelector';
-import ConfirmationCodeInput, { CONFIRMATION_CODE_LENGTH } from '@/components/ConfirmationCodeInput';
 import { localizedAuthErrorMessage } from '@/utils/apiErrorMessage';
 
 export default function RegisterConfirmScreen() {
   const { t } = useTranslation();
   const { theme } = useTheme();
   const colors = getColors(theme);
+  const isDark = theme === 'dark' || theme === 'darkGreen';
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const { pending, setPending } = useRegisterPending();
   const { showAlert } = useGlobalAlert();
   const userRegisterVal = userRegister();
 
-  const [code, setCode] = useState('');
-  const [errorKey, setErrorKey] = useState('');
-  const [loadingConfirm, setLoadingConfirm] = useState(false);
   const [loadingResend, setLoadingResend] = useState(false);
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
-  const keyboardVisibleRef = useRef(false);
-  const codeInputRef = useRef<TextInput>(null);
 
   useLayoutEffect(() => {
     if (!pending) {
@@ -59,52 +51,22 @@ export default function RegisterConfirmScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      const tId = setTimeout(() => codeInputRef.current?.focus(), 200);
       const sub = BackHandler.addEventListener('hardwareBackPress', () => {
-        if (keyboardVisibleRef.current) {
-          Keyboard.dismiss();
-          codeInputRef.current?.blur();
-          return true;
-        }
         setPending(null);
         replaceLoginClearingAuthStack();
         return true;
       });
-      return () => {
-        clearTimeout(tId);
-        sub.remove();
-      };
+      return () => sub.remove();
     }, [setPending])
   );
-
-  useEffect(() => {
-    const show = Keyboard.addListener('keyboardDidShow', (e) => {
-      keyboardVisibleRef.current = true;
-      setKeyboardHeight(e.endCoordinates.height);
-    });
-    const hide = Keyboard.addListener('keyboardDidHide', () => {
-      keyboardVisibleRef.current = false;
-      setKeyboardHeight(0);
-    });
-    return () => {
-      show.remove();
-      hide.remove();
-    };
-  }, []);
 
   if (!pending) {
     return null;
   }
 
   const handleBack = () => {
-    Keyboard.dismiss();
     setPending(null);
     replaceLoginClearingAuthStack();
-  };
-
-  const handleCodeChange = (text: string) => {
-    setCode(text);
-    if (errorKey) setErrorKey('');
   };
 
   const handleResend = async () => {
@@ -112,51 +74,18 @@ export default function RegisterConfirmScreen() {
     try {
       const result = await userRegisterVal.userRegisterResendOTPApi(pending.email);
       if (result.success) {
-        showAlert(t('common.success'), t('auth.forgotPassword.checkEmailCode'));
+        showAlert(t('common.success'), t('auth.register.verificationEmailResent'));
         return;
       }
       showAlert(
         t('common.failed'),
-        localizedAuthErrorMessage(result.error, t, 'auth.forgotPassword.sendResetCodeFailed'),
+        localizedAuthErrorMessage(result.error, t, 'auth.register.resendEmailFailed'),
       );
     } catch (err) {
-      console.error('Resend OTP error:', err);
-      showAlert(t('common.error'), t('auth.forgotPassword.somethingWentWrong'));
+      console.error('Resend verification email error:', err);
+      showAlert(t('common.error'), t('auth.register.resendEmailFailed'));
     } finally {
       setLoadingResend(false);
-    }
-  };
-
-  const handleConfirm = async () => {
-    Keyboard.dismiss();
-    if (code.length < CONFIRMATION_CODE_LENGTH) {
-      setErrorKey('auth.confirmationCode.enterCode');
-      return;
-    }
-    setErrorKey('');
-    setLoadingConfirm(true);
-    try {
-      const result = await userRegisterVal.userRegisterConfirmationApi(
-        pending.firstName,
-        pending.lastName,
-        pending.password,
-        pending.email,
-        code
-      );
-      if (result.success) {
-        setPending(null);
-        router.replace('/auth/registerSuccess');
-        return;
-      }
-      showAlert(
-        t('common.failed'),
-        localizedAuthErrorMessage(result.error, t, 'auth.register.registerFailed'),
-      );
-    } catch (err) {
-      console.error('Registration confirmation error:', err);
-      showAlert(t('common.failed'), t('auth.register.registerFailed'));
-    } finally {
-      setLoadingConfirm(false);
     }
   };
 
@@ -186,67 +115,56 @@ export default function RegisterConfirmScreen() {
         ]}
         enableOnAndroid
         keyboardShouldPersistTaps="handled"
-        extraScrollHeight={keyboardHeight}
-        enableAutomaticScroll
       >
         <View style={styles.content}>
-          <Text style={[styles.title, { color: colors.text.primary }]}>
-            {t('auth.confirmationCode.title')}
-          </Text>
-
-          <Text style={[styles.subtitle, { color: colors.text.primary }]}>
-            {t('auth.register.verifyEmailDescription', { email: pending.email })}
-          </Text>
-
-          <View style={styles.fieldGroup}>
-            <Text style={[styles.label, { color: colors.text.primary }]}>
-              {t('auth.forgotPassword.confirmationCode')}
-            </Text>
-
-            <ConfirmationCodeInput
-              value={code}
-              onChangeText={handleCodeChange}
-              hasError={!!errorKey}
-              inputRef={codeInputRef}
-            />
-
-            {errorKey ? (
-              <Text style={[styles.errorText, { color: colors.error }]}>{t(errorKey)}</Text>
-            ) : null}
+          <View
+            style={[
+              styles.iconWrap,
+              { backgroundColor: colors.background.secondary, borderColor: colors.border.primary },
+            ]}
+          >
+            <Mail size={32} color={colors.primary} strokeWidth={1.75} />
           </View>
 
+          <Text style={[styles.title, { color: colors.text.primary }]}>
+            {t('auth.register.verifyEmailTitle')}
+          </Text>
+
+          <Text style={[styles.body, { color: colors.text.primary }]}>
+            {t('auth.register.verificationEmailSent')}
+          </Text>
+
+          <Text style={[styles.emailHighlight, { color: colors.text.secondary }]}>
+            {pending.email}
+          </Text>
+
+          <Text style={[styles.footer, { color: colors.text.tertiary }]}>
+            {t('auth.register.verificationEmailFooter')}
+          </Text>
+
           <TouchableOpacity
-            onPress={handleConfirm}
-            disabled={loadingConfirm}
+            onPress={handleResend}
+            disabled={loadingResend}
             activeOpacity={0.85}
-            style={[styles.primaryBtn, { backgroundColor: colors.primary, opacity: loadingConfirm ? 0.6 : 1 }]}
+            style={[styles.primaryBtn, { backgroundColor: colors.primary, opacity: loadingResend ? 0.6 : 1 }]}
           >
-            {loadingConfirm ? (
-              <ActivityIndicator color="#fff" />
+            {loadingResend ? (
+              <ActivityIndicator color={isDark ? '#0D1117' : '#FFFFFF'} />
             ) : (
-              <Text style={styles.primaryBtnText}>{t('auth.confirmationCode.confirm')}</Text>
+              <Text style={[styles.primaryBtnText, { color: isDark ? '#0D1117' : '#FFFFFF' }]}>
+                {t('auth.register.resendEmail')}
+              </Text>
             )}
           </TouchableOpacity>
 
           <TouchableOpacity
-            onPress={handleResend}
-            disabled={loadingResend || loadingConfirm}
+            onPress={handleBack}
             activeOpacity={0.7}
-            style={[
-              styles.resendBtn,
-              {
-                borderColor: colors.border.primary,
-                opacity: loadingResend || loadingConfirm ? 0.5 : 1,
-              },
-            ]}
+            style={[styles.secondaryBtn, { borderColor: colors.border.primary }]}
           >
-            {loadingResend ? (
-              <ActivityIndicator size="small" color={colors.text.primary} />
-            ) : (
-              <Text style={[styles.resendText, { color: colors.text.primary }]}>
-                {t('auth.confirmationCode.resend')}
-              </Text>
-            )}
+            <Text style={[styles.secondaryBtnText, { color: colors.text.primary }]}>
+              {t('auth.register.signIn')}
+            </Text>
           </TouchableOpacity>
 
           <View style={styles.languageContainer}>
@@ -276,6 +194,15 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     alignItems: 'center',
   },
+  iconWrap: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 24,
+  },
   title: {
     fontFamily: 'PlayfairDisplay_700Bold',
     fontSize: 35,
@@ -283,7 +210,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0,
     textAlign: 'center',
     width: '100%',
-    marginBottom: 12,
+    marginBottom: 16,
   },
   backBtn: {
     width: 40,
@@ -294,31 +221,31 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     flexShrink: 0,
   },
-  subtitle: {
+  body: {
     fontFamily: 'Roboto-Light',
     fontSize: 17,
     lineHeight: 23,
     letterSpacing: 0,
     textAlign: 'center',
     width: '100%',
-    marginBottom: 28,
+    marginBottom: 12,
   },
-  fieldGroup: { width: '100%', marginBottom: 8 },
-  label: {
-    fontFamily: 'Roboto-Light',
+  emailHighlight: {
+    fontFamily: 'Inter-Medium',
     fontSize: 16,
     lineHeight: 22,
-    letterSpacing: 0,
-    textAlign: 'left',
-    alignSelf: 'flex-start',
-    marginBottom: 14,
-  },
-  errorText: {
-    fontFamily: 'Roboto-Light',
-    fontSize: 12,
-    lineHeight: 16,
     textAlign: 'center',
-    marginTop: 8,
+    width: '100%',
+    marginBottom: 20,
+  },
+  footer: {
+    fontFamily: 'Roboto-Light',
+    fontSize: 14,
+    lineHeight: 20,
+    letterSpacing: 0,
+    textAlign: 'center',
+    width: '100%',
+    marginBottom: 28,
   },
   primaryBtn: {
     width: '100%',
@@ -326,17 +253,15 @@ const styles = StyleSheet.create({
     borderRadius: 9999,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 20,
   },
   primaryBtnText: {
-    color: '#fff',
     fontFamily: 'Roboto-Regular',
     fontSize: 17,
     lineHeight: 23,
     letterSpacing: 0,
     textAlign: 'center',
   },
-  resendBtn: {
+  secondaryBtn: {
     width: '100%',
     marginTop: 12,
     paddingVertical: 14,
@@ -345,7 +270,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  resendText: {
+  secondaryBtnText: {
     fontFamily: 'Roboto-Light',
     fontSize: 17,
     lineHeight: 23,

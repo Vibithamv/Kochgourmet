@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -11,8 +11,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { replaceLoginClearingAuthStack } from '@/utils/authNavigation';
-import { Eye, EyeOff, X, ChevronRight } from 'lucide-react-native';
-import ConfirmationCodeInput, { CONFIRMATION_CODE_LENGTH } from '@/components/ConfirmationCodeInput';
+import { ChevronRight, Mail, X } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getColors } from '@/constants/theme';
 import { useTranslation } from 'react-i18next';
@@ -48,16 +47,6 @@ function buildEmailFieldErrors(email: string, t: TFunction): FieldErrors {
   return next;
 }
 
-function buildResetFieldErrors(password: string, confirmationCode: string, t: TFunction): FieldErrors {
-  const next: FieldErrors = {};
-  if (!password) next.password = t('auth.forgotPassword.enterNewPassword');
-  if (confirmationCode.length < CONFIRMATION_CODE_LENGTH) {
-    next.confirmationCode = t('auth.confirmationCode.enterCode');
-  }
-  return next;
-}
-
-// ── Step 1: Email ────────────────────────────────────────────────────────────
 type EmailStepProps = Readonly<{
   t: TFunction;
   email: string;
@@ -120,134 +109,87 @@ function EmailStep({ t, email, setEmail, errors, setErrors, generalError, loadin
   );
 }
 
-// ── Step 2: Reset ────────────────────────────────────────────────────────────
-type ResetStepProps = Readonly<{
+type LinkSentStepProps = Readonly<{
   t: TFunction;
   email: string;
-  password: string;
-  setPassword: (v: string) => void;
-  confirmationCode: string;
-  setConfirmationCode: (v: string) => void;
-  showPassword: boolean;
-  setShowPassword: (v: boolean) => void;
-  errors: FieldErrors;
-  setErrors: React.Dispatch<React.SetStateAction<FieldErrors>>;
-  generalError: string;
-  loading: boolean;
-  onResetPassword: () => void;
-  newPasswordRef: React.RefObject<TextInput | null>;
-  confirmationCodeRef: React.RefObject<TextInput | null>;
+  loadingResend: boolean;
+  onResend: () => void;
+  onSignIn: () => void;
 }>;
 
-function ResetStep({
-  t, email, password, setPassword, confirmationCode, setConfirmationCode,
-  showPassword, setShowPassword, errors, setErrors, generalError, loading,
-  onResetPassword, newPasswordRef, confirmationCodeRef,
-}: ResetStepProps) {
-  const [passwordFocused, setPasswordFocused] = useState(false);
+function LinkSentStep({ t, email, loadingResend, onResend, onSignIn }: LinkSentStepProps) {
   const { theme } = useTheme();
   const colors = getColors(theme);
-
-  const computePasswordBorder = (): string => {
-    if (errors.password) return '#EF4444';
-    if (passwordFocused) return colors.primary;
-    return colors.border.primary;
-  };
+  const isDark = theme === 'dark' || theme === 'darkGreen';
 
   return (
-    <>
-      {/* Email (read-only) */}
-      <View style={styles.fieldGroup}>
-        <TextInput
-          style={[
-            styles.pillInput,
-            styles.fieldInput,
-            { backgroundColor: colors.background.card, borderColor: colors.border.primary, color: colors.text.primary },
-          ]}
-          value={email}
-          editable={false}
-          placeholderTextColor={colors.text.primary}
-        />
+    <View style={styles.linkSentContent}>
+      <View
+        style={[
+          styles.iconWrap,
+          { backgroundColor: colors.background.secondary, borderColor: colors.border.primary },
+        ]}
+      >
+        <Mail size={32} color={colors.primary} strokeWidth={1.75} />
       </View>
 
-      {/* New password */}
-      <View style={styles.fieldGroup}>
-        <View
-          style={[
-            styles.pillInputWrap,
-            { backgroundColor: colors.background.card, borderColor: computePasswordBorder() },
-          ]}
-        >
-          <TextInput
-            ref={newPasswordRef}
-            style={[styles.pillInputInline, { color: colors.text.primary }]}
-            value={password}
-            onChangeText={(text) => { setPassword(text); setErrors((p) => ({ ...p, password: '' })); }}
-            placeholder={t('auth.forgotPassword.newPassword')}
-            placeholderTextColor={colors.text.placeholder}
-            secureTextEntry={!showPassword}
-            returnKeyType="next"
-            onFocus={() => setPasswordFocused(true)}
-            onBlur={() => setPasswordFocused(false)}
-            onSubmitEditing={() => confirmationCodeRef.current?.focus()}
-          />
-          <TouchableOpacity style={styles.eyeButton} onPress={() => setShowPassword(!showPassword)} hitSlop={8}>
-            {showPassword ? <EyeOff size={18} color={colors.text.tertiary} /> : <Eye size={18} color={colors.text.tertiary} />}
-          </TouchableOpacity>
-        </View>
-        {errors.password ? <Text style={styles.errorText}>{errors.password}</Text> : null}
-      </View>
+      <Text style={[styles.linkSentTitle, { color: colors.text.primary }]}>
+        {t('auth.forgotPassword.checkEmailTitle')}
+      </Text>
 
-      {/* Confirmation code */}
-      <View style={styles.fieldGroup}>
-        <Text style={[styles.fieldLabel, { color: colors.text.tertiary }]}>
-          {t('auth.forgotPassword.confirmationCode')}
-        </Text>
-        <ConfirmationCodeInput
-          value={confirmationCode}
-          onChangeText={(text) => {
-            setConfirmationCode(text);
-            setErrors((p) => ({ ...p, confirmationCode: '' }));
-          }}
-          hasError={!!errors.confirmationCode}
-          inputRef={confirmationCodeRef}
-        />
-        {errors.confirmationCode ? <Text style={styles.errorText}>{errors.confirmationCode}</Text> : null}
-        {generalError ? <Text style={styles.generalError}>{generalError}</Text> : null}
-      </View>
+      <Text style={[styles.linkSentBody, { color: colors.text.primary }]}>
+        {t('auth.forgotPassword.resetLinkSent')}
+      </Text>
+
+      <Text style={[styles.emailHighlight, { color: colors.text.secondary }]}>
+        {email}
+      </Text>
+
+      <Text style={[styles.linkSentFooter, { color: colors.text.tertiary }]}>
+        {t('auth.register.verificationEmailFooter')}
+      </Text>
 
       <TouchableOpacity
-        onPress={onResetPassword}
-        disabled={loading}
+        onPress={onResend}
+        disabled={loadingResend}
         activeOpacity={0.85}
-        style={[styles.primaryBtn, { backgroundColor: colors.primary, opacity: loading ? 0.6 : 1 }]}
+        style={[styles.primaryBtn, { backgroundColor: colors.primary, opacity: loadingResend ? 0.6 : 1 }]}
       >
-        {loading
-          ? <ActivityIndicator color="#fff" />
-          : <Text style={styles.primaryBtnText}>{t('auth.forgotPassword.resetPassword')}</Text>}
+        {loadingResend ? (
+          <ActivityIndicator color={isDark ? '#0D1117' : '#FFFFFF'} />
+        ) : (
+          <Text style={[styles.primaryBtnText, { color: isDark ? '#0D1117' : '#FFFFFF' }]}>
+            {t('auth.forgotPassword.resendEmail')}
+          </Text>
+        )}
       </TouchableOpacity>
-    </>
+
+      <TouchableOpacity
+        onPress={onSignIn}
+        activeOpacity={0.7}
+        style={[styles.secondaryBtn, { borderColor: colors.border.primary }]}
+      >
+        <Text style={[styles.secondaryBtnText, { color: colors.text.primary }]}>
+          {t('auth.login.signIn')}
+        </Text>
+      </TouchableOpacity>
+    </View>
   );
 }
 
-// ── Screen ───────────────────────────────────────────────────────────────────
 export default function ForgotPassword() {
   const { t } = useTranslation();
   const { theme } = useTheme();
   const colors = getColors(theme);
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmationCode, setConfirmationCode] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [loadingResend, setLoadingResend] = useState(false);
   const [generalError, setGeneralError] = useState('');
   const [errors, setErrors] = useState<FieldErrors>({});
-  const [showResetFields, setShowResetFields] = useState(false);
+  const [showLinkSent, setShowLinkSent] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const resetPassword = userForgotPassword();
   const { showAlert } = useGlobalAlert();
-  const newPasswordRef = useRef<TextInput>(null);
-  const confirmationCodeRef = useRef<TextInput>(null);
 
   useEffect(() => {
     const show = Keyboard.addListener('keyboardDidShow', (e) => setKeyboardHeight(e.endCoordinates.height));
@@ -255,15 +197,20 @@ export default function ForgotPassword() {
     return () => { show.remove(); hide.remove(); };
   }, []);
 
-  const onSubmit = async () => {
+  const sendResetLink = async (options?: { isResend?: boolean }) => {
     const newErrors = buildEmailFieldErrors(email, t);
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;
 
     setGeneralError('');
-    setLoading(true);
+    if (options?.isResend) {
+      setLoadingResend(true);
+    } else {
+      setLoading(true);
+    }
+
     try {
-      const result = await resetPassword.forgotPassword('FORGOT_PASSWORD', email, '', '');
+      const result = await resetPassword.forgotPassword(email);
       const showUserNotFoundAlert = () => {
         showAlert(t('common.alert'), t('auth.errors.userNotFound'), {
           buttonText: t('auth.login.signUp'),
@@ -273,12 +220,12 @@ export default function ForgotPassword() {
       };
 
       if (result.success) {
-        if (isUserNotFoundMessage(result.data.data.message)) {
-          showUserNotFoundAlert();
-          return;
+        if (options?.isResend) {
+          showAlert(t('common.success'), t('auth.forgotPassword.resetLinkResent'));
+        } else {
+          showAlert(t('common.success'), t('auth.forgotPassword.resetLinkSent'));
+          setShowLinkSent(true);
         }
-        showAlert(t('common.alert'), t('auth.forgotPassword.checkEmailCode'));
-        setShowResetFields(true);
       } else if (result.status === 404 || isUserNotFoundMessage(result.error)) {
         showUserNotFoundAlert();
       } else {
@@ -289,41 +236,10 @@ export default function ForgotPassword() {
       }
     } catch (err) {
       console.error('Forgot password error:', err);
-      showAlert(t('common.error'), t('auth.forgotPassword.somethingWentWrong') || t('common.errorMessage'));
+      showAlert(t('common.error'), t('auth.forgotPassword.somethingWentWrong'));
     } finally {
       setLoading(false);
-    }
-  };
-
-  const onResetPassword = async () => {
-    const newErrors = buildResetFieldErrors(password, confirmationCode, t);
-    setErrors(newErrors);
-    if (Object.keys(newErrors).length > 0) return;
-
-    setGeneralError('');
-    setLoading(true);
-    try {
-      const result = await resetPassword.forgotPassword('CONFIRM_FORGOT_PASSWORD', email, password, confirmationCode);
-      if (result.success) {
-        showAlert(t('common.success'), t('auth.forgotPassword.passwordResetSuccessfully'), {
-          buttonText: t('auth.login.signIn') || 'Login',
-          buttonCallback: () => replaceLoginClearingAuthStack(),
-        });
-      } else {
-        if (result.error.error.message === 'Password does not meet requirements') {
-          showAlert(t('common.failed'), t('profile.validationError'));
-          return;
-        }
-        showAlert(
-          t('common.failed'),
-          localizedAuthErrorMessage(result.error, t, 'auth.forgotPassword.invalidCodeOrPassword'),
-        );
-      }
-    } catch (err) {
-      console.error('Reset password error:', err);
-      showAlert(t('common.error'), t('auth.forgotPassword.somethingWentWrong') || t('common.errorMessage'));
-    } finally {
-      setLoading(false);
+      setLoadingResend(false);
     }
   };
 
@@ -344,7 +260,6 @@ export default function ForgotPassword() {
         extraScrollHeight={keyboardHeight}
         enableAutomaticScroll
       >
-        {/* Header */}
         <View style={styles.headerRow}>
           <Text style={[styles.title, { color: colors.text.primary }]}>
             {t('auth.forgotPassword.resetPassword')}
@@ -359,29 +274,19 @@ export default function ForgotPassword() {
           </TouchableOpacity>
         </View>
 
-        <Text style={[styles.subtitle, { color: colors.text.primary }]}>
-          {showResetFields
-            ? t('auth.forgotPassword.checkEmailCode')
-            : 'Gib deine E-Mail-Adresse ein. Wir senden dir einen Bestätigungscode, um dein Passwort zurückzusetzen.'}
-        </Text>
+        {!showLinkSent ? (
+          <Text style={[styles.subtitle, { color: colors.text.primary }]}>
+            {t('auth.forgotPassword.enterEmailSubtitle')}
+          </Text>
+        ) : null}
 
-        {showResetFields ? (
-          <ResetStep
+        {showLinkSent ? (
+          <LinkSentStep
             t={t}
             email={email}
-            password={password}
-            setPassword={setPassword}
-            confirmationCode={confirmationCode}
-            setConfirmationCode={setConfirmationCode}
-            showPassword={showPassword}
-            setShowPassword={setShowPassword}
-            errors={errors}
-            setErrors={setErrors}
-            generalError={generalError}
-            loading={loading}
-            onResetPassword={onResetPassword}
-            newPasswordRef={newPasswordRef}
-            confirmationCodeRef={confirmationCodeRef}
+            loadingResend={loadingResend}
+            onResend={() => sendResetLink({ isResend: true })}
+            onSignIn={goLogin}
           />
         ) : (
           <EmailStep
@@ -392,35 +297,36 @@ export default function ForgotPassword() {
             setErrors={setErrors}
             generalError={generalError}
             loading={loading}
-            onSubmit={onSubmit}
+            onSubmit={() => sendResetLink()}
           />
         )}
 
-        {/* Login card with cheese illustration */}
-        <TouchableOpacity
-          onPress={goLogin}
-          activeOpacity={0.85}
-          style={[styles.signupCard, { backgroundColor: colors.background.secondary }]}
-        >
-          <View style={styles.signupCardLeft}>
-            <Text style={[styles.signupTitle, { color: colors.text.primary }]}>
-              {t('auth.forgotPassword.rememberPassword')}
-            </Text>
-            <View style={styles.signupActionRow}>
-              <View style={[styles.signupArrow, { backgroundColor: colors.primary }]}>
-                <ChevronRight size={14} color="#fff" strokeWidth={3} />
-              </View>
-              <Text style={[styles.signupActionText, { color: colors.text.primary }]}>
-                {t('auth.forgotPassword.loginNow')}
+        {!showLinkSent ? (
+          <TouchableOpacity
+            onPress={goLogin}
+            activeOpacity={0.85}
+            style={[styles.signupCard, { backgroundColor: colors.background.secondary }]}
+          >
+            <View style={styles.signupCardLeft}>
+              <Text style={[styles.signupTitle, { color: colors.text.primary }]}>
+                {t('auth.forgotPassword.rememberPassword')}
               </Text>
+              <View style={styles.signupActionRow}>
+                <View style={[styles.signupArrow, { backgroundColor: colors.primary }]}>
+                  <ChevronRight size={14} color="#fff" strokeWidth={3} />
+                </View>
+                <Text style={[styles.signupActionText, { color: colors.text.primary }]}>
+                  {t('auth.forgotPassword.loginNow')}
+                </Text>
+              </View>
             </View>
-          </View>
-          <Image
-            source={require('../../assets/images/chese.png')}
-            style={styles.signupCheese}
-            resizeMode="contain"
-          />
-        </TouchableOpacity>
+            <Image
+              source={require('../../assets/images/chese.png')}
+              style={styles.signupCheese}
+              resizeMode="contain"
+            />
+          </TouchableOpacity>
+        ) : null}
 
         <View style={styles.languageContainer}>
           <LanguageSelector />
@@ -438,8 +344,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 26,
     paddingBottom: 40,
   },
-
-  // Header
   headerRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -471,8 +375,6 @@ const styles = StyleSheet.create({
     marginTop: 20,
     marginBottom: 28,
   },
-
-  // Fields
   fieldGroup: { marginBottom: 14 },
   pillInput: {
     borderWidth: 1,
@@ -489,31 +391,6 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     letterSpacing: 0,
   },
-  pillInputWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderRadius: 9999,
-    paddingRight: 16,
-    minHeight: 48,
-  },
-  pillInputInline: {
-    flex: 1,
-    paddingHorizontal: 22,
-    paddingVertical: 14,
-    fontSize: 15,
-    fontFamily: 'Inter-Regular',
-  },
-  eyeButton: { padding: 6 },
-  fieldLabel: {
-    fontSize: 12,
-    fontFamily: 'Inter-SemiBold',
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
-    marginBottom: 10,
-    marginLeft: 5,
-  },
-
   errorText: {
     color: '#EF4444',
     fontSize: 12,
@@ -528,9 +405,8 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: 'Inter-Regular',
   },
-
-  // Primary button
   primaryBtn: {
+    width: '100%',
     paddingVertical: 14,
     borderRadius: 9999,
     alignItems: 'center',
@@ -545,8 +421,64 @@ const styles = StyleSheet.create({
     letterSpacing: 0,
     textAlign: 'center',
   },
-
-  // Sign-in card with cheese illustration (image overflows slightly at bottom)
+  secondaryBtn: {
+    width: '100%',
+    marginTop: 12,
+    paddingVertical: 14,
+    borderRadius: 9999,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  secondaryBtnText: {
+    fontFamily: 'Roboto-Light',
+    fontSize: 17,
+    lineHeight: 23,
+    letterSpacing: 0,
+    textAlign: 'center',
+  },
+  linkSentContent: {
+    width: '100%',
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  iconWrap: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 24,
+  },
+  linkSentTitle: {
+    fontFamily: 'PlayfairDisplay_700Bold',
+    fontSize: 28,
+    lineHeight: 36,
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  linkSentBody: {
+    fontFamily: 'Roboto-Light',
+    fontSize: 17,
+    lineHeight: 23,
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  emailHighlight: {
+    fontFamily: 'Inter-Medium',
+    fontSize: 16,
+    lineHeight: 22,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  linkSentFooter: {
+    fontFamily: 'Roboto-Light',
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
   signupCard: {
     marginTop: 28,
     marginBottom: 30,
@@ -589,8 +521,6 @@ const styles = StyleSheet.create({
     width: 130,
     height: 200,
   },
-
-  // Language
   languageContainer: {
     marginTop: 56,
     alignItems: 'center',

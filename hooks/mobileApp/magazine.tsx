@@ -1,4 +1,5 @@
-import MobileAppApiService, { QueryValue } from '@/services/MobileAppApiService';
+import KochgourmetApiService, { QueryValue } from '@/services/KochgourmetApiService';
+import { KOCHGOURMET_OPERATIONS } from '@/config/kochgourmetApi';
 import {
   HydraCollection,
   MagazineListParams,
@@ -30,8 +31,9 @@ function toMagazineQueryParams(
 
 export const mobileAppMagazine = () => {
   const listPosts = async (params: MagazineListParams = {}) => {
-    const response = await MobileAppApiService.get<HydraCollection<MagazinePostListItem>>(
-      '/magazine/posts',
+    const response = await KochgourmetApiService.proxyGet<HydraCollection<MagazinePostListItem>>(
+      KOCHGOURMET_OPERATIONS.listMagazinePosts,
+      {},
       toMagazineQueryParams(params),
     );
 
@@ -42,7 +44,10 @@ export const mobileAppMagazine = () => {
   };
 
   const getPost = async (id: number | string) => {
-    const response = await MobileAppApiService.get<MagazinePostDetail>(`/magazine/posts/${id}`);
+    const response = await KochgourmetApiService.proxyGet<MagazinePostDetail>(
+      KOCHGOURMET_OPERATIONS.magazinePostDetail,
+      { id },
+    );
     if (response.success) {
       return { success: true as const, data: response.data, status: response.status };
     }

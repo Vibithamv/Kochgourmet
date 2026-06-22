@@ -1,5 +1,12 @@
 import type { Recipe } from '@/components/RecipeCard';
+import type { ArticleListItem } from '@/components/ArticleCard';
 import type {
+  FavoriteFolder,
+  FavoriteFolderDetail,
+  FavoriteFolderRecipe,
+  ContentPage,
+  MagazinePostDetail,
+  MagazinePostListItem,
   RecipeDetail as ApiRecipeDetail,
   RecipeIngredientItem,
   RecipeListItem,
@@ -127,5 +134,100 @@ export function mapRecipeDetail(detail: ApiRecipeDetail): UiRecipeDetail {
     nutrition: mapNutritions(detail.nutritions ?? []),
     ingredientSections: mapIngredients(detail.ingredients ?? []),
     steps: mapPreparationSteps(detail.preparationSteps ?? []),
+  };
+}
+
+export function mapMagazineListItem(item: MagazinePostListItem): ArticleListItem {
+  return {
+    id: String(item.uid),
+    title: item.title,
+    imageUrl: item.imageThumbnailUrl?.trim() || PLACEHOLDER_IMAGE,
+  };
+}
+
+export function mapMagazineListItems(items: MagazinePostListItem[]): ArticleListItem[] {
+  return items.map(mapMagazineListItem);
+}
+
+export function magazineHeroImage(detail: MagazinePostDetail): string {
+  return (
+    detail.imageBannerUrl?.trim() ||
+    detail.imageThumbnailUrl?.trim() ||
+    PLACEHOLDER_IMAGE
+  );
+}
+
+export function mapMagazineRelatedRecipe(
+  recipe: NonNullable<MagazinePostDetail['relatedRecipes']>[number],
+  index: number,
+): Recipe {
+  return {
+    id: String(recipe.uid ?? index),
+    title: recipe.title,
+    imageUrl: recipe.imageThumbnailUrl?.trim() || PLACEHOLDER_IMAGE,
+    durationMinutes: recipe.preparationTime ?? 0,
+    rating: 0,
+    isFavourite: false,
+  };
+}
+
+function mapFolderRecipes(recipes: FavoriteFolderRecipe[] = []) {
+  return recipes.map((recipe) => ({
+    uri: recipe.imageThumbnailUrl?.trim() || PLACEHOLDER_IMAGE,
+    recipeId: String(recipe.uid),
+  }));
+}
+
+function mapFavoriteFolderFromApi(folder: FavoriteFolder | FavoriteFolderDetail) {
+  const recipes = folder.recipes ?? [];
+  return {
+    id: String(folder.uid),
+    title: folder.title,
+    count: recipes.length,
+    thumbnails: mapFolderRecipes(recipes),
+  };
+}
+
+export function mapFavoriteFolder(folder: FavoriteFolder) {
+  return mapFavoriteFolderFromApi(folder);
+}
+
+export function mapFavoriteFolderDetail(folder: FavoriteFolderDetail) {
+  return mapFavoriteFolderFromApi(folder);
+}
+
+export function mapFolderRecipe(recipe: FavoriteFolderRecipe): Recipe {
+  return {
+    id: String(recipe.uid),
+    title: recipe.title,
+    imageUrl: recipe.imageThumbnailUrl?.trim() || PLACEHOLDER_IMAGE,
+    durationMinutes: recipe.preparationTime ?? 0,
+    rating: 0,
+    isFavourite: true,
+  };
+}
+
+export function normalizeContentPage(data: unknown): ContentPage | null {
+  if (data == null) return null;
+
+  let record: unknown = data;
+  if (typeof data === 'string') {
+    try {
+      record = JSON.parse(data);
+    } catch {
+      return null;
+    }
+  }
+
+  if (typeof record !== 'object' || record === null) return null;
+
+  const page = record as Record<string, unknown>;
+  if (typeof page.title !== 'string') return null;
+
+  return {
+    uid: typeof page.uid === 'number' ? page.uid : 0,
+    slug: typeof page.slug === 'string' ? page.slug : '',
+    title: page.title,
+    content: typeof page.content === 'string' ? page.content : '',
   };
 }

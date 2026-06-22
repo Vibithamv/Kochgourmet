@@ -27,6 +27,7 @@ import { useRecipeFilters } from '@/contexts/RecipeFiltersContext';
 import { recipeFilterSelectionToParams } from '@/utils/recipeFilterUtils';
 import { useRecipeFavorite } from '@/hooks/useRecipeFavorite';
 import { useFocusEffect } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import { userManagement } from '@/hooks/userManagement';
 import { mobileAppRecipes } from '@/hooks/mobileApp';
 import { mapRecipeListItem } from '@/utils/mobileAppMappers';
@@ -40,6 +41,7 @@ import { RECIPES_PER_PAGE } from '@/constants/recipeListDefaults';
 const TAB_BAR_HEIGHT = 80;
 
 function PromoBanner({ onDismiss, tabBarHeight }: Readonly<{ onDismiss: () => void; tabBarHeight: number }>) {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const slideAnim = useRef(new Animated.Value(120)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -99,9 +101,9 @@ function PromoBanner({ onDismiss, tabBarHeight }: Readonly<{ onDismiss: () => vo
 
           {/* Text */}
           <View style={styles.bannerTextBlock}>
-            <Text style={styles.bannerTitle}>Werde Teil der Familie! 🎁</Text>
+            <Text style={styles.bannerTitle}>{t('common.recipe.bannerTitle')}</Text>
             <Text style={styles.bannerSubtitle}>
-              Jetzt Gutschein sichern & von exklusiven Rabatten profitieren!
+              {t('common.recipe.bannerSubtitle')}
             </Text>
           </View>
 
@@ -121,6 +123,7 @@ function PromoBanner({ onDismiss, tabBarHeight }: Readonly<{ onDismiss: () => vo
 }
 
 export default function RezepteScreen() {
+  const { t } = useTranslation();
   const { theme } = useTheme();
   const colors = getColors(theme);
   const insets = useSafeAreaInsets();
@@ -189,7 +192,7 @@ export default function RezepteScreen() {
           }
           setHasMore(false);
           if (!append && response.status !== undefined) {
-            showAlert('Fehler', 'Rezepte konnten nicht geladen werden.');
+            showAlert(t('common.error'), t('common.recipe.loadError'));
           }
         }
       } finally {
@@ -198,7 +201,7 @@ export default function RezepteScreen() {
         setRefreshing(false);
       }
     },
-    [recipesApi, searchQuery, selection, showAlert, syncRecipesFromList],
+    [recipesApi, searchQuery, selection, showAlert, syncRecipesFromList, t],
   );
 
   const loadRecipesRef = useRef(loadRecipes);
@@ -238,7 +241,7 @@ export default function RezepteScreen() {
             setTimeout(() => setShowBanner(true), 800);
           }
         } else if (res.status === 401) {
-          showAlert('Sitzung abgelaufen', 'Bitte melde dich erneut an.');
+          showAlert(t('profile.sessionExpired'), t('profile.loginAgain'));
           replaceLoginClearingAuthStack();
         }
         setProfileLoading(false);
@@ -246,7 +249,7 @@ export default function RezepteScreen() {
       return () => {
         cancelled = true;
       };
-    }, [showAlert, userAccount]),
+    }, [showAlert, t, userAccount]),
   );
 
   useEffect(() => {
@@ -322,10 +325,10 @@ export default function RezepteScreen() {
         )}
         <View style={styles.greeting}>
           <Text style={[styles.greetingName, { color: colors.text.primary }]}>
-            {`Bonjour ${userName || '...'} 👋`}
+            {t('common.recipe.greeting', { name: userName || '...' })}
           </Text>
           <Text style={[styles.greetingSubtitle, { color: colors.text.primary }]}>
-            Was willst du heute Kochen?
+            {t('common.recipe.greetingSubtitle')}
           </Text>
         </View>
       </View>
@@ -335,7 +338,7 @@ export default function RezepteScreen() {
         <View style={[pillSearchBarStyle, { flex: 1, backgroundColor: colors.background.secondary }]}>
           <TextInput
             style={pillSearchInputStyle({ color: colors.text.primary })}
-            placeholder="Rezeptsuche"
+            placeholder={t('common.recipe.searchPlaceholder')}
             placeholderTextColor={colors.text.tertiary}
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -388,10 +391,10 @@ export default function RezepteScreen() {
       ) : recipes.length === 0 ? (
         <View style={styles.emptyState}>
           <Text style={[styles.emptyTitle, { color: colors.text.primary }]}>
-            Nichts gefunden 😱
+            {t('common.recipe.nothingFound')}
           </Text>
           <Text style={[styles.emptySubtitle, { color: colors.text.primary }]}>
-            Ändere deine Suchanfrage oder Filter-Einstellungen.
+            {t('common.recipe.nothingFoundSubtitle')}
           </Text>
         </View>
       ) : (
@@ -421,7 +424,7 @@ export default function RezepteScreen() {
             loadingMore ? (
               <View style={styles.loadMore}>
                 <Text style={[styles.loadMoreText, { color: colors.text.tertiary }]}>
-                  Laden…
+                  {t('common.recipe.loadMore')}
                 </Text>
               </View>
             ) : null

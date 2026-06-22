@@ -51,6 +51,8 @@ export default function MenuScreen() {
       { id: 'rezepte', labelKey: 'common.tabs.rezepte', route: '/' },
       { id: 'magazin', labelKey: 'common.tabs.magazin', route: '/projects' },
       { id: 'favoriten', labelKey: 'common.tabs.favoriten', route: '/portfolio' },
+      { id: 'profile', labelKey: 'account.changeProfile', route: '/account/profile' },
+      { id: 'settings', labelKey: 'account.appSettings', route: '/account/settings' },
     ],
     [],
   );
@@ -59,10 +61,8 @@ export default function MenuScreen() {
     () => [
       { id: 'portfolio', labelKey: 'portfolio.title', route: '/screens/portfolio' },
       { id: 'investment', labelKey: 'account.investment', route: '/offerings' },
-      { id: 'profile', labelKey: 'account.changeProfile', route: '/account/profile' },
       { id: 'kyc', labelKey: 'account.kycVerification', route: '/auth/kycRequest' },
       { id: 'help', labelKey: 'account.helpSupport', route: '/account/help-support' },
-      { id: 'settings', labelKey: 'account.appSettings', route: '/account/settings' },
     ],
     [],
   );

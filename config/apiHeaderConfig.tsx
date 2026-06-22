@@ -1,12 +1,12 @@
 export const API_HEADER_CONFIG = {
    // "Api-Key": "940c1090f7f33083f20a",
-   "Api-Key": "747ea1cf4806d024a53b",
+   "Api-Key": "75bab8b31b9886f2923d",
    //ownitnow
   //'Api-Key': '8817e579b87158cecb20',
    'X-Iframe-Page': 'localhost:5174',
   //'X-Iframe-Page': 'ownitnow.at',
    //"Invest-Key": "a5dfe034859d4fa64762",
-   "Invest-Key": "6ec73de16fa5f63ca99e",
+   "Invest-Key": "6de8262745df5d21fb5f",
    //ownitnow
   //'Invest-Key': '1bb90215d91e4189703b',
   'Content-Type': 'application/json', // any custom header

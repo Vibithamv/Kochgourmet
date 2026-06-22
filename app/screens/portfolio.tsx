@@ -48,7 +48,7 @@ import {
   isOrderedTransactionStatus,
   type CustomIbanBankDetails,
 } from '@/utils/customIbanBankDetails';
-import { portfolio } from '@/hooks/portfolio';
+import { portfolio, PORTFOLIO_ACTIVITIES_LIMIT } from '@/hooks/portfolio';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import { useGlobalAlert } from '@/contexts/AlertContext';
@@ -248,11 +248,17 @@ const PortfolioScreen = React.memo(() => {
 
     try {
       await performOfferingCheck();
-      const period = (await AsyncStorage.getItem("period")) || "6m";
+      const accountId = await portfolioDatas.resolveActiveAccountId();
+      if (!accountId) {
+        setLoading(false);
+        return;
+      }
 
-      await Promise.all([loadTransaction(), loadInvestment(period)]);
+      const period = (await AsyncStorage.getItem('period')) || '6m';
+      await Promise.all([loadTransaction(accountId), loadInvestment(accountId, period)]);
     } catch (error) {
-      console.error("Load data error:", error);
+      console.error('Load data error:', error);
+      setLoading(false);
     }
   };
 
@@ -271,12 +277,11 @@ const PortfolioScreen = React.memo(() => {
     await AsyncStorage.setItem('period', '6m');
   };
 
-  const loadInvestment = async (pg: string) => {
+  const loadInvestment = async (accountId: string, pg: string) => {
     portfolioDatas
-      .getPortfolio(await AsyncStorage.getItem('AccountID'), 'ALL', pg)
+      .getPortfolio(accountId, 'ALL', pg)
       .then((res) => {
         setLoading(false);
-        let i = 0;
         if (res.success && res.data) {
           setTotalInvestment(res.data.data.totalInvested);
           setCurrency(res.data.data.tenantCurrency);
@@ -293,11 +298,10 @@ const PortfolioScreen = React.memo(() => {
       });
   };
 
-  const loadTransaction = async () => {
+  const loadTransaction = async (accountId: string) => {
     portfolioDatas
-      .portfolioActivities(await AsyncStorage.getItem('AccountID'), 1, 30)
+      .portfolioActivities(accountId, 1, PORTFOLIO_ACTIVITIES_LIMIT)
       .then((res) => {
-        let i = 0;
         if (res.success && res.data) {
           if (res.data.data.activities.length > 0) {
             portfolioTransaction = res.data.data.activities
@@ -312,6 +316,8 @@ const PortfolioScreen = React.memo(() => {
               );
 
             setTransactions(portfolioTransaction);
+          } else {
+            setTransactions([]);
           }
         } else {
           showAlert(t('common.failed'), t('portfolio.failedFetchActivities'));
@@ -384,7 +390,13 @@ const PortfolioScreen = React.memo(() => {
       }
 
       setLoading(true);
-      const res = await portfolioDatas.portfolioActivities(await AsyncStorage.getItem('AccountID'), 1, 30);
+      const accountId = await portfolioDatas.resolveActiveAccountId();
+      if (!accountId) {
+        showNoDownloadDataAlert();
+        return;
+      }
+
+      const res = await portfolioDatas.portfolioActivities(accountId, 1, PORTFOLIO_ACTIVITIES_LIMIT);
 
       if (!res.success || !res.data || res.data.data.activities.length === 0) {
         showNoDownloadDataAlert();
@@ -409,7 +421,13 @@ const PortfolioScreen = React.memo(() => {
 
   const downloadTransactionHistory = async () => {
     setReportsModalVisible(false)
-    downloadReportsData.downloadTransactionHistory(await AsyncStorage.getItem('AccountID')).then(async (res) => {
+    const accountId = await portfolioDatas.resolveActiveAccountId();
+    if (!accountId) {
+      showAlert(t('common.alert'), t('portfolio.failedToDownload'));
+      return;
+    }
+
+    downloadReportsData.downloadTransactionHistory(accountId).then(async (res) => {
       if (!res.success || res.data == null) {
         showAlert(t('common.alert'), t('portfolio.failedToDownload'));
         return;
@@ -449,7 +467,13 @@ const PortfolioScreen = React.memo(() => {
 
   const downloadPortfolio = async () => {
     setReportsModalVisible(false)
-    downloadReportsData.downloadPortfolioReport(await AsyncStorage.getItem('AccountID')).then(async (res) => {
+    const accountId = await portfolioDatas.resolveActiveAccountId();
+    if (!accountId) {
+      showAlert(t('common.alert'), t('portfolio.failedToDownload'));
+      return;
+    }
+
+    downloadReportsData.downloadPortfolioReport(accountId).then(async (res) => {
       if (!res.success || res.data == null) {
         showAlert(t('common.alert'), t('portfolio.failedToDownload'));
         return;
@@ -490,7 +514,13 @@ const PortfolioScreen = React.memo(() => {
 
   const downloadPerformance = async () => {
     setReportsModalVisible(false)
-    downloadReportsData.downloadPerformanceReport(await AsyncStorage.getItem('AccountID')).then(async (res) => {
+    const accountId = await portfolioDatas.resolveActiveAccountId();
+    if (!accountId) {
+      showAlert(t('common.alert'), t('portfolio.failedToDownload'));
+      return;
+    }
+
+    downloadReportsData.downloadPerformanceReport(accountId).then(async (res) => {
       console.log('downloadPerformance report response:', res);
       if (!res.success || res.data == null) {
         showAlert(t('common.alert'), t('portfolio.failedToDownload'));

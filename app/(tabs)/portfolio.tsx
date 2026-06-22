@@ -58,11 +58,12 @@ export default function FavoritenScreen() {
   const { t } = useTranslation();
   const { theme } = useTheme();
   const colors = getColors(theme);
+  const isDark = theme === 'dark' || theme === 'darkGreen';
   const insets = useSafeAreaInsets();
   const { showAlert } = useGlobalAlert();
 
   const { favourites, toggleFavourite, replaceFavourites } = useFavourites();
-  const { folders, renameFolder, deleteFolder } = useFolders();
+  const { folders, loading: foldersLoading, renameFolder, deleteFolder, refreshFolders, createFolder } = useFolders();
   const recipesApi = React.useMemo(() => mobileAppRecipes(), []);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<FavouritesTab>('ordner');
@@ -75,6 +76,8 @@ export default function FavoritenScreen() {
   // Rename modal — `target` is either { kind: 'folder', id } or { kind: 'all' }
   const [renameTarget, setRenameTarget] = useState<EditTarget | null>(null);
   const [renameInput, setRenameInput] = useState('');
+  const [createFolderOpen, setCreateFolderOpen] = useState(false);
+  const [createFolderInput, setCreateFolderInput] = useState('');
 
   const openEditMenu = useCallback((target: EditTarget, anchor: EditMenuAnchor) => {
     setEditMenu({ target, ...anchor });
@@ -108,7 +111,9 @@ export default function FavoritenScreen() {
       {
         secondaryButtonText: t('common.cancel'),
         buttonText: t('common.delete'),
-        buttonCallback: () => deleteFolder(folderId),
+        buttonCallback: () => {
+          void deleteFolder(folderId);
+        },
       },
     );
   }, [editMenu, folders, showAlert, t, deleteFolder]);
@@ -120,22 +125,45 @@ export default function FavoritenScreen() {
       return;
     }
     if (renameTarget.kind === 'folder') {
-      renameFolder(renameTarget.id, trimmed);
+      void renameFolder(renameTarget.id, trimmed).then((ok) => {
+        if (!ok) {
+          showAlert(t('common.error'), t('common.errorMessage'));
+        }
+      });
     } else {
       setAllFavouritesTitle(trimmed);
     }
     setRenameTarget(null);
-  }, [renameInput, renameTarget, renameFolder]);
+  }, [renameInput, renameTarget, renameFolder, showAlert, t]);
+
+  const confirmCreateFolder = useCallback(() => {
+    const trimmed = createFolderInput.trim();
+    if (!trimmed) {
+      setCreateFolderOpen(false);
+      return;
+    }
+    void createFolder(trimmed).then((ok) => {
+      if (!ok) {
+        showAlert(t('common.error'), t('common.errorMessage'));
+      }
+      setCreateFolderOpen(false);
+      setCreateFolderInput('');
+    });
+  }, [createFolder, createFolderInput, showAlert, t]);
 
   const loadFavourites = useCallback(async () => {
     const jwt = await getMobileAppJwt();
     if (!jwt) return;
 
-    const response = await recipesApi.listFavoriteRecipes();
-    if (response.success && response.data) {
-      replaceFavourites(response.data.map(mapRecipeListItem));
-    }
-  }, [recipesApi, replaceFavourites]);
+    await Promise.all([
+      recipesApi.listFavoriteRecipes().then((response) => {
+        if (response.success && response.data) {
+          replaceFavourites(response.data.map(mapRecipeListItem));
+        }
+      }),
+      refreshFolders(),
+    ]);
+  }, [recipesApi, replaceFavourites, refreshFolders]);
 
   useFocusEffect(
     useCallback(() => {
@@ -167,6 +195,10 @@ export default function FavoritenScreen() {
         <TouchableOpacity
           style={[styles.addButton, { borderColor: colors.border.primary }]}
           activeOpacity={0.7}
+          onPress={() => {
+            setCreateFolderInput('');
+            setCreateFolderOpen(true);
+          }}
         >
           <Plus size={20} color={colors.text.primary} strokeWidth={2} />
         </TouchableOpacity>
@@ -257,8 +289,34 @@ export default function FavoritenScreen() {
 
       {/* ── Ordner tab — folder cards ── */}
       {activeTab === 'ordner' && (
+        !foldersLoading && folders.length === 0 ? (
+          <View style={[styles.empty, styles.emptyFolders, { paddingHorizontal: 32 }]}>
+            <Text style={[styles.emptyTitle, { color: colors.text.primary }]}>
+              {t('favoritenScreen.noFoldersYet')}
+            </Text>
+            <Text style={[styles.emptyText, { color: colors.text.tertiary }]}>
+              {t('favoritenScreen.noFoldersYetHint')}
+            </Text>
+            <TouchableOpacity
+              style={[styles.emptyCreateBtn, { backgroundColor: colors.primary }]}
+              onPress={() => {
+                setCreateFolderInput('');
+                setCreateFolderOpen(true);
+              }}
+              activeOpacity={0.85}
+            >
+              <Text style={[styles.emptyCreateBtnText, { color: isDark ? '#0D1117' : '#FFFFFF' }]}>
+                {t('favoritenScreen.createFolder')}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
         <ScrollView
-          contentContainerStyle={[styles.folderList, { paddingBottom: bottomPad }]}
+          contentContainerStyle={[
+            styles.folderList,
+            { paddingBottom: bottomPad },
+            folders.length === 0 && styles.folderListLoading,
+          ]}
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
@@ -312,6 +370,7 @@ export default function FavoritenScreen() {
             </TouchableOpacity>
           ))}
         </ScrollView>
+        )
       )}
       {/* ── Edit menu popover ──────────────────────────────────────────── */}
       <Modal
@@ -411,6 +470,57 @@ export default function FavoritenScreen() {
           </View>
         </KeyboardAvoidingView>
       </Modal>
+
+      <Modal
+        visible={createFolderOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setCreateFolderOpen(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.modalOverlay}
+        >
+          <Pressable style={styles.modalBackdrop} onPress={() => setCreateFolderOpen(false)} />
+          <View style={[styles.renameCard, { backgroundColor: colors.background.card }]}>
+            <Text style={[styles.renameTitle, { color: colors.text.primary }]}>
+              {t('favoritenScreen.createFolderTitle')}
+            </Text>
+            <TextInput
+              style={[styles.renameInput, {
+                color: colors.text.primary,
+                backgroundColor: colors.background.secondary,
+                borderColor: colors.border.primary,
+              }]}
+              value={createFolderInput}
+              onChangeText={setCreateFolderInput}
+              autoFocus
+              placeholder={t('favoritenScreen.namePlaceholder')}
+              placeholderTextColor={colors.text.tertiary}
+              returnKeyType="done"
+              onSubmitEditing={confirmCreateFolder}
+            />
+            <View style={styles.renameActions}>
+              <TouchableOpacity
+                style={[styles.renameCancel, { borderColor: colors.border.primary }]}
+                onPress={() => setCreateFolderOpen(false)}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.renameCancelText, { color: colors.text.primary }]}>
+                  {t('common.cancel')}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.renameSave, { backgroundColor: colors.primary }]}
+                onPress={confirmCreateFolder}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.renameSaveText}>{t('favoritenScreen.createFolder')}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }
@@ -496,8 +606,38 @@ const styles = StyleSheet.create({
   gridRow: { gap: 12 },
   cardWrapper: { flex: 1 },
 
-  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
-  emptyText: { fontSize: 15, fontFamily: 'Inter-Regular' },
+  empty: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    paddingTop: 60,
+    gap: 12,
+  },
+  emptyFolders: { gap: 10 },
+  emptyTitle: {
+    fontSize: 17,
+    fontFamily: 'Roboto-Regular',
+    lineHeight: 23,
+    textAlign: 'center',
+  },
+  emptyText: {
+    fontSize: 15,
+    fontFamily: 'Roboto-Light',
+    lineHeight: 22,
+    textAlign: 'center',
+  },
+  emptyCreateBtn: {
+    marginTop: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 9999,
+  },
+  emptyCreateBtnText: {
+    fontFamily: 'Roboto-Regular',
+    fontSize: 16,
+    lineHeight: 22,
+  },
+  folderListLoading: { flexGrow: 1 },
 
   // Folder cards
   folderList: { paddingHorizontal: 20, gap: 24 },

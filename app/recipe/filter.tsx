@@ -21,10 +21,16 @@ import {
   Droplet, Flame, Egg, CookingPot, Wine, Pizza, Star,
 } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useGlobalAlert } from '@/contexts/AlertContext';
 import { getColors } from '@/constants/theme';
 import { useRecipeFilters } from '@/contexts/RecipeFiltersContext';
 import { mobileAppRecipes } from '@/hooks/mobileApp';
-import type { RecipeFilterCategory, RecipeFilterCountry, RecipeFilterTimeBucket } from '@/types/mobileAppApi';
+import type {
+  RecipeFilterCategory,
+  RecipeFilterCountry,
+  RecipeFilterOptions,
+  RecipeFilterTimeBucket,
+} from '@/types/mobileAppApi';
 import {
   countryFlagUrl,
   type RecipeFilterSelection,
@@ -56,16 +62,35 @@ function getCategoryIcon(name: string): LucideIcon {
 
 const FLAG_SIZE = 20;
 
-type FilterKey = 'thema' | 'ernaehrung' | 'saisonal' | 'zubereitung' | 'schwierigkeit' | 'menuefolge' | 'zeit';
+const FILTER_SECTIONS = [
+  'categories',
+  'specials',
+  'diets',
+  'countries',
+  'occasions',
+  'preparationTypes',
+  'difficulties',
+  'menutypes',
+  'timeBuckets',
+] as const;
 
-const FLAT_FILTER_LABELS: Record<FilterKey, string> = {
-  thema: 'Thema',
-  ernaehrung: 'Ernährung',
-  saisonal: 'Saisonal',
-  zubereitung: 'Zubereitung',
-  schwierigkeit: 'Schwierigkeit',
-  menuefolge: 'Menüfolge',
-  zeit: 'Zeit',
+type FilterSectionKey = (typeof FILTER_SECTIONS)[number];
+type ScreenMode = 'main' | FilterSectionKey;
+
+type FlatFilterSectionKey = Exclude<
+  FilterSectionKey,
+  'categories' | 'countries' | 'difficulties' | 'timeBuckets'
+>;
+
+const FLAT_FILTER_UID_FIELD: Record<
+  FlatFilterSectionKey,
+  'specialUids' | 'dietUids' | 'occasionUids' | 'preparationTypeUids' | 'menutypeUids'
+> = {
+  specials: 'specialUids',
+  diets: 'dietUids',
+  occasions: 'occasionUids',
+  preparationTypes: 'preparationTypeUids',
+  menutypes: 'menutypeUids',
 };
 
 const EXACT_MATCH_SWITCH_TARGET = Platform.select({
@@ -95,20 +120,6 @@ const EXACT_MATCH_SWITCH_LAYOUT = {
   width: NATIVE_SWITCH_SIZE.width * EXACT_MATCH_SWITCH_SCALE,
   height: NATIVE_SWITCH_SIZE.height * EXACT_MATCH_SWITCH_SCALE,
 };
-
-const FILTER_ROW_ORDER: { label: string; key: 'kategorien' | 'laenderkuechen' | FilterKey }[] = [
-  { label: 'Kategorien', key: 'kategorien' },
-  { label: 'Thema', key: 'thema' },
-  { label: 'Ernährung', key: 'ernaehrung' },
-  { label: 'Länderküchen', key: 'laenderkuechen' },
-  { label: 'Saisonal', key: 'saisonal' },
-  { label: 'Zubereitung', key: 'zubereitung' },
-  { label: 'Schwierigkeit', key: 'schwierigkeit' },
-  { label: 'Menüfolge', key: 'menuefolge' },
-  { label: 'Zeit', key: 'zeit' },
-];
-
-type ScreenMode = 'main' | 'kategorien' | 'laenderkuechen' | FilterKey;
 
 type ColorsType = ReturnType<typeof getColors>;
 
@@ -197,10 +208,19 @@ function timeBucketKey(bucket: RecipeFilterTimeBucket): string {
   return `${bucket.operator}:${bucket.value}`;
 }
 
+function getActiveFilterSections(options: RecipeFilterOptions): FilterSectionKey[] {
+  return FILTER_SECTIONS.filter((key) => {
+    const value = options[key];
+    return Array.isArray(value) && value.length > 0;
+  });
+}
+
 export default function FilterScreen() {
+  const { t } = useTranslation();
   const { theme } = useTheme();
   const colors = getColors(theme);
   const insets = useSafeAreaInsets();
+  const { showAlert } = useGlobalAlert();
   const { options, selection, setOptions, setSelection } = useRecipeFilters();
   const recipesApi = useMemo(() => mobileAppRecipes(), []);
 
@@ -214,9 +234,11 @@ export default function FilterScreen() {
     const response = await recipesApi.getFilterOptions();
     if (response.success && response.data) {
       setOptions(response.data);
+    } else {
+      showAlert(t('common.error'), t('common.recipe.filterOptionsLoadError'));
     }
     setLoadingOptions(false);
-  }, [recipesApi, setOptions]);
+  }, [recipesApi, setOptions, showAlert, t]);
 
   useFocusEffect(
     useCallback(() => {
@@ -292,19 +314,13 @@ export default function FilterScreen() {
     return (cat.children ?? []).some((child) => draft.categoryUids.includes(child.uid));
   };
 
-  const countFor = (key: 'kategorien' | 'laenderkuechen' | FilterKey): number => {
-    if (key === 'kategorien') return draft.categoryUids.length;
-    if (key === 'laenderkuechen') return draft.countryUids.length;
-    if (key === 'schwierigkeit') return draft.difficultyUid !== undefined ? 1 : 0;
-    if (key === 'zeit') return draft.timeBucket ? 1 : 0;
-    const fieldMap: Record<Exclude<FilterKey, 'schwierigkeit' | 'zeit'>, keyof RecipeFilterSelection> = {
-      thema: 'specialUids',
-      ernaehrung: 'dietUids',
-      saisonal: 'occasionUids',
-      zubereitung: 'preparationTypeUids',
-      menuefolge: 'menutypeUids',
-    };
-    const field = fieldMap[key as Exclude<FilterKey, 'schwierigkeit' | 'zeit'>];
+  const countFor = (key: FilterSectionKey): number => {
+    if (key === 'categories') return draft.categoryUids.length;
+    if (key === 'countries') return draft.countryUids.length;
+    if (key === 'difficulties') return draft.difficultyUid !== undefined ? 1 : 0;
+    if (key === 'timeBuckets') return draft.timeBucket ? 1 : 0;
+
+    const field = FLAT_FILTER_UID_FIELD[key as FlatFilterSectionKey];
     const value = draft[field];
     return Array.isArray(value) ? value.length : 0;
   };
@@ -331,31 +347,34 @@ export default function FilterScreen() {
 
   const categories = options?.categories ?? [];
   const countries = options?.countries ?? [];
+  const activeSections = options ? getActiveFilterSections(options) : [];
 
   if (screen === 'main') {
     return (
       <View style={[styles.screen, { backgroundColor: colors.background.primary }]}>
         <View style={[styles.header, { paddingTop: Math.max(insets.top, 44) + 16 }]}>
           <Text style={[styles.titleDisplay, { color: colors.text.primary }]}>
-            Filter
+            {t('common.filter')}
           </Text>
         </View>
         <ScrollView contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false}>
-          {FILTER_ROW_ORDER.map((row, index) => {
-            const badge = countFor(row.key);
-            const isLastRow = index === FILTER_ROW_ORDER.length - 1;
+          {activeSections.map((sectionKey, index) => {
+            const badge = countFor(sectionKey);
+            const isLastRow = index === activeSections.length - 1;
             return (
               <TouchableOpacity
-                key={row.key}
+                key={sectionKey}
                 style={[
                   styles.row,
                   { borderBottomColor: colors.border.primary },
                   isLastRow && styles.rowNoBorder,
                 ]}
-                onPress={() => setScreen(row.key)}
+                onPress={() => setScreen(sectionKey)}
                 activeOpacity={0.7}
               >
-                <Text style={[styles.rowLabel, { color: colors.text.primary }]}>{row.label}</Text>
+                <Text style={[styles.rowLabel, { color: colors.text.primary }]}>
+                  {sectionKey}
+                </Text>
                 <View style={styles.rowRight}>
                   {badge > 0 && (
                     <View style={[styles.badge, { backgroundColor: colors.primary }]}>
@@ -380,7 +399,7 @@ export default function FilterScreen() {
             </View>
             <View style={styles.toggleLabelRow}>
               <Text style={[styles.rowLabel, { color: colors.text.primary }]}>
-                Exakte Treffer
+                exactMatch
               </Text>
               <TouchableOpacity
                 style={[styles.infoCircle, { borderColor: colors.border.secondary }]}
@@ -397,10 +416,10 @@ export default function FilterScreen() {
     );
   }
 
-  if (screen === 'kategorien') {
+  if (screen === 'categories') {
     return (
       <View style={[styles.screen, { backgroundColor: colors.background.primary }]}>
-        <SubHeader title="Kategorien" {...subHeaderProps} />
+        <SubHeader title="categories" {...subHeaderProps} />
         <ScrollView contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false}>
           {categories.map((cat) => {
             const isExpanded = expandedCategories.includes(cat.uid);
@@ -458,10 +477,10 @@ export default function FilterScreen() {
     );
   }
 
-  if (screen === 'laenderkuechen') {
+  if (screen === 'countries') {
     return (
       <View style={[styles.screen, { backgroundColor: colors.background.primary }]}>
-        <SubHeader title="Länderküchen" {...subHeaderProps} />
+        <SubHeader title="countries" {...subHeaderProps} />
         <FlatList
           data={countries}
           keyExtractor={(item: RecipeFilterCountry) => String(item.uid)}
@@ -489,13 +508,12 @@ export default function FilterScreen() {
   }
 
   const flatKey = screen;
-  const flatLabel = FLAT_FILTER_LABELS[flatKey];
 
-  if (flatKey === 'schwierigkeit') {
+  if (flatKey === 'difficulties') {
     const difficulties = options?.difficulties ?? [];
     return (
       <View style={[styles.screen, { backgroundColor: colors.background.primary }]}>
-        <SubHeader title={flatLabel} {...subHeaderProps} />
+        <SubHeader title="difficulties" {...subHeaderProps} />
         <FlatList
           data={difficulties}
           keyExtractor={(item) => String(item.uid)}
@@ -521,11 +539,11 @@ export default function FilterScreen() {
     );
   }
 
-  if (flatKey === 'zeit') {
+  if (flatKey === 'timeBuckets') {
     const timeBuckets = options?.timeBuckets ?? [];
     return (
       <View style={[styles.screen, { backgroundColor: colors.background.primary }]}>
-        <SubHeader title={flatLabel} {...subHeaderProps} />
+        <SubHeader title="timeBuckets" {...subHeaderProps} />
         <FlatList
           data={timeBuckets}
           keyExtractor={(item) => timeBucketKey(item)}
@@ -551,35 +569,21 @@ export default function FilterScreen() {
     );
   }
 
-  const flatOptionsMap: Record<
-    Exclude<FilterKey, 'schwierigkeit' | 'zeit'>,
-    { uid: number; name: string }[]
-  > = {
-    thema: options?.specials ?? [],
-    ernaehrung: options?.diets ?? [],
-    saisonal: options?.occasions ?? [],
-    zubereitung: options?.preparationTypes ?? [],
-    menuefolge: options?.menutypes ?? [],
+  const flatOptionsMap: Record<FlatFilterSectionKey, { uid: number; name: string }[]> = {
+    specials: options?.specials ?? [],
+    diets: options?.diets ?? [],
+    occasions: options?.occasions ?? [],
+    preparationTypes: options?.preparationTypes ?? [],
+    menutypes: options?.menutypes ?? [],
   };
 
-  const fieldMap: Record<
-    Exclude<FilterKey, 'schwierigkeit' | 'zeit'>,
-    'specialUids' | 'dietUids' | 'occasionUids' | 'preparationTypeUids' | 'menutypeUids'
-  > = {
-    thema: 'specialUids',
-    ernaehrung: 'dietUids',
-    saisonal: 'occasionUids',
-    zubereitung: 'preparationTypeUids',
-    menuefolge: 'menutypeUids',
-  };
-
-  const flatOptions = flatOptionsMap[flatKey as Exclude<FilterKey, 'schwierigkeit' | 'zeit'>];
-  const uidField = fieldMap[flatKey as Exclude<FilterKey, 'schwierigkeit' | 'zeit'>];
+  const flatOptions = flatOptionsMap[flatKey as FlatFilterSectionKey];
+  const uidField = FLAT_FILTER_UID_FIELD[flatKey as FlatFilterSectionKey];
   const selectedUids = draft[uidField];
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.background.primary }]}>
-      <SubHeader title={flatLabel} {...subHeaderProps} />
+      <SubHeader title={flatKey} {...subHeaderProps} />
       <FlatList
         data={flatOptions}
         keyExtractor={(item) => String(item.uid)}

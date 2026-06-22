@@ -16,22 +16,22 @@ export const CURRENT_ENVIRONMENT: EnvironmentName = __DEV__ ? 'dev' : 'prod';
 export const ENVIRONMENT_CONFIG: Record<EnvironmentName, EnvironmentConfig> = {
   dev: {
     name: 'Development',
-     baseURL: 'https://stage.go.floris3.com/portal',
-    //baseURL: 'https://dev.go.simplytokenized.com/portal',
+     //baseURL: 'https://stage.go.floris3.com/portal',
+    baseURL: 'https://dev.go.simplytokenized.com/portal',
     timeout: 10000,
     debug: true,
   },
   stage: {
     name: 'Staging',
-     baseURL: 'https://stage.go.floris3.com/portal',
-    //baseURL: 'https://go.simplytokenized.com/portal',
+     //baseURL: 'https://stage.go.floris3.com/portal',
+    baseURL: 'https://dev.go.simplytokenized.com/portal',
     timeout: 15000,
     debug: true,
   },
   prod: {
     name: 'Production',
-     baseURL: 'https://stage.go.floris3.com/portal',
-     //baseURL: 'https://dev.go.simplytokenized.com/portal',
+     //baseURL: 'https://stage.go.floris3.com/portal',
+     baseURL: 'https://dev.go.simplytokenized.com/portal',
     timeout: 15000,
     debug: false,
   },

@@ -1,4 +1,5 @@
-import MobileAppApiService, { QueryValue } from '@/services/MobileAppApiService';
+import KochgourmetApiService, { QueryValue } from '@/services/KochgourmetApiService';
+import { KOCHGOURMET_OPERATIONS } from '@/config/kochgourmetApi';
 import { DEFAULT_RECIPE_LIST_PARAMS } from '@/constants/recipeListDefaults';
 import {
   HydraCollection,
@@ -45,8 +46,9 @@ const FAVORITE_SCAN_PAGE_SIZE = 100;
 
 export const mobileAppRecipes = () => {
   const listRecipes = async (params: RecipeListParams = {}) => {
-    const response = await MobileAppApiService.get<HydraCollection<RecipeListItem>>(
-      '/recipes',
+    const response = await KochgourmetApiService.proxyGet<HydraCollection<RecipeListItem>>(
+      KOCHGOURMET_OPERATIONS.listRecipes,
+      {},
       toRecipeQueryParams({
         ...DEFAULT_RECIPE_LIST_PARAMS,
         ...params,
@@ -62,7 +64,10 @@ export const mobileAppRecipes = () => {
   };
 
   const getRecipe = async (id: number | string) => {
-    const response = await MobileAppApiService.get<RecipeDetail>(`/recipes/${id}`);
+    const response = await KochgourmetApiService.proxyGet<RecipeDetail>(
+      KOCHGOURMET_OPERATIONS.recipeDetail,
+      { id },
+    );
     if (response.success) {
       return { success: true as const, data: response.data, status: response.status };
     }
@@ -70,7 +75,9 @@ export const mobileAppRecipes = () => {
   };
 
   const getFilterOptions = async () => {
-    const response = await MobileAppApiService.get<RecipeFilterOptions>('/recipes/filter-options');
+    const response = await KochgourmetApiService.proxyGet<RecipeFilterOptions>(
+      KOCHGOURMET_OPERATIONS.recipeFilterOptions,
+    );
     if (response.success) {
       return { success: true as const, data: response.data, status: response.status };
     }

@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Stack, useRouter, type Router } from 'expo-router';
 import { Alert, AppState, LogBox, Platform, Text, TextInput } from 'react-native';
 import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
@@ -39,6 +39,7 @@ import CustomSplash from '@/components/CustomSplash';
 import GlobalFloatingTabBar from '@/components/GlobalFloatingTabBar';
 import { ThemedStatusBar } from '@/components/ThemedStatusBar';
 import { persistPlatformSignInOptionsFromValidateResponse } from '@/constants/platformSignInOptions';
+import { getMobileAppJwt } from '@/utils/mobileAppAuthUtils';
 
 void SplashScreen.preventAutoHideAsync();
 
@@ -181,6 +182,15 @@ async function runSplashAuthenticatedRouting(
   const resetToHomeAfterExit =
     (await AsyncStorage.getItem(ASYNC_STORAGE_EXIT_RESET_TO_HOME)) === '1';
 
+  const kochgourmetJwt = await getMobileAppJwt();
+  if (kochgourmetJwt) {
+    if (resetToHomeAfterExit) {
+      await AsyncStorage.removeItem(ASYNC_STORAGE_EXIT_RESET_TO_HOME);
+    }
+    router.replace('/(tabs)');
+    return;
+  }
+
   const accessToken = await AsyncStorage.getItem('AccessToken');
   const refreshToken = await AsyncStorage.getItem('RefreshToken');
   if (!accessToken && !refreshToken) {
@@ -245,7 +255,8 @@ async function runAuthRouting(
   fontError: boolean,
   router: Router,
   userAccount: UserAccountClient,
-  request: WhitelistRequestClient
+  request: WhitelistRequestClient,
+  onBootstrapComplete: () => void,
 ) {
   try {
     const result = await platform.validatePlatform();
@@ -274,6 +285,7 @@ async function runAuthRouting(
     console.error('Error loading data:', error);
   } finally {
     splashAuthBootstrapCompleted = true;
+    onBootstrapComplete();
     void SplashScreen.hideAsync();
   }
 }
@@ -299,20 +311,9 @@ export default function RootLayout() {
     'Roboto-Regular': Roboto_400Regular,
     'Roboto-Medium': Roboto_500Medium,
   });
-  const [showSplash, setShowSplash] = useState(false);
+  const [bootstrapComplete, setBootstrapComplete] = useState(false);
   const userAccount = useMemo(() => userManagement(), []);
   const request = useMemo(() => whitelistManagement(), []);
-
-  // Dismiss native splash when fonts are ready so CustomSplash (Modal) is visible.
-  useLayoutEffect(() => {
-    if (!(fontsLoaded || fontError)) return;
-    void SplashScreen.hideAsync();
-  }, [fontsLoaded, fontError]);
-
-  useEffect(() => {
-    const splashTimer = setTimeout(() => setShowSplash(false), 3000);
-    return () => clearTimeout(splashTimer);
-  }, []);
 
   // After Android BackHandler.exitApp(), the process often resumes with the old stack; open the home tab.
   useEffect(() => {
@@ -346,7 +347,14 @@ export default function RootLayout() {
     const authTimer = setTimeout(() => {
       if (splashInitialNavigationDone) return;
       splashInitialNavigationDone = true;
-      runAuthRouting(fontsLoaded, Boolean(fontError), router, userAccount, request).catch(
+      runAuthRouting(
+        fontsLoaded,
+        Boolean(fontError),
+        router,
+        userAccount,
+        request,
+        () => setBootstrapComplete(true),
+      ).catch(
         (err) => console.error('Auth routing error:', err)
       );
     }, delay);
@@ -372,14 +380,14 @@ export default function RootLayout() {
                       <Stack.Screen name="favoriten" options={{ animation: 'slide_from_bottom', presentation: 'card', headerShown: false }} />
                       <Stack.Screen name="+not-found" />
                     </Stack>
-                    <GlobalFloatingTabBar />
+                    <GlobalFloatingTabBar bootstrapComplete={bootstrapComplete} />
                     <ThemedStatusBar />
-                    <CustomSplash visible={showSplash} />
                   </FoldersProvider>
                   </RecipeFiltersProvider>
                 </FavouritesProvider>
               </AuthProvider>
             </AlertProvider>
+            <CustomSplash visible={!bootstrapComplete} />
           </ThemeProvider>
         </TenantProvider>
       </PaperProvider>

@@ -1,4 +1,5 @@
-import MobileAppApiService from '@/services/MobileAppApiService';
+import KochgourmetApiService from '@/services/KochgourmetApiService';
+import { KOCHGOURMET_OPERATIONS } from '@/config/kochgourmetApi';
 import {
   AddRecipeToFolderPayload,
   CreateFolderPayload,
@@ -8,9 +9,15 @@ import {
   RenameFolderPayload,
 } from '@/types/mobileAppApi';
 
+function asProxyBody<T extends object>(payload: T): Record<string, unknown> {
+  return payload as Record<string, unknown>;
+}
+
 export const mobileAppFavorites = () => {
   const listFolders = async () => {
-    const response = await MobileAppApiService.get<HydraCollection<FavoriteFolder>>('/me/folders');
+    const response = await KochgourmetApiService.proxyGet<HydraCollection<FavoriteFolder>>(
+      KOCHGOURMET_OPERATIONS.listFolders,
+    );
     if (response.success) {
       return { success: true as const, data: response.data, status: response.status };
     }
@@ -21,8 +28,9 @@ export const mobileAppFavorites = () => {
     folderId: number | string,
     params: { page?: number; itemsPerPage?: number } = {},
   ) => {
-    const response = await MobileAppApiService.get<FavoriteFolderDetail>(
-      `/me/folders/${folderId}`,
+    const response = await KochgourmetApiService.proxyGet<FavoriteFolderDetail>(
+      KOCHGOURMET_OPERATIONS.folderDetail,
+      { id: folderId },
       params,
     );
     if (response.success) {
@@ -32,7 +40,10 @@ export const mobileAppFavorites = () => {
   };
 
   const createFolder = async (payload: CreateFolderPayload) => {
-    const response = await MobileAppApiService.post<FavoriteFolder>('/me/folders', payload);
+    const response = await KochgourmetApiService.proxyPost<FavoriteFolder>(
+      KOCHGOURMET_OPERATIONS.createFolder,
+      asProxyBody(payload),
+    );
     if (response.success) {
       return { success: true as const, data: response.data, status: response.status };
     }
@@ -40,9 +51,10 @@ export const mobileAppFavorites = () => {
   };
 
   const renameFolder = async (folderId: number | string, payload: RenameFolderPayload) => {
-    const response = await MobileAppApiService.patch<FavoriteFolder>(
-      `/me/folders/${folderId}`,
-      payload,
+    const response = await KochgourmetApiService.proxyPatch<FavoriteFolder>(
+      KOCHGOURMET_OPERATIONS.renameFolder,
+      asProxyBody(payload),
+      { id: folderId },
     );
     if (response.success) {
       return { success: true as const, data: response.data, status: response.status };
@@ -51,7 +63,10 @@ export const mobileAppFavorites = () => {
   };
 
   const deleteFolder = async (folderId: number | string) => {
-    const response = await MobileAppApiService.delete(`/me/folders/${folderId}`);
+    const response = await KochgourmetApiService.proxyDelete(
+      KOCHGOURMET_OPERATIONS.deleteFolder,
+      { id: folderId },
+    );
     if (response.success) {
       return { success: true as const, status: response.status };
     }
@@ -62,7 +77,11 @@ export const mobileAppFavorites = () => {
     folderId: number | string,
     payload: AddRecipeToFolderPayload,
   ) => {
-    const response = await MobileAppApiService.post(`/me/folders/${folderId}/recipes`, payload);
+    const response = await KochgourmetApiService.proxyPost(
+      KOCHGOURMET_OPERATIONS.addRecipeToFolder,
+      asProxyBody(payload),
+      { id: folderId },
+    );
     if (response.success) {
       return { success: true as const, status: response.status };
     }
@@ -73,8 +92,9 @@ export const mobileAppFavorites = () => {
     folderId: number | string,
     recipeId: number | string,
   ) => {
-    const response = await MobileAppApiService.delete(
-      `/me/folders/${folderId}/recipes/${recipeId}`,
+    const response = await KochgourmetApiService.proxyDelete(
+      KOCHGOURMET_OPERATIONS.removeRecipeFromFolder,
+      { id: folderId, recipeId },
     );
     if (response.success) {
       return { success: true as const, status: response.status };
@@ -83,7 +103,11 @@ export const mobileAppFavorites = () => {
   };
 
   const addFavorite = async (recipeId: number | string) => {
-    const response = await MobileAppApiService.post(`/me/favorites/${recipeId}`);
+    const response = await KochgourmetApiService.proxyPost(
+      KOCHGOURMET_OPERATIONS.addFavorite,
+      {},
+      { recipeId },
+    );
     if (response.success) {
       return { success: true as const, status: response.status };
     }
@@ -91,7 +115,10 @@ export const mobileAppFavorites = () => {
   };
 
   const removeFavorite = async (recipeId: number | string) => {
-    const response = await MobileAppApiService.delete(`/me/favorites/${recipeId}`);
+    const response = await KochgourmetApiService.proxyDelete(
+      KOCHGOURMET_OPERATIONS.removeFavorite,
+      { recipeId },
+    );
     if (response.success) {
       return { success: true as const, status: response.status };
     }

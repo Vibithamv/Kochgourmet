@@ -2,7 +2,10 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, AxiosError, InternalAxiosRequestConfig, AxiosHeaders } from "axios";
 import { CURRENT_ENVIRONMENT, ENVIRONMENT_CONFIG, EnvironmentName } from "../config/environment";
 import { updateAuthTokensFromHeaders } from "../utils/authUtils";
-
+import {
+  isKochgourmetTokenExpiredError,
+  refreshKochgourmetAccessToken,
+} from "../utils/kochgourmetTokenRefresh";
 
 type ApiResponse<T = any> = {
   success: boolean;
@@ -10,6 +13,15 @@ type ApiResponse<T = any> = {
   error?: any;
   status?: number;
 };
+
+const ENDPOINTS_WITHOUT_TOKEN_REFRESH = new Set([
+  "/validate-platform",
+  "/oauth2/token",
+]);
+
+type RequestMeta = Readonly<{
+  endpoint: string;
+}>;
 
 class NetworkService {
   private environment: EnvironmentName;
@@ -89,6 +101,62 @@ class NetworkService {
     return this.environment;
   }
 
+  private shouldAttemptTokenRefresh(endpoint: string | undefined, isRetry: boolean): boolean {
+    return !isRetry && !!endpoint && !ENDPOINTS_WITHOUT_TOKEN_REFRESH.has(endpoint);
+  }
+
+  private async request<T>(
+    executor: () => Promise<AxiosResponse<T>>,
+    meta?: RequestMeta,
+    isRetry = false,
+  ): Promise<ApiResponse<T>> {
+    try {
+      const response = await executor();
+
+      if (
+        this.shouldAttemptTokenRefresh(meta?.endpoint, isRetry) &&
+        isKochgourmetTokenExpiredError(response.data)
+      ) {
+        const refreshed = await refreshKochgourmetAccessToken();
+        if (refreshed) {
+          return this.request(executor, meta, true);
+        }
+
+        return {
+          success: false,
+          error: response.data,
+          status: response.status,
+        };
+      }
+
+      return { success: true, data: response.data, status: response.status };
+    } catch (error: unknown) {
+      if (
+        this.shouldAttemptTokenRefresh(meta?.endpoint, isRetry) &&
+        axios.isAxiosError(error) &&
+        isKochgourmetTokenExpiredError(error.response?.data)
+      ) {
+        const refreshed = await refreshKochgourmetAccessToken();
+        if (refreshed) {
+          return this.request(executor, meta, true);
+        }
+      }
+
+      if (axios.isAxiosError(error)) {
+        return {
+          success: false,
+          error: error.response?.data || error.message,
+          status: error.response?.status,
+        };
+      }
+
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  }
+
   /**
    * GET request
    */
@@ -97,20 +165,15 @@ class NetworkService {
     params: Record<string, any> = {},
     config: Record<string, any> = {}
   ): Promise<ApiResponse<T>> {
-    try {
-      const axiosConfig =
-        config.headers || config['Api-Key']
-          ? { params, headers: config } // treat config as headers
-          : { params, ...config };
-      const response = await this.api.get<T>(endpoint, axiosConfig);
-      return { success: true, data: response.data, status: response.status };
-    } catch (error: any) {
-      return {
-        success: false,
-        error: error.response?.data || error.message,
-        status: error.response?.status,
-      };
-    }
+    const axiosConfig =
+      config.headers || config['Api-Key']
+        ? { params, headers: config }
+        : { params, ...config };
+
+    return this.request(
+      () => this.api.get<T>(endpoint, axiosConfig),
+      { endpoint },
+    );
   }
 
   /**
@@ -122,22 +185,17 @@ class NetworkService {
     header: Record<string, string> = {},
     config: AxiosRequestConfig = {}
   ): Promise<ApiResponse<T>> {
-    try {
-      const response = await this.api.post<T>(endpoint, data, {
-        ...config,
-        headers: {
-          ...config.headers,
-          ...header,
-        },
-      });
-      return { success: true, data: response.data, status: response.status };
-    } catch (error: any) {
-      return {
-        success: false,
-        error: error.response?.data || error.message,
-        status: error.response?.status,
-      };
-    }
+    return this.request(
+      () =>
+        this.api.post<T>(endpoint, data, {
+          ...config,
+          headers: {
+            ...config.headers,
+            ...header,
+          },
+        }),
+      { endpoint },
+    );
   }
 
   /**
@@ -148,16 +206,7 @@ class NetworkService {
     data: any = {},
     config: AxiosRequestConfig = {}
   ): Promise<ApiResponse<T>> {
-    try {
-      const response = await this.api.put<T>(endpoint, data, config);
-      return { success: true, data: response.data, status: response.status };
-    } catch (error: any) {
-      return {
-        success: false,
-        error: error.response?.data || error.message,
-        status: error.response?.status,
-      };
-    }
+    return this.request(() => this.api.put<T>(endpoint, data, config), { endpoint });
   }
 
   /**
@@ -169,22 +218,17 @@ class NetworkService {
     header: Record<string, string> = {},
     config: AxiosRequestConfig = {}
   ): Promise<ApiResponse<T>> {
-    try {
-      const response = await this.api.patch<T>(endpoint, data, {
-        ...config,
-        headers: {
-          ...config.headers,
-          ...header,
-        },
-      });
-      return { success: true, data: response.data, status: response.status };
-    } catch (error: any) {
-      return {
-        success: false,
-        error: error.response?.data || error.message,
-        status: error.response?.status,
-      };
-    }
+    return this.request(
+      () =>
+        this.api.patch<T>(endpoint, data, {
+          ...config,
+          headers: {
+            ...config.headers,
+            ...header,
+          },
+        }),
+      { endpoint },
+    );
   }
 
   /**
@@ -194,16 +238,7 @@ class NetworkService {
     endpoint: string,
     config: AxiosRequestConfig = {}
   ): Promise<ApiResponse<T>> {
-    try {
-      const response = await this.api.delete<T>(endpoint, config);
-      return { success: true, data: response.data, status: response.status };
-    } catch (error: any) {
-      return {
-        success: false,
-        error: error.response?.data || error.message,
-        status: error.response?.status,
-      };
-    }
+    return this.request(() => this.api.delete<T>(endpoint, config), { endpoint });
   }
 
   /**

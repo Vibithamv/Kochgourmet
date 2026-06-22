@@ -5,6 +5,14 @@ import { API_HEADER_CONFIG } from '@/config/apiHeaderConfig';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { updateAuthTokensFromResponse } from '@/utils/authUtils';
 import { unregisterPushTokenOnSignOut } from '@/utils/unregisterPushTokenOnSignOut';
+import { mobileAppUserManagement } from '@/hooks/mobileApp';
+import {
+  clearMobileAppAuth,
+  getMobileAppJwt,
+  getMobileAppRefreshToken,
+  persistMobileAppAuth,
+} from '@/utils/mobileAppAuthUtils';
+import { resolveMobileAppAuthUser } from '@/utils/mobileAppAuthResponse';
 
 interface AuthContextType {
   user: User | null;
@@ -31,16 +39,30 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     const loadUserFromStorage = async () => {
       try {
+        const kochgourmetJwt = await getMobileAppJwt();
+        const kochgourmetRefresh = await getMobileAppRefreshToken();
+
+        if (kochgourmetJwt) {
+          setUser({
+            email: '',
+            accessToken: kochgourmetJwt,
+            refreshToken: kochgourmetRefresh ?? '',
+            firstName: '',
+            lastName: '',
+          });
+          return;
+        }
+
         const accessToken = await AsyncStorage.getItem('AccessToken');
         const refreshToken = await AsyncStorage.getItem('RefreshToken');
 
         if (accessToken && refreshToken) {
           setUser({
-            email: '', // If available, fetch user details or decode token
+            email: '',
             accessToken,
             refreshToken,
             firstName: '',
-            lastName: ''
+            lastName: '',
           });
         }
       } catch (err) {
@@ -60,9 +82,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
         redirect_uri: redirectUri,
       };
       const response = await NetworkService.post('/oauth2/token', payload, API_HEADER_CONFIG);
-      console.log('response...oauth2..',
-        JSON.stringify(response, null, 2)
-      );
 
       if (response.success) {
         await updateAuthTokensFromResponse(response.data.data.authentication_result);
@@ -89,56 +108,55 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, []);
 
   const signIn = useCallback(async (email: string, password: string) => {
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    const authApi = mobileAppUserManagement();
 
     try {
-      const payload = {
-        type: 'SIGNIN',
-        email: email,
-        password: password
-      };
-      const response = await NetworkService.post("/signin", payload, API_HEADER_CONFIG);
-      console.log('response.....',
-        JSON.stringify(response, null, 2)
-      );
+      const response = await authApi.login(email, password);
 
-      if (response.success) {
-        await updateAuthTokensFromResponse(response.data.data.authentication_result)
-        if (JSON.stringify(response.data.data.activeAccount) !== '{}') {
-          await AsyncStorage.setItem('AccountID', response.data.data.activeAccount.id)
-        }
-        const user: User = {
-          email: email,
-          accessToken: response.data.data.authentication_result.access_token,
-          refreshToken: response.data.data.authentication_result.refresh_token,
-          firstName: response.data.data.user.first_name,
-          lastName: response.data.data.user.last_name
-
-        };
-        setUser(user);
-        // await AsyncStorage.setItem('User',JSON.stringify(user))
-        return { success: true, data: response.data };
-      } else {
-        console.log(
-          "Login failed",
-          response.error
-        );
+      if (!response.success || !response.data?.token) {
         return { success: false, error: response.error };
       }
-    } catch (error: unknown) {
-      let errorMessage = "An unexpected error occurred.";
 
+      await persistMobileAppAuth({
+        token: response.data.token,
+        refreshToken: response.data.refreshToken,
+        expiresAt: response.data.expiresAt,
+      });
+
+      const authUser = resolveMobileAppAuthUser(response.data, email);
+      const nextUser: User = {
+        email: authUser.email ?? email,
+        accessToken: response.data.token,
+        refreshToken: response.data.refreshToken ?? '',
+        firstName: authUser.firstName,
+        lastName: authUser.lastName,
+      };
+      setUser(nextUser);
+
+      return {
+        success: true,
+        data: {
+          data: {
+            activeAccount: { kyc_status: 'CONFIRMED', id: '' },
+            user: {
+              first_name: authUser.firstName,
+              last_name: authUser.lastName,
+              id: String(authUser.uid),
+            },
+            authentication_result: {
+              access_token: response.data.token,
+              refresh_token: response.data.refreshToken ?? '',
+            },
+          },
+        },
+      };
+    } catch (error: unknown) {
+      let errorMessage = 'An unexpected error occurred.';
       if (error instanceof Error) {
-        // Safe to access error.message
         errorMessage = error.message;
-      } else if (typeof error === "string") {
+      } else if (typeof error === 'string') {
         errorMessage = error;
       }
-      console.log(
-        "Error",
-        error
-      );
       return { success: false, error: errorMessage };
     }
   }, []);
@@ -146,13 +164,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const signOut = useCallback(async () => {
     try {
       await unregisterPushTokenOnSignOut();
-      await AsyncStorage.removeItem("AccessToken");
-      await AsyncStorage.removeItem("RefreshToken");
-      await AsyncStorage.removeItem("IDToken");
-      await AsyncStorage.removeItem("AccountID");
+      await clearMobileAppAuth();
+      await AsyncStorage.removeItem('AccountID');
       setUser(null);
     } catch (err) {
-      console.error("Logout failed", err);
+      console.error('Logout failed', err);
     }
   }, []);
 
@@ -175,4 +191,3 @@ export const useAuth = () => {
   }
   return context;
 };
-

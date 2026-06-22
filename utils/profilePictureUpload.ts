@@ -27,7 +27,8 @@ const ALLOWED_CONTENT_TYPES = new Set<string>([
 ]);
 
 export type ProfilePicturePayload = {
-  image: string;
+  fileBase64: string;
+  fileName: string;
   contentType: ProfilePictureContentType;
 };
 
@@ -73,6 +74,29 @@ function stripDataUrlPrefix(base64: string): string {
   return match ? match[1] : base64;
 }
 
+function fileNameFromContentType(
+  contentType: ProfilePictureContentType,
+  uri: string,
+): string {
+  const ext = extensionFromUri(uri);
+  if (ext) {
+    return `profile.${ext}`;
+  }
+
+  switch (contentType) {
+    case 'image/jpeg':
+      return 'profile.jpg';
+    case 'image/png':
+      return 'profile.png';
+    case 'image/gif':
+      return 'profile.gif';
+    case 'image/webp':
+      return 'profile.webp';
+    default:
+      return 'profile.jpg';
+  }
+}
+
 export async function prepareProfilePicturePayload(
   uri: string,
   mimeType?: string | null,
@@ -104,7 +128,8 @@ export async function prepareProfilePicturePayload(
     return {
       ok: true,
       payload: {
-        image: stripped,
+        fileBase64: stripped,
+        fileName: fileNameFromContentType(contentType, uri),
         contentType,
       },
     };

@@ -3,18 +3,19 @@ import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native
 import { BlurView } from 'expo-blur';
 import { router, usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ChefHat, Heart, Menu, Star, TrendingUp } from 'lucide-react-native';
+import { ChefHat, Heart, Menu, Star } from 'lucide-react-native';
+import BonusTabIcon from '@/components/BonusTabIcon';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/contexts/ThemeContext';
-import { getShadows } from '@/constants/theme';
+import { getColors, getShadows } from '@/constants/theme';
 import { useTabBarSuppressed } from '@/utils/tabBarStore';
 
 const TABS = [
   { route: '/',          labelKey: 'common.tabs.rezepte',   Icon: Star,        filledWhenActive: true,  match: (p: string) => p === '/' || p.startsWith('/recipe') },
   { route: '/projects',  labelKey: 'common.tabs.magazin',   Icon: ChefHat,     filledWhenActive: false, match: (p: string) => p.startsWith('/projects') || p.startsWith('/magazin') },
   { route: '/portfolio', labelKey: 'common.tabs.favoriten', Icon: Heart,       filledWhenActive: false, match: (p: string) => p.startsWith('/portfolio') || p.startsWith('/favoriten') },
-  { route: '/offerings', labelKey: 'common.tabs.token',     Icon: TrendingUp,  filledWhenActive: false, match: (p: string) => p.startsWith('/offerings') || p.startsWith('/project') || p.startsWith('/investment') },
-  { route: '/account',   labelKey: 'common.tabs.menu',      Icon: Menu,        filledWhenActive: false, match: (p: string) => p.startsWith('/account') || p === '/screens/portfolio' || p === '/screens/projects' },
+  { route: '/offerings', labelKey: 'common.tabs.token',     Icon: BonusTabIcon, iconKind: 'bonus', filledWhenActive: false, match: (p: string) => p.startsWith('/offerings') || p.startsWith('/project') || p.startsWith('/investment') },
+  { route: '/account',   labelKey: 'common.tabs.menu',      Icon: Menu,        filledWhenActive: false, match: (p: string) => p === '/account' || p.startsWith('/account/') },
 ];
 
 const TAB_LABEL_ACTIVE_COLOR = '#EE7051';
@@ -26,27 +27,39 @@ const HIDDEN_PATHS = new Set([
   '/screens/KYCWebView', '/screens/docSignWebview', '/screens/docWebview',
   '/screens/kycWaiting', '/screens/paymentWebView', '/screens/platformError',
   '/screens/whitelistRequest', '/screens/whitelistResponseWaiting',
+  '/screens/portfolio',
   '/recipe/filter',
   '/+not-found',
 ]);
 
 function shouldHideTabBar(pathname: string): boolean {
   if (HIDDEN_PATHS.has(pathname)) return true;
+  if (pathname.startsWith('/account/')) return true;
+  if (pathname.startsWith('/portfolio/')) return true;
+  if (pathname.startsWith('/favoriten/')) return true;
   if (pathname.startsWith('/project/')) return true;
   if (pathname.startsWith('/investment/')) return true;
   return false;
 }
 
-export default function GlobalFloatingTabBar() {
+type GlobalFloatingTabBarProps = Readonly<{
+  bootstrapComplete?: boolean;
+}>;
+
+export default function GlobalFloatingTabBar({
+  bootstrapComplete = true,
+}: GlobalFloatingTabBarProps) {
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const { theme } = useTheme();
   const shadows = getShadows(theme);
+  const colors = getColors(theme);
   const isDark = theme === 'dark' || theme === 'darkGreen';
 
   const suppressed = useTabBarSuppressed();
 
+  if (!bootstrapComplete) return null;
   if (shouldHideTabBar(pathname)) return null;
   if (suppressed) return null;
 
@@ -88,12 +101,19 @@ export default function GlobalFloatingTabBar() {
                 style={styles.item}
                 activeOpacity={0.7}
               >
-                <tab.Icon
-                  size={18}
-                  color={color}
-                  strokeWidth={1.5}
-                  fill={tab.filledWhenActive ? color : 'transparent'}
-                />
+                {tab.iconKind === 'bonus' ? (
+                  <BonusTabIcon
+                    size={18}
+                    color={isFocused ? TAB_LABEL_ACTIVE_COLOR : colors.text.secondary}
+                  />
+                ) : (
+                  <tab.Icon
+                    size={18}
+                    color={color}
+                    strokeWidth={1.5}
+                    fill={tab.filledWhenActive ? color : 'transparent'}
+                  />
+                )}
                 <Text style={[styles.label, { color }]}>{t(tab.labelKey)}</Text>
               </TouchableOpacity>
             );

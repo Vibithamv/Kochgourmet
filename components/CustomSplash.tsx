@@ -1,7 +1,8 @@
 import React from 'react';
-import { Image, Modal, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Image, Modal, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/contexts/ThemeContext';
+import { SPLASH_ICON_SIZE } from '@/constants/splash';
 import { getColors } from '@/constants/theme';
 
 type CustomSplashProps = Readonly<{
@@ -17,13 +18,14 @@ export default function CustomSplash({ visible }: CustomSplashProps) {
     <Modal animationType="none" transparent={false} visible={visible}>
       <View style={[styles.root, { backgroundColor: colors.background.primary }]}>
         <Image
-          source={require('../assets/images/kochgourmet-logo.png')}
-          style={styles.logo}
+          source={require('../assets/images/kochgourmet-splash-icon.png')}
+          style={[styles.logo, { width: SPLASH_ICON_SIZE, height: SPLASH_ICON_SIZE }]}
           resizeMode="contain"
         />
         <Text style={[styles.caption, { color: colors.text.secondary, fontFamily: 'Inter-Medium' }]}>
           {t('common.loading')}
         </Text>
+        <ActivityIndicator size="large" color={colors.primary} style={styles.spinner} />
       </View>
     </Modal>
   );
@@ -37,15 +39,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
   },
   logo: {
-    width: '88%',
-    maxWidth: 300,
-    height: undefined,
-    aspectRatio: 527 / 77,
     alignSelf: 'center',
     marginBottom: 16,
   },
   caption: {
     fontSize: 14,
     letterSpacing: 0.2,
+    marginBottom: 20,
+  },
+  spinner: {
+    marginTop: 4,
   },
 });

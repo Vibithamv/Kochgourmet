@@ -9,11 +9,12 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/images/kochgourmet-logo.png",
+      "image": "./assets/images/kochgourmet-splash-icon.png",
       "resizeMode": "contain",
+      "imageWidth": 200,
       "backgroundColor": "#FFFFFF",
       "dark": {
-        "image": "./assets/images/kochgourmet-logo.png",
+        "image": "./assets/images/kochgourmet-splash-icon.png",
         "resizeMode": "contain",
         "backgroundColor": "#0D1117"
       }
@@ -24,11 +25,11 @@
         "backgroundColor": "#FFFFFF"
       },
       "splash": {
-        "image": "./assets/images/kochgourmet-logo.png",
+        "image": "./assets/images/kochgourmet-splash-icon.png",
         "resizeMode": "contain",
         "backgroundColor": "#FFFFFF",
         "dark": {
-          "image": "./assets/images/kochgourmet-logo.png",
+          "image": "./assets/images/kochgourmet-splash-icon.png",
           "resizeMode": "contain",
           "backgroundColor": "#0D1117"
         }
@@ -54,11 +55,11 @@
     "ios": {
       "supportsTablet": true,
       "splash": {
-        "image": "./assets/images/kochgourmet-logo.png",
+        "image": "./assets/images/kochgourmet-splash-icon.png",
         "resizeMode": "contain",
         "backgroundColor": "#FFFFFF",
         "dark": {
-          "image": "./assets/images/kochgourmet-logo.png",
+          "image": "./assets/images/kochgourmet-splash-icon.png",
           "resizeMode": "contain",
           "backgroundColor": "#0D1117"
         }
@@ -89,11 +90,12 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/kochgourmet-logo.png",
+          "image": "./assets/images/kochgourmet-splash-icon.png",
           "resizeMode": "contain",
+          "imageWidth": 200,
           "backgroundColor": "#FFFFFF",
           "dark": {
-            "image": "./assets/images/kochgourmet-logo.png",
+            "image": "./assets/images/kochgourmet-splash-icon.png",
             "resizeMode": "contain",
             "backgroundColor": "#0D1117"
           }

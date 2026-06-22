@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -8,16 +8,18 @@ import {
   StyleSheet,
   Share,
   Platform,
+  ActivityIndicator,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { router } from 'expo-router';
 import { Share2 } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getColors, getTypography } from '@/constants/theme';
-import { getArticleDetail, type ArticleSection } from '@/utils/mockArticleDetails';
 import {
   getStatusBarStripHeight,
   getHeroStatusBarStripBackground,
@@ -25,20 +27,14 @@ import {
 } from '@/utils/statusBarLayout';
 import { useDetailScreenStatusBar } from '@/hooks/useStatusBarStyle';
 import RecipeCard from '@/components/RecipeCard';
+import ContentPageHtml from '@/components/ContentPageHtml';
 import { useFavourites } from '@/contexts/FavouritesContext';
-
-/** First word capitalized for list-style paragraphs; remainder unchanged. */
-function splitLeadingWord(text: string): { readonly first: string; readonly rest: string } {
-  const trimmed = text.trim();
-  const space = trimmed.indexOf(' ');
-  if (space === -1) {
-    const word = trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
-    return { first: word, rest: '' };
-  }
-  const raw = trimmed.slice(0, space);
-  const first = raw.charAt(0).toUpperCase() + raw.slice(1);
-  return { first, rest: trimmed.slice(space) };
-}
+import { mobileAppMagazine } from '@/hooks/mobileApp';
+import {
+  magazineHeroImage,
+  mapMagazineRelatedRecipe,
+} from '@/utils/mobileAppMappers';
+import type { MagazinePostDetail } from '@/types/mobileAppApi';
 
 export const MAGAZINE_HERO_IMAGE_HEIGHT = 260;
 
@@ -63,15 +59,39 @@ export default function MagazinDetailContent({
   deferStatusBarToParent = false,
   onScrollOffsetChange,
 }: MagazinDetailContentProps) {
+  const { t } = useTranslation();
   const { theme } = useTheme();
   const colors = getColors(theme);
   const typography = getTypography(theme);
   const insets = useSafeAreaInsets();
+  const magazineApi = useMemo(() => mobileAppMagazine(), []);
   const statusBarStripHeight = getStatusBarStripHeight(insets.top);
   const actionsBottom = floatingActionsBottom ?? Math.max(insets.bottom, 12) + 90;
-  const article = getArticleDetail(articleId);
 
+  const [article, setArticle] = useState<MagazinePostDetail | null>(null);
+  const [loading, setLoading] = useState(true);
   const [scrollY, setScrollY] = useState(0);
+
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      const load = async () => {
+        setLoading(true);
+        const response = await magazineApi.getPost(articleId);
+        if (!active) return;
+        if (response.success && response.data) {
+          setArticle(response.data);
+        } else {
+          setArticle(null);
+        }
+        setLoading(false);
+      };
+      void load();
+      return () => {
+        active = false;
+      };
+    }, [articleId, magazineApi]),
+  );
 
   const ownsStatusBar = manageStatusBar && !deferStatusBarToParent;
   const tracksScroll = ownsStatusBar || deferStatusBarToParent || Boolean(onScrollOffsetChange);
@@ -99,93 +119,43 @@ export default function MagazinDetailContent({
     [onScrollOffsetChange],
   );
 
-  const { recipes, toggleFavourite } = useFavourites();
-  const relatedRecipes = article.relatedRecipeIds
-    .map(rid => recipes.find(r => r.id === rid))
-    .filter((r): r is NonNullable<typeof r> => r !== undefined);
+  const { favourites, toggleFavourite } = useFavourites();
+  const relatedRecipes = useMemo(() => {
+    if (!article?.relatedRecipes?.length) return [];
+    return article.relatedRecipes.map((recipe, index) => {
+      const mapped = mapMagazineRelatedRecipe(recipe, index);
+      const favourite = favourites.find((item) => item.id === mapped.id);
+      return favourite ? { ...mapped, isFavourite: favourite.isFavourite } : mapped;
+    });
+  }, [article?.relatedRecipes, favourites]);
 
   const onShare = async () => {
-    await Share.share({ message: `Lies diesen Artikel: ${article.title}` });
+    if (!article) return;
+    await Share.share({ message: article.title });
   };
 
-  const renderSection = (section: ArticleSection, index: number) => {
-    switch (section.type) {
-      case 'heading':
-        return (
-          <Text key={index} style={[styles.sectionHeading, { color: colors.text.primary }]}>
-            {section.content}
-          </Text>
-        );
+  if (loading) {
+    return (
+      <View style={[styles.fill, styles.centered, { backgroundColor: colors.background.secondary }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
 
-      case 'text':
-        return (
-          <Text key={index} style={[styles.bodyContent, { color: colors.text.primary }]}>
-            {section.content}
-          </Text>
-        );
+  if (!article) {
+    return (
+      <View style={[styles.fill, styles.centered, { backgroundColor: colors.background.secondary }]}>
+        <Text style={[styles.bodyContent, { color: colors.text.tertiary }]}>
+          {t('magazinScreen.emptyArticles')}
+        </Text>
+        <TouchableOpacity onPress={onClose} style={styles.retryBtn}>
+          <Text style={{ color: colors.primary }}>{t('common.close')}</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
-      case 'image':
-        return (
-          <Image
-            key={index}
-            source={{ uri: section.imageUrl }}
-            style={styles.sectionImage}
-            resizeMode="cover"
-          />
-        );
-
-      case 'quote':
-        return (
-          <View key={index} style={[styles.quoteBlock, { backgroundColor: colors.background.secondary }]}>
-            <Text style={[styles.quoteMarks, { color: colors.primary }]}>"</Text>
-            <Text style={[styles.quoteText, { color: colors.text.primary }]}>
-              {section.content}
-            </Text>
-            <View style={styles.quoteAuthor}>
-              {section.quoteAuthorAvatar ? (
-                <Image source={{ uri: section.quoteAuthorAvatar }} style={styles.quoteAvatar} />
-              ) : null}
-              <Text style={[styles.quoteAuthorLabel, { color: colors.text.tertiary }]}>
-                {section.quoteAuthorLabel}
-              </Text>
-            </View>
-          </View>
-        );
-
-      case 'list':
-        return (
-          <View key={index} style={styles.listBlock}>
-            {(section.items ?? []).map(item => {
-              const { first, rest } = splitLeadingWord(item);
-              return (
-                <View key={item} style={styles.listItem}>
-                  <Text style={[styles.listBullet, { color: colors.text.primary }]}>•</Text>
-                  <Text style={[styles.bodyContent, styles.listItemText, { color: colors.text.primary }]}>
-                    <Text style={styles.listItemLead}>{first}</Text>
-                    {rest}
-                  </Text>
-                </View>
-              );
-            })}
-          </View>
-        );
-
-      case 'product':
-        return (
-          <View key={index} style={[styles.productCard, { backgroundColor: colors.background.card, borderColor: colors.border.primary }]}>
-            {section.productImage ? (
-              <Image source={{ uri: section.productImage }} style={styles.productImage} resizeMode="cover" />
-            ) : null}
-            <Text style={[styles.productName, { color: colors.text.primary }]}>
-              {section.productName}
-            </Text>
-          </View>
-        );
-
-      default:
-        return null;
-    }
-  };
+  const heroImageUrl = magazineHeroImage(article);
 
   return (
     <View style={[styles.fill, { backgroundColor: colors.background.secondary }]}>
@@ -219,13 +189,12 @@ export default function MagazinDetailContent({
       >
         {showHeroImage && (
           <Image
-            source={{ uri: article.heroImageUrl }}
+            source={{ uri: heroImageUrl }}
             style={styles.heroImage}
             resizeMode="cover"
           />
         )}
 
-        {/* Title, intro + article sections */}
         <View
           style={[
             styles.content,
@@ -235,26 +204,47 @@ export default function MagazinDetailContent({
           <Text style={[styles.title, { color: colors.text.primary }]}>
             {article.title}
           </Text>
-          <Text style={[styles.bodyContent, { color: colors.text.primary }]}>
-            {article.intro}
-          </Text>
-          {article.sections.map((section, index) => renderSection(section, index))}
+          <ContentPageHtml html={article.text} horizontalPadding={40} />
         </View>
 
-        {/* Related recipes */}
+        {article.products && article.products.length > 0 ? (
+          <View style={styles.productsSection}>
+            {article.products.map((product) => (
+              <View
+                key={product.name}
+                style={[
+                  styles.productCard,
+                  { backgroundColor: colors.background.card, borderColor: colors.border.primary },
+                ]}
+              >
+                {product.imageUrl ? (
+                  <Image
+                    source={{ uri: product.imageUrl }}
+                    style={styles.productImage}
+                    resizeMode="cover"
+                  />
+                ) : null}
+                <Text style={[styles.productName, { color: colors.text.primary }]}>
+                  {product.name}
+                </Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
+
         {relatedRecipes.length > 0 && (
           <View style={styles.relatedSection}>
             <Text style={[styles.relatedTitle, { color: colors.text.primary }]}>
-              Passende Rezepte
+              {t('magazinScreen.relatedRecipes')}
             </Text>
             <View style={styles.recipeGrid}>
-              {relatedRecipes.map(recipe => (
+              {relatedRecipes.map((recipe) => (
                 <View key={recipe.id} style={styles.recipeCard}>
                   <RecipeCard
                     recipe={recipe}
                     variant="rezepte"
                     onPress={() => router.push(`/recipe/${recipe.id}`)}
-                    onToggleFavourite={() => toggleFavourite(recipe.id)}
+                    onToggleFavourite={() => toggleFavourite(recipe.id, recipe)}
                   />
                 </View>
               ))}
@@ -265,7 +255,6 @@ export default function MagazinDetailContent({
         <View style={{ height: Math.max(insets.bottom, 16) + 180 }} />
       </ScrollView>
 
-      {/* Floating action buttons — sit above the floating tab bar */}
       <View style={[styles.floatingActions, { bottom: actionsBottom }]} pointerEvents="box-none">
         <TouchableOpacity
           style={[styles.closeBtn, { backgroundColor: colors.background.card, borderColor: colors.border.primary }]}
@@ -273,7 +262,7 @@ export default function MagazinDetailContent({
           activeOpacity={0.7}
         >
           <Text style={[styles.closeBtnText, { color: colors.text.primary, fontFamily: typography.fontFamily.regular }]}>
-            Schließen
+            {t('common.close')}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -296,6 +285,13 @@ export default function MagazinDetailContent({
 
 const styles = StyleSheet.create({
   fill: { flex: 1 },
+  centered: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    gap: 16,
+  },
+  retryBtn: { paddingVertical: 8, paddingHorizontal: 16 },
   statusBarOverlay: {
     position: 'absolute',
     top: 0,
@@ -303,7 +299,6 @@ const styles = StyleSheet.create({
     right: 0,
     zIndex: 30,
   },
-
   heroImage: {
     width: '100%',
     height: MAGAZINE_HERO_IMAGE_HEIGHT,
@@ -327,8 +322,13 @@ const styles = StyleSheet.create({
     fontSize: 17,
     lineHeight: 26,
     letterSpacing: 0,
+    textAlign: 'center',
   },
-
+  productsSection: {
+    paddingHorizontal: 20,
+    gap: 12,
+    marginTop: 8,
+  },
   floatingActions: {
     position: 'absolute',
     left: 0,
@@ -367,72 +367,6 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 6,
   },
-
-  sectionHeading: {
-    fontFamily: 'Roboto-Regular',
-    fontSize: 22,
-    lineHeight: 27,
-    letterSpacing: 0,
-    marginTop: 12,
-    marginBottom: 4,
-  },
-  sectionImage: {
-    width: '100%',
-    height: 200,
-    borderRadius: 12,
-  },
-
-  quoteBlock: {
-    borderRadius: 16,
-    padding: 20,
-    gap: 12,
-    marginVertical: 8,
-  },
-  quoteMarks: {
-    fontSize: 48,
-    fontFamily: 'Inter-Bold',
-    lineHeight: 65,
-    marginBottom: -8,
-  },
-  quoteText: {
-    fontFamily: 'PlayfairDisplay_700Bold',
-    fontSize: 35,
-    lineHeight: 48,
-    letterSpacing: 0,
-  },
-  quoteAuthor: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginTop: 10,
-  },
-  quoteAvatar: { width: 32, height: 32, borderRadius: 16 },
-  quoteAuthorLabel: {
-    fontFamily: 'Roboto-Regular',
-    fontSize: 15,
-    lineHeight: 20,
-    letterSpacing: 0,
-    textTransform: 'uppercase',
-  },
-
-  listBlock: { gap: 12 },
-  listItem: {
-    flexDirection: 'row',
-    gap: 10,
-    alignItems: 'flex-start',
-  },
-  listBullet: {
-    fontSize: 16,
-    lineHeight: 24,
-    fontFamily: 'Inter-Regular',
-  },
-  listItemText: {
-    flex: 1,
-  },
-  listItemLead: {
-    fontFamily: 'Roboto-Regular',
-  },
-
   productCard: {
     borderRadius: 12,
     borderWidth: 1,
@@ -450,7 +384,6 @@ const styles = StyleSheet.create({
     lineHeight: 30,
     letterSpacing: 0,
   },
-
   relatedSection: {
     paddingHorizontal: 20,
     paddingTop: 24,

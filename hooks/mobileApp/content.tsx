@@ -1,21 +1,38 @@
-import MobileAppApiService from '@/services/MobileAppApiService';
+import KochgourmetApiService from '@/services/KochgourmetApiService';
+import { KOCHGOURMET_OPERATIONS } from '@/config/kochgourmetApi';
 import { ContentPage } from '@/types/mobileAppApi';
+import { normalizeContentPage } from '@/utils/mobileAppMappers';
 
 export const mobileAppContent = () => {
-  const getPage = async (slug: string) => {
-    const response = await MobileAppApiService.get<ContentPage>(`/pages/${slug}`);
+  const getImpressum = async () => {
+    const response = await KochgourmetApiService.proxyGet<ContentPage>(
+      KOCHGOURMET_OPERATIONS.pageImpressum,
+    );
     if (response.success) {
-      return { success: true as const, data: response.data, status: response.status };
+      const data = normalizeContentPage(response.data);
+      if (!data) {
+        return { success: false as const, error: 'Invalid content page payload', status: response.status };
+      }
+      return { success: true as const, data, status: response.status };
     }
     return { success: false as const, error: response.error, status: response.status };
   };
 
-  const getImpressum = async () => getPage('impressum');
-
-  const getDatenschutz = async () => getPage('datenschutz');
+  const getDatenschutz = async () => {
+    const response = await KochgourmetApiService.proxyGet<ContentPage>(
+      KOCHGOURMET_OPERATIONS.pageDatenschutz,
+    );
+    if (response.success) {
+      const data = normalizeContentPage(response.data);
+      if (!data) {
+        return { success: false as const, error: 'Invalid content page payload', status: response.status };
+      }
+      return { success: true as const, data, status: response.status };
+    }
+    return { success: false as const, error: response.error, status: response.status };
+  };
 
   return {
-    getPage,
     getImpressum,
     getDatenschutz,
   };

@@ -1,10 +1,7 @@
 import React, { createContext, useContext, useMemo, useState } from 'react';
 
 export type RegisterPendingPayload = Readonly<{
-  firstName: string;
-  lastName: string;
   email: string;
-  password: string;
 }>;
 
 type RegisterPendingContextValue = Readonly<{

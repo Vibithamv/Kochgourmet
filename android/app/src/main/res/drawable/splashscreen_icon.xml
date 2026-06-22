@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Inset shrinks the icon within Android 12+ splash mask (~10% zoom-out). -->
 <inset xmlns:android="http://schemas.android.com/apk/res/android"
-    android:drawable="@drawable/kochgourmet_logo"
+    android:drawable="@drawable/splashscreen_logo"
     android:insetLeft="17%"
     android:insetRight="17%"
-    android:insetTop="42%"
-    android:insetBottom="42%" />
+    android:insetTop="17%"
+    android:insetBottom="17%" />

@@ -1032,3 +1032,133 @@ export function WalletsShimmer() {
     </View>
   );
 }
+
+// ---------------------------------------------------------------------------
+// ProfileScreenShimmer — matches app/account/profile.tsx layout
+// ---------------------------------------------------------------------------
+
+function ProfilePillShimmer({
+  anim,
+  width = '100%',
+  style,
+}: Readonly<{ anim: Animated.Value; width?: number | string; style?: object }>) {
+  return (
+    <ShimmerBlock
+      anim={anim}
+      width={width}
+      height={48}
+      borderRadius={9999}
+      style={style}
+    />
+  );
+}
+
+function ProfileSectionTitleShimmer({
+  anim,
+  width,
+  style,
+}: Readonly<{ anim: Animated.Value; width: string; style?: object }>) {
+  return (
+    <ShimmerBlock
+      anim={anim}
+      width={width}
+      height={17}
+      borderRadius={5}
+      style={style}
+    />
+  );
+}
+
+function ProfileToggleRowShimmer({ anim }: Readonly<{ anim: Animated.Value }>) {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 6 }}>
+      <ShimmerBlock anim={anim} width={51} height={31} borderRadius={16} />
+      <ShimmerBlock anim={anim} width="62%" height={17} borderRadius={5} />
+    </View>
+  );
+}
+
+export function ProfileScreenShimmer() {
+  const { theme } = useTheme();
+  const colors = getColors(theme);
+  const insets = useSafeAreaInsets();
+  const anim = useShimmerAnim();
+
+  return (
+    <ScrollView
+      style={{ flex: 1, backgroundColor: colors.background.primary }}
+      contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 16) + 90 }}
+      showsVerticalScrollIndicator={false}
+    >
+      <View style={{ paddingHorizontal: 26, paddingTop: Math.max(insets.top, 44) + 12, paddingBottom: 4 }}>
+        <ShimmerBlock anim={anim} width={40} height={40} borderRadius={20} />
+      </View>
+
+      <View style={{ alignItems: 'center', marginTop: 8, paddingTop: 30, paddingBottom: 4 }}>
+        <ShimmerBlock anim={anim} width={160} height={160} borderRadius={80} />
+        <ShimmerBlock
+          anim={anim}
+          width={160}
+          height={35}
+          borderRadius={8}
+          style={{ marginTop: 28, marginBottom: 10 }}
+        />
+      </View>
+
+      <View style={{ paddingHorizontal: 26, paddingTop: 12, gap: 12 }}>
+        <ProfilePillShimmer anim={anim} />
+        <View style={{ flexDirection: 'row', gap: 12 }}>
+          <View style={{ flex: 1 }}>
+            <ProfilePillShimmer anim={anim} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <ProfilePillShimmer anim={anim} />
+          </View>
+        </View>
+        <ProfilePillShimmer anim={anim} />
+        <View style={{ flexDirection: 'row', gap: 12 }}>
+          <ProfilePillShimmer anim={anim} width={118} />
+          <View style={{ flex: 1 }}>
+            <ProfilePillShimmer anim={anim} />
+          </View>
+        </View>
+        <ProfilePillShimmer anim={anim} />
+        <ProfilePillShimmer anim={anim} />
+        <View style={{ flexDirection: 'row', gap: 12, marginTop: 20, marginBottom: 20 }}>
+          <View style={{ flex: 1 }}>
+            <ShimmerBlock anim={anim} width="100%" height={48} borderRadius={9999} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <ShimmerBlock anim={anim} width="100%" height={48} borderRadius={9999} />
+          </View>
+        </View>
+      </View>
+
+      <View style={{ paddingHorizontal: 26, paddingTop: 28, gap: 12 }}>
+        <ProfileSectionTitleShimmer anim={anim} width="38%" />
+        <ShimmerBlock anim={anim} width="92%" height={15} borderRadius={4} style={{ marginBottom: 4 }} />
+        <ShimmerBlock anim={anim} width="78%" height={15} borderRadius={4} style={{ marginBottom: 4 }} />
+        <ProfileToggleRowShimmer anim={anim} />
+        <ProfileToggleRowShimmer anim={anim} />
+      </View>
+
+      <View style={{ paddingHorizontal: 26, paddingTop: 50, gap: 12 }}>
+        <ProfileSectionTitleShimmer anim={anim} width="42%" />
+        <ShimmerBlock anim={anim} width="88%" height={15} borderRadius={4} style={{ marginBottom: 4 }} />
+        <ShimmerBlock anim={anim} width="72%" height={15} borderRadius={4} style={{ marginBottom: 4 }} />
+        <ProfilePillShimmer anim={anim} />
+        <ProfilePillShimmer anim={anim} />
+        <ProfilePillShimmer anim={anim} />
+        <ProfilePillShimmer anim={anim} />
+        <ProfilePillShimmer anim={anim} />
+      </View>
+
+      <View style={{ paddingHorizontal: 26, paddingTop: 50, gap: 12 }}>
+        <ProfileSectionTitleShimmer anim={anim} width="48%" />
+        <ShimmerBlock anim={anim} width="90%" height={15} borderRadius={4} style={{ marginBottom: 4 }} />
+        <ShimmerBlock anim={anim} width="65%" height={15} borderRadius={4} style={{ marginBottom: 4 }} />
+        <ShimmerBlock anim={anim} width="100%" height={48} borderRadius={9999} style={{ marginTop: 4 }} />
+      </View>
+    </ScrollView>
+  );
+}

@@ -12,25 +12,82 @@ import {
   Modal,
   Pressable,
   Platform,
+  type NativeSyntheticEvent,
+  type NativeScrollEvent,
+  type LayoutChangeEvent,
 } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
 import * as ImagePicker from 'expo-image-picker';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ArrowLeft, ChevronDown, Upload, Check } from 'lucide-react-native';
+import { ArrowLeft, ChevronDown, Upload, Check, Eye, EyeOff } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getColors } from '@/constants/theme';
-import { userManagement } from '@/hooks/userManagement';
+import { mobileAppUserManagement } from '@/hooks/mobileApp';
+import type { MobileAppUser } from '@/types/mobileAppApi';
 import { useGlobalAlert } from '@/contexts/AlertContext';
 import { messageFromApiError } from '@/utils/apiErrorMessage';
-import { prepareProfilePicturePayload } from '@/utils/profilePictureUpload';
+import { prepareProfilePicturePayload, type ProfilePicturePayload } from '@/utils/profilePictureUpload';
 import { replaceLoginClearingAuthStack } from '@/utils/authNavigation';
-import { AccountInfoShimmer } from '@/components/Shimmer';
+import { ProfileScreenShimmer } from '@/components/Shimmer';
 
 const ANREDE_OPTIONS = ['Herr', 'Frau', 'Divers', 'Keine Angabe'];
+
+function genderFromApi(gender?: number | string): string {
+  if (gender === 1 || gender === '1') return 'Herr';
+  if (gender === 2 || gender === '2') return 'Frau';
+  if (gender === 3 || gender === '3') return 'Divers';
+  if (gender === 0 || gender === '0') return 'Keine Angabe';
+  return '';
+}
+
+function genderToApi(anrede: string): number | undefined {
+  const map: Record<string, number> = {
+    Herr: 1,
+    Frau: 2,
+    Divers: 3,
+    'Keine Angabe': 0,
+  };
+  return map[anrede];
+}
+
+function applyProfileToState(
+  profile: MobileAppUser,
+  setters: {
+    setDisplayName: (v: string) => void;
+    setFirstName: (v: string) => void;
+    setLastName: (v: string) => void;
+    setEmail: (v: string) => void;
+    setUsername: (v: string) => void;
+    setPhone: (v: string) => void;
+    setStreet: (v: string) => void;
+    setPostal: (v: string) => void;
+    setCity: (v: string) => void;
+    setCountry: (v: string) => void;
+    setWeeklyNewsletter: (v: boolean) => void;
+    setDailyNewsletter: (v: boolean) => void;
+    setProfilePictureUrl: (v: string | null) => void;
+    setAnrede: (v: string) => void;
+  },
+) {
+  setters.setDisplayName(profile.displayName ?? profile.firstName ?? '');
+  setters.setFirstName(profile.firstName ?? '');
+  setters.setLastName(profile.lastName ?? '');
+  setters.setEmail(profile.email ?? '');
+  setters.setUsername(profile.username ?? profile.email ?? '');
+  setters.setPhone(profile.telephone ?? '');
+  setters.setStreet(profile.address ?? '');
+  setters.setPostal(profile.zip ?? '');
+  setters.setCity(profile.city ?? '');
+  setters.setCountry(profile.country ?? '');
+  setters.setWeeklyNewsletter(profile.newsletterWeekly ?? false);
+  setters.setDailyNewsletter(profile.newsletterDaily ?? false);
+  const pic = profile.profileImageUrl ?? profile.image;
+  setters.setProfilePictureUrl(typeof pic === 'string' && pic.trim() ? pic : null);
+  setters.setAnrede(genderFromApi(profile.gender));
+}
 
 const PROFILE_SWITCH = Platform.select({
   ios: {
@@ -50,59 +107,6 @@ const PROFILE_SWITCH = Platform.select({
   },
 })!;
 
-function splitNameOnFirstSpace(fullName: string | undefined | null): { firstName: string; lastName: string } {
-  const trimmed = (fullName ?? '').trim();
-  if (!trimmed) return { firstName: '', lastName: '' };
-  const i = trimmed.indexOf(' ');
-  if (i === -1) return { firstName: trimmed, lastName: '' };
-  return {
-    firstName: trimmed.slice(0, i).trimEnd(),
-    lastName: trimmed.slice(i + 1).trim(),
-  };
-}
-
-function addressFromRaw(raw: unknown): { street: string; postal: string; city: string; country: string } {
-  if (!raw) return { street: '', postal: '', city: '', country: '' };
-  if (typeof raw === 'object') {
-    const r = raw as Record<string, string | undefined>;
-    return {
-      street: r.street ?? '',
-      postal: r.postalCode ?? '',
-      city: r.city ?? '',
-      country: r.country ?? '',
-    };
-  }
-  return { street: String(raw), postal: '', city: '', country: '' };
-}
-
-function ProfilePhotoDecorations({ color }: Readonly<{ color: string }>) {
-  return (
-    <Svg width={220} height={220} style={StyleSheet.absoluteFill} pointerEvents="none">
-      <Path
-        d="M 36 58 Q 10 98 30 148"
-        stroke={color}
-        strokeWidth={2}
-        fill="none"
-        strokeLinecap="round"
-      />
-      <Path
-        d="M 184 58 Q 210 98 190 148"
-        stroke={color}
-        strokeWidth={2}
-        fill="none"
-        strokeLinecap="round"
-      />
-      <Path
-        d="M 72 16 Q 110 2 148 20"
-        stroke={color}
-        strokeWidth={2}
-        fill="none"
-        strokeLinecap="round"
-      />
-    </Svg>
-  );
-}
-
 export default function ProfileScreen() {
   const { t } = useTranslation();
   const { theme } = useTheme();
@@ -110,7 +114,7 @@ export default function ProfileScreen() {
   const isDark = theme === 'dark' || theme === 'darkGreen';
   const insets = useSafeAreaInsets();
   const { showAlert } = useGlobalAlert();
-  const userProfile = useMemo(() => userManagement(), []);
+  const profileApi = useMemo(() => mobileAppUserManagement(), []);
   const initialLoadDone = useRef(false);
 
   const [loading, setLoading] = useState(true);
@@ -130,15 +134,39 @@ export default function ProfileScreen() {
   const [country, setCountry] = useState('');
   const [phone, setPhone] = useState('');
 
-  const [weeklyNewsletter, setWeeklyNewsletter] = useState(true);
-  const [dailyNewsletter, setDailyNewsletter] = useState(true);
+  const [weeklyNewsletter, setWeeklyNewsletter] = useState(false);
+  const [dailyNewsletter, setDailyNewsletter] = useState(false);
 
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const kasvRef = useRef<InstanceType<typeof KeyboardAwareScrollView> | null>(null);
+  const [scrollY, setScrollY] = useState(0);
+  const [viewportHeight, setViewportHeight] = useState(0);
+  const [actionsLayout, setActionsLayout] = useState({ y: 0, height: 0 });
+
+  const showFixedActions =
+    actionsLayout.height === 0 ||
+    (viewportHeight > 0 && scrollY + viewportHeight < actionsLayout.y + actionsLayout.height);
+
+  const handleScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    setScrollY(event.nativeEvent.contentOffset.y);
+  }, []);
+
+  const handleActionsLayout = useCallback((event: LayoutChangeEvent) => {
+    const { y, height } = event.nativeEvent.layout;
+    setActionsLayout({ y, height });
+  }, []);
+
+  const handleViewportLayout = useCallback((event: LayoutChangeEvent) => {
+    setViewportHeight(event.nativeEvent.layout.height);
+  }, []);
 
   const styles = useMemo(
     () =>
@@ -212,7 +240,11 @@ export default function ProfileScreen() {
           paddingTop: 50,
         },
         deleteSection: {
+          paddingTop: 20,
+        },
+        actionsSection: {
           paddingTop: 50,
+          paddingBottom: 4,
         },
         sectionTitle: {
           fontFamily: 'Roboto-Regular',
@@ -252,21 +284,37 @@ export default function ProfileScreen() {
           letterSpacing: 0,
           paddingVertical: 0,
         },
+        eyeButton: {
+          padding: 6,
+          marginLeft: 4,
+        },
         row2: {
           flexDirection: 'row',
           gap: 12,
         },
         plzField: { width: 118 },
+        floatingFooter: {
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          bottom: 0,
+          paddingHorizontal: 26,
+          paddingTop: 12,
+          borderTopWidth: StyleSheet.hairlineWidth,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -4 },
+          shadowOpacity: 0.08,
+          shadowRadius: 8,
+          elevation: 8,
+        },
         actionsRow: {
           flexDirection: 'row',
           gap: 12,
-          marginTop: 20,
-          marginBottom: 20,
         },
         cancelBtn: {
           flex: 1,
           flexBasis: 0,
-          paddingVertical: 14,
+          paddingVertical: 12,
           borderRadius: 9999,
           borderWidth: 1,
           alignItems: 'center',
@@ -274,15 +322,15 @@ export default function ProfileScreen() {
         },
         cancelText: {
           fontFamily: 'Roboto-Light',
-          fontSize: 17,
-          lineHeight: 23,
+          fontSize: 16,
+          lineHeight: 20,
           letterSpacing: 0,
           textAlign: 'center',
         },
         saveBtn: {
           flex: 1,
           flexBasis: 0,
-          paddingVertical: 14,
+          paddingVertical: 12,
           borderRadius: 9999,
           alignItems: 'center',
           justifyContent: 'center',
@@ -296,8 +344,8 @@ export default function ProfileScreen() {
         saveBtnText: {
           color: isDark ? '#0D1117' : '#FFFFFF',
           fontFamily: 'Roboto-Regular',
-          fontSize: 17,
-          lineHeight: 23,
+          fontSize: 16,
+          lineHeight: 20,
           letterSpacing: 0,
           textAlign: 'center',
         },
@@ -382,31 +430,24 @@ export default function ProfileScreen() {
       setLoading(true);
     }
     try {
-      const data = await userProfile.getUser();
-      if (data.success && data.data?.data) {
-        const u = data.data.data.user ?? {};
-        const acc = data.data.data.activeAccount ?? {};
-        const accountName = acc.name;
-        if (typeof accountName === 'string' && accountName.trim()) {
-          const { firstName: fn, lastName: ln } = splitNameOnFirstSpace(accountName);
-          setFirstName(fn);
-          setLastName(ln);
-          setDisplayName(fn || accountName);
-        } else {
-          setFirstName(u.first_name ?? '');
-          setLastName(u.last_name ?? '');
-          setDisplayName(u.first_name ?? u.email ?? '');
-        }
-        setEmail(u.email ?? '');
-        setUsername(typeof u.username === 'string' ? u.username : '');
-        setPhone(u.phone_number ?? acc.phone_number ?? '');
-        const addr = addressFromRaw(u.address ?? acc.address);
-        setStreet(addr.street);
-        setPostal(addr.postal);
-        setCity(addr.city);
-        setCountry(addr.country);
-        const pic = u.profile_picture;
-        setProfilePictureUrl(typeof pic === 'string' && pic.trim() ? pic : null);
+      const data = await profileApi.getProfile();
+      if (data.success && data.data) {
+        applyProfileToState(data.data, {
+          setDisplayName,
+          setFirstName,
+          setLastName,
+          setEmail,
+          setUsername,
+          setPhone,
+          setStreet,
+          setPostal,
+          setCity,
+          setCountry,
+          setWeeklyNewsletter,
+          setDailyNewsletter,
+          setProfilePictureUrl,
+          setAnrede,
+        });
       } else if (data.status === 401) {
         showAlert(t('profile.sessionExpired'), t('profile.loginAgain'));
         replaceLoginClearingAuthStack();
@@ -417,7 +458,7 @@ export default function ProfileScreen() {
       initialLoadDone.current = true;
       setLoading(false);
     }
-  }, [showAlert, t, userProfile]);
+  }, [profileApi, showAlert, t]);
 
   useFocusEffect(
     useCallback(() => {
@@ -433,16 +474,13 @@ export default function ProfileScreen() {
     return false;
   }, [showAlert, t]);
 
-  const uploadPhoto = useCallback(async (image: string, contentType: string) => {
+  const uploadPhoto = useCallback(async (payload: ProfilePicturePayload) => {
     setUploadingPicture(true);
     try {
-      const upload = await userProfile.updateProfilePicture(image, contentType);
-      if (upload.success) {
-        const refreshed = await userProfile.getUser();
-        if (refreshed.success && refreshed.data) {
-          const pic = refreshed.data.data.user.profile_picture;
-          setProfilePictureUrl(typeof pic === 'string' && pic.trim() ? pic : null);
-        }
+      const upload = await profileApi.uploadProfileImage(payload);
+      if (upload.success && upload.data) {
+        const pic = upload.data.profileImageUrl ?? upload.data.image;
+        setProfilePictureUrl(typeof pic === 'string' && pic.trim() ? pic : null);
         showAlert(t('common.success'), t('profile.photoUpdateSuccess'));
       } else if (upload.status === 401) {
         showAlert(t('profile.sessionExpired'), t('profile.loginAgain'));
@@ -453,7 +491,7 @@ export default function ProfileScreen() {
     } finally {
       setUploadingPicture(false);
     }
-  }, [showAlert, t, userProfile]);
+  }, [profileApi, showAlert, t]);
 
   const handleChangeProfilePhoto = useCallback(async () => {
     if (uploadingPicture) return;
@@ -482,7 +520,7 @@ export default function ProfileScreen() {
         showAlert(t('common.failed'), msg);
         return;
       }
-      await uploadPhoto(prepared.payload.image, prepared.payload.contentType);
+      await uploadPhoto(prepared.payload);
     } catch (err: unknown) {
       showAlert(t('common.error'), err instanceof Error ? err.message : t('profile.photoUpdateFailed'));
     }
@@ -492,6 +530,10 @@ export default function ProfileScreen() {
     Keyboard.dismiss();
     const wantsPasswordChange = password.trim() || confirmPassword.trim();
     if (wantsPasswordChange) {
+      if (!currentPassword.trim()) {
+        showAlert(t('common.error'), t('profile.enterCurrentPassword'));
+        return;
+      }
       if (!password.trim()) {
         showAlert(t('common.error'), t('profile.enterNewPassword'));
         return;
@@ -508,25 +550,81 @@ export default function ProfileScreen() {
     }
 
     setSaving(true);
-    userProfile
-      .updateProfile(firstName, lastName, '', wantsPasswordChange ? password : '')
-      .then(data => {
-        setSaving(false);
-        if (data.success) {
-          setPassword('');
-          setConfirmPassword('');
-          setDisplayName(firstName);
-          showAlert(t('common.success'), t('profile.success'));
-        } else if (data.status === 401) {
-          showAlert(t('profile.sessionExpired'), t('profile.loginAgain'));
-          replaceLoginClearingAuthStack();
-        } else {
+    const gender = genderToApi(anrede);
+    const profilePayload = {
+      firstName,
+      lastName,
+      address: street,
+      telephone: phone,
+      email,
+      zip: postal,
+      city,
+      country,
+      username,
+      profileImageUrl: profilePictureUrl,
+      newsletterDaily: dailyNewsletter,
+      newsletterWeekly: weeklyNewsletter,
+      ...(gender !== undefined ? { gender } : {}),
+    };
+
+    void (async () => {
+      try {
+        const profileResult = await profileApi.updateProfile(profilePayload);
+        if (!profileResult.success) {
+          if (profileResult.status === 401) {
+            showAlert(t('profile.sessionExpired'), t('profile.loginAgain'));
+            replaceLoginClearingAuthStack();
+            return;
+          }
           showAlert(
             t('common.failed'),
-            data.error?.error?.message ?? data.error?.message ?? t('common.errorMessage')
+            messageFromApiError(profileResult.error, t('common.errorMessage')),
           );
+          return;
         }
-      });
+
+        if (wantsPasswordChange) {
+          const passwordResult = await profileApi.changePassword({
+            currentPassword: currentPassword.trim(),
+            newPassword: password.trim(),
+          });
+          if (!passwordResult.success) {
+            showAlert(
+              t('common.failed'),
+              messageFromApiError(passwordResult.error, t('profile.validationError')),
+            );
+            return;
+          }
+        }
+
+        if (profileResult.data) {
+          applyProfileToState(profileResult.data, {
+            setDisplayName,
+            setFirstName,
+            setLastName,
+            setEmail,
+            setUsername,
+            setPhone,
+            setStreet,
+            setPostal,
+            setCity,
+            setCountry,
+            setWeeklyNewsletter,
+            setDailyNewsletter,
+            setProfilePictureUrl,
+            setAnrede,
+          });
+        }
+
+        setCurrentPassword('');
+        setPassword('');
+        setConfirmPassword('');
+        setDisplayName(firstName);
+        showAlert(t('common.success'), t('profile.success'));
+      } finally {
+        setSaving(false);
+      }
+    })();
   };
 
   const handleDeleteAccount = () => {
@@ -536,7 +634,19 @@ export default function ProfileScreen() {
       {
         buttonText: t('common.delete'),
         buttonCallback: () => {
-          showAlert(t('common.error'), t('profile.profileScreen.deleteAccountDemo'));
+          void (async () => {
+            const result = await profileApi.deleteAccount();
+            if (result.success) {
+              replaceLoginClearingAuthStack();
+              return;
+            }
+            if (result.status === 401) {
+              showAlert(t('profile.sessionExpired'), t('profile.loginAgain'));
+              replaceLoginClearingAuthStack();
+              return;
+            }
+            showAlert(t('common.error'), messageFromApiError(result.error, t('common.errorMessage')));
+          })();
         },
         secondaryButtonText: t('common.cancel'),
       }
@@ -546,9 +656,43 @@ export default function ProfileScreen() {
   const pillBorder = { borderColor: colors.border.primary, backgroundColor: colors.background.card };
   const fieldColor = { color: colors.text.primary };
   const placeholderColor = colors.text.primary;
+  const bottomBarInset = Math.max(insets.bottom, 16);
+
+  const renderActionButtons = () => (
+    <View style={styles.actionsRow}>
+      <TouchableOpacity
+        style={[styles.cancelBtn, { borderColor: colors.border.primary }]}
+        onPress={() => router.back()}
+        activeOpacity={0.7}
+      >
+        <Text style={[styles.cancelText, { color: colors.text.primary }]}>
+          {t('profile.profileScreen.cancel')}
+        </Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[styles.saveBtn, { backgroundColor: colors.primary, opacity: saving ? 0.6 : 1 }]}
+        onPress={handleSave}
+        activeOpacity={0.85}
+        disabled={saving}
+      >
+        <View style={styles.saveBtnInner}>
+          <Text style={[styles.saveBtnText, saving && styles.saveBtnTextHidden]}>
+            {t('profile.profileScreen.save')}
+          </Text>
+          {saving ? (
+            <ActivityIndicator
+              size="small"
+              color={isDark ? '#0D1117' : '#FFFFFF'}
+              style={styles.saveBtnLoader}
+            />
+          ) : null}
+        </View>
+      </TouchableOpacity>
+    </View>
+  );
 
   if (loading) {
-    return <AccountInfoShimmer />;
+    return <ProfileScreenShimmer />;
   }
 
   return (
@@ -567,7 +711,10 @@ export default function ProfileScreen() {
       <KeyboardAwareScrollView
         ref={kasvRef}
         style={{ flex: 1 }}
-        contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 16) + 90 }}
+        onLayout={handleViewportLayout}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+        contentContainerStyle={{ paddingBottom: bottomBarInset + 16 }}
         showsVerticalScrollIndicator={false}
         enableOnAndroid
         keyboardShouldPersistTaps="handled"
@@ -684,37 +831,6 @@ export default function ProfileScreen() {
             onChangeText={setPhone}
             keyboardType="phone-pad"
           />
-
-          <View style={styles.actionsRow}>
-            <TouchableOpacity
-              style={[styles.cancelBtn, { borderColor: colors.border.primary }]}
-              onPress={() => router.back()}
-              activeOpacity={0.7}
-            >
-              <Text style={[styles.cancelText, { color: colors.text.primary }]}>
-                {t('profile.profileScreen.cancel')}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.saveBtn, { backgroundColor: colors.primary, opacity: saving ? 0.6 : 1 }]}
-              onPress={handleSave}
-              activeOpacity={0.85}
-              disabled={saving}
-            >
-              <View style={styles.saveBtnInner}>
-                <Text style={[styles.saveBtnText, saving && styles.saveBtnTextHidden]}>
-                  {t('profile.profileScreen.save')}
-                </Text>
-                {saving ? (
-                  <ActivityIndicator
-                    size="small"
-                    color={isDark ? '#0D1117' : '#FFFFFF'}
-                    style={styles.saveBtnLoader}
-                  />
-                ) : null}
-              </View>
-            </TouchableOpacity>
-          </View>
         </View>
 
         <View style={styles.section}>
@@ -783,22 +899,82 @@ export default function ProfileScreen() {
             onChangeText={setUsername}
             autoCapitalize="none"
           />
-          <TextInput
-            style={[styles.pillInput, styles.pillField, pillBorder, fieldColor]}
-            placeholder={t('profile.profileScreen.password')}
-            placeholderTextColor={placeholderColor}
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-          />
-          <TextInput
-            style={[styles.pillInput, styles.pillField, pillBorder, fieldColor]}
-            placeholder={t('profile.confirmPassword')}
-            placeholderTextColor={placeholderColor}
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            secureTextEntry
-          />
+          <View style={[styles.pillInput, pillBorder, { backgroundColor: colors.background.card }]}>
+            <TextInput
+              style={[styles.pillField, styles.flex1, fieldColor]}
+              placeholder={t('profile.currentPassword')}
+              placeholderTextColor={placeholderColor}
+              value={currentPassword}
+              onChangeText={setCurrentPassword}
+              secureTextEntry={!showCurrentPassword}
+              autoComplete="password"
+            />
+            <TouchableOpacity
+              style={styles.eyeButton}
+              onPress={() => setShowCurrentPassword((prev) => !prev)}
+              hitSlop={8}
+              activeOpacity={0.7}
+            >
+              {showCurrentPassword ? (
+                <EyeOff size={18} color={colors.text.tertiary} />
+              ) : (
+                <Eye size={18} color={colors.text.tertiary} />
+              )}
+            </TouchableOpacity>
+          </View>
+          <View style={[styles.pillInput, pillBorder, { backgroundColor: colors.background.card }]}>
+            <TextInput
+              style={[styles.pillField, styles.flex1, fieldColor]}
+              placeholder={t('profile.newPassword')}
+              placeholderTextColor={placeholderColor}
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry={!showPassword}
+              autoComplete="password-new"
+            />
+            <TouchableOpacity
+              style={styles.eyeButton}
+              onPress={() => setShowPassword((prev) => !prev)}
+              hitSlop={8}
+              activeOpacity={0.7}
+            >
+              {showPassword ? (
+                <EyeOff size={18} color={colors.text.tertiary} />
+              ) : (
+                <Eye size={18} color={colors.text.tertiary} />
+              )}
+            </TouchableOpacity>
+          </View>
+          <View style={[styles.pillInput, pillBorder, { backgroundColor: colors.background.card }]}>
+            <TextInput
+              style={[styles.pillField, styles.flex1, fieldColor]}
+              placeholder={t('profile.confirmPassword')}
+              placeholderTextColor={placeholderColor}
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              secureTextEntry={!showConfirmPassword}
+              autoComplete="password-new"
+            />
+            <TouchableOpacity
+              style={styles.eyeButton}
+              onPress={() => setShowConfirmPassword((prev) => !prev)}
+              hitSlop={8}
+              activeOpacity={0.7}
+            >
+              {showConfirmPassword ? (
+                <EyeOff size={18} color={colors.text.tertiary} />
+              ) : (
+                <Eye size={18} color={colors.text.tertiary} />
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <View
+          style={[styles.section, styles.actionsSection]}
+          onLayout={handleActionsLayout}
+        >
+          {renderActionButtons()}
         </View>
 
         <View style={[styles.section, styles.deleteSection]}>
@@ -817,6 +993,21 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
       </KeyboardAwareScrollView>
+
+      {showFixedActions ? (
+        <View
+          style={[
+            styles.floatingFooter,
+            {
+              backgroundColor: colors.background.primary,
+              borderTopColor: colors.border.primary,
+              paddingBottom: bottomBarInset,
+            },
+          ]}
+        >
+          {renderActionButtons()}
+        </View>
+      ) : null}
 
       <Modal visible={anredeOpen} transparent animationType="slide" onRequestClose={() => setAnredeOpen(false)}>
         <Pressable style={styles.sheetOverlay} onPress={() => setAnredeOpen(false)}>

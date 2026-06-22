@@ -1,54 +1,20 @@
-import { API_HEADER_CONFIG } from '@/config/apiHeaderConfig';
-import NetworkService from '../services/NetworkService';
+import { mobileAppUserManagement } from '@/hooks/mobileApp';
 
 export const userForgotPassword = () => {
+  const api = mobileAppUserManagement();
 
-  const forgotPassword = async (type:string,email:string,password:string,confirmationCode:string) => {
+  const forgotPassword = async (email: string) => {
     try {
-        let payload = {};
-        if(type === 'FORGOT_PASSWORD'){
-         payload = {
-                type: 'FORGOT_PASSWORD',
-        email: email
-      };
-    } else if(type === 'CONFIRM_FORGOT_PASSWORD'){
-     payload = {
-                type: 'CONFIRM_FORGOT_PASSWORD',
-                password:password,
-  confirmationCode:confirmationCode,
-  email: email
-
-        };
-    }
-
-      const response = await NetworkService.post(
-        '/forgot-password',
-       payload, // params (none in this case)
-        API_HEADER_CONFIG
-      );
-
-      console.log('forgot password response', response);
+      const response = await api.initiatePasswordReset(email);
       if (response.success) {
-        return { success: true, data: response.data };
-      } else {
-        return { success: false, error: response.error };
+        return { success: true, status: response.status, data: response.data };
       }
+      return { success: false, error: response.error, status: response.status };
     } catch (error: unknown) {
-      let errorMessage = 'An unknown error occurred';
-
-      // Narrow down to Error type
-      if (error instanceof Error) {
-        errorMessage = error.message;
-      }
-
-      console.log(
-        'Error',
-        'An error occurred while resetting password. Please try again.'
-      );
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
       return { success: false, error: errorMessage };
     }
   };
-
 
   return {
     forgotPassword,

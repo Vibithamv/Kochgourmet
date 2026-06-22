@@ -1,49 +1,96 @@
-import React from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   View,
   Text,
   FlatList,
   TouchableOpacity,
   StyleSheet,
+  ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
-import { ChevronLeft, Minus } from 'lucide-react-native';
+import { useFocusEffect } from '@react-navigation/native';
+import { ChevronLeft, Minus, Plus } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getColors } from '@/constants/theme';
-import { useFolders, type FolderThumb } from '@/contexts/FoldersContext';
+import { useFolders } from '@/contexts/FoldersContext';
 import { useFavourites } from '@/contexts/FavouritesContext';
-import { getRecipeDetail } from '@/utils/mockRecipeDetails';
+import { mobileAppFavorites } from '@/hooks/mobileApp';
+import { mapFavoriteFolderDetail, mapFolderRecipe } from '@/utils/mobileAppMappers';
 import RecipeCard, { type Recipe } from '@/components/RecipeCard';
-
-const TAB_BAR_HEIGHT = 90;
-
-function folderThumbToRecipe(thumb: FolderThumb, recipes: Recipe[]): Recipe {
-  const detail = getRecipeDetail(thumb.recipeId);
-  const fromList = recipes.find(r => r.id === thumb.recipeId);
-  const durationMinutes = detail.bakeDurationMinutes > 0
-    ? detail.bakeDurationMinutes
-    : detail.prepDurationMinutes;
-
-  return {
-    id: thumb.recipeId,
-    title: detail.title,
-    imageUrl: thumb.uri,
-    durationMinutes,
-    rating: fromList?.rating ?? 5,
-    isFavourite: fromList?.isFavourite ?? true,
-  };
-}
+import AddRecipesToFolderModal from '@/components/AddRecipesToFolderModal';
+import type { Folder } from '@/contexts/FoldersContext';
 
 export default function FolderDetailScreen() {
+  const { t } = useTranslation();
   const { theme } = useTheme();
   const colors = getColors(theme);
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { getFolder, removeRecipeFromFolder } = useFolders();
-  const { recipes, toggleFavourite } = useFavourites();
+  const { removeRecipeFromFolder } = useFolders();
+  const { toggleFavourite } = useFavourites();
+  const favoritesApi = useMemo(() => mobileAppFavorites(), []);
 
-  const folder = getFolder(id);
+  const [folder, setFolder] = useState<Folder | null>(null);
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [addModalOpen, setAddModalOpen] = useState(false);
+
+  const loadFolder = useCallback(async () => {
+    if (!id) {
+      setFolder(null);
+      setRecipes([]);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    const response = await favoritesApi.getFolder(id);
+    if (response.success && response.data) {
+      const mapped = mapFavoriteFolderDetail(response.data);
+      setFolder(mapped);
+      setRecipes((response.data.recipes ?? []).map(mapFolderRecipe));
+    } else {
+      setFolder(null);
+      setRecipes([]);
+    }
+    setLoading(false);
+  }, [favoritesApi, id]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void loadFolder();
+    }, [loadFolder]),
+  );
+
+  const handleRemove = useCallback(
+    async (recipeId: string, thumbUri: string) => {
+      if (!folder) return;
+      const ok = await removeRecipeFromFolder(folder.id, recipeId, thumbUri);
+      if (ok) {
+        setRecipes((prev) => prev.filter((recipe) => recipe.id !== recipeId));
+        setFolder((prev) =>
+          prev
+            ? {
+                ...prev,
+                count: Math.max(0, prev.count - 1),
+                thumbnails: prev.thumbnails.filter((thumb) => thumb.recipeId !== recipeId),
+              }
+            : prev,
+        );
+      }
+    },
+    [folder, removeRecipeFromFolder],
+  );
+
+  if (loading) {
+    return (
+      <View style={[styles.screen, styles.centered, { backgroundColor: colors.background.primary }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
 
   if (!folder) {
     return (
@@ -59,7 +106,7 @@ export default function FolderDetailScreen() {
         </View>
         <View style={styles.empty}>
           <Text style={[styles.emptyText, { color: colors.text.tertiary }]}>
-            Ordner nicht gefunden
+            {t('favoritenScreen.folderNotFound')}
           </Text>
         </View>
       </View>
@@ -80,50 +127,68 @@ export default function FolderDetailScreen() {
         <Text style={[styles.title, { color: colors.text.primary }]}>
           {folder.title}
         </Text>
+        <TouchableOpacity
+          style={[styles.addCircle, { borderColor: colors.border.primary, backgroundColor: colors.background.secondary }]}
+          onPress={() => setAddModalOpen(true)}
+          hitSlop={8}
+          activeOpacity={0.7}
+        >
+          <Plus size={20} color={colors.text.primary} />
+        </TouchableOpacity>
       </View>
 
-      {folder.thumbnails.length === 0 ? (
+      {recipes.length === 0 ? (
         <View style={styles.empty}>
           <Text style={[styles.emptyText, { color: colors.text.tertiary }]}>
-            Noch keine Rezepte in diesem Ordner
+            {t('favoritenScreen.folderEmpty')}
           </Text>
         </View>
       ) : (
         <FlatList
-          data={folder.thumbnails}
-          keyExtractor={(item, i) => `${item.recipeId}-${item.uri}-${i}`}
+          data={recipes}
+          keyExtractor={(item) => item.id}
           numColumns={2}
           columnWrapperStyle={styles.gridRow}
           contentContainerStyle={[
             styles.grid,
-            { paddingBottom: TAB_BAR_HEIGHT + Math.max(insets.bottom, 12) + 16 },
+            { paddingBottom: Math.max(insets.bottom, 12) + 16 },
           ]}
           showsVerticalScrollIndicator={false}
           renderItem={({ item }) => (
             <FolderRecipeCard
-              thumb={item}
-              recipes={recipes}
-              onRemove={() => removeRecipeFromFolder(folder.id, item.recipeId, item.uri)}
+              recipe={item}
+              onRemove={() => {
+                const thumb = folder.thumbnails.find((entry) => entry.recipeId === item.id);
+                void handleRemove(item.id, thumb?.uri ?? item.imageUrl);
+              }}
               onToggleFavourite={toggleFavourite}
             />
           )}
         />
       )}
+
+      <AddRecipesToFolderModal
+        visible={addModalOpen}
+        folderId={folder.id}
+        existingRecipeIds={recipes.map((recipe) => recipe.id)}
+        onClose={() => setAddModalOpen(false)}
+        onAdded={() => {
+          void loadFolder();
+        }}
+      />
     </View>
   );
 }
 
 interface FolderRecipeCardProps {
-  readonly thumb: FolderThumb;
-  readonly recipes: Recipe[];
+  readonly recipe: Recipe;
   readonly onRemove: () => void;
   readonly onToggleFavourite: (id: string) => void;
 }
 
-function FolderRecipeCard({ thumb, recipes, onRemove, onToggleFavourite }: FolderRecipeCardProps) {
+function FolderRecipeCard({ recipe, onRemove, onToggleFavourite }: FolderRecipeCardProps) {
   const { theme } = useTheme();
   const colors = getColors(theme);
-  const recipe = folderThumbToRecipe(thumb, recipes);
 
   return (
     <View style={styles.cardWrapper}>
@@ -150,6 +215,10 @@ function FolderRecipeCard({ thumb, recipes, onRemove, onToggleFavourite }: Folde
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
+  centered: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -165,6 +234,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  addCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   title: {
     fontFamily: 'PlayfairDisplay_700Bold',
     fontSize: 35,
@@ -172,7 +249,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0,
     flex: 1,
   },
-
   grid: { paddingHorizontal: 20, gap: 12 },
   gridRow: { gap: 12 },
   cardWrapper: { flex: 1 },
@@ -194,7 +270,6 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 3,
   },
-
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   emptyText: { fontSize: 15, fontFamily: 'Inter-Regular' },
 });

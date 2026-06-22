@@ -9,10 +9,11 @@ import {
   Keyboard,
   ActivityIndicator,
   Image,
+  Switch,
 } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { replaceLoginClearingAuthStack } from '@/utils/authNavigation';
-import { Eye, EyeOff, X, ChevronRight } from 'lucide-react-native';
+import { Check, Eye, EyeOff, X, ChevronRight } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getColors } from '@/constants/theme';
@@ -46,21 +47,29 @@ function validateEmailFormat(username: string) {
   return regex.test(username);
 }
 
-function buildRegisterFieldErrors(
-  firstName: string,
-  lastName: string,
-  email: string,
-  password: string,
-  confirmPassword: string
-): FieldErrors {
+type RegisterFormValues = {
+  firstName: string;
+  lastName: string;
+  displayName: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+  acceptTerms: boolean;
+  acceptPrivacy: boolean;
+};
+
+function buildRegisterFieldErrors(values: RegisterFormValues): FieldErrors {
   const next: FieldErrors = {};
-  if (!firstName) next.firstName = 'auth.register.enterFirstName';
-  if (!lastName) next.lastName = 'auth.register.enterLastName';
-  if (!email) next.email = 'auth.register.enterEmail';
-  else if (!validateEmailFormat(email)) next.email = 'auth.register.enterValidEmail';
-  if (!password) next.pwField = 'missing_pw';
-  if (!confirmPassword) next.cpwField = 'missing_cpw';
-  else if (password !== confirmPassword) next.cpwField = 'mismatch_cpw';
+  if (!values.firstName) next.firstName = 'auth.register.enterFirstName';
+  if (!values.lastName) next.lastName = 'auth.register.enterLastName';
+  if (!values.displayName.trim()) next.displayName = 'auth.register.enterDisplayName';
+  if (!values.email) next.email = 'auth.register.enterEmail';
+  else if (!validateEmailFormat(values.email)) next.email = 'auth.register.enterValidEmail';
+  if (!values.password) next.pwField = 'missing_pw';
+  if (!values.confirmPassword) next.cpwField = 'missing_cpw';
+  else if (values.password !== values.confirmPassword) next.cpwField = 'mismatch_cpw';
+  if (!values.acceptTerms) next.acceptTerms = 'auth.register.acceptTermsRequired';
+  if (!values.acceptPrivacy) next.acceptPrivacy = 'auth.register.acceptPrivacyRequired';
   return next;
 }
 
@@ -125,6 +134,33 @@ function PasswordToggle({ visible, onToggle }: Readonly<{ visible: boolean; onTo
   );
 }
 
+function RegisterCheckbox({
+  checked,
+  onToggle,
+  colors,
+  isDark,
+}: Readonly<{
+  checked: boolean;
+  onToggle: () => void;
+  colors: ReturnType<typeof getColors>;
+  isDark: boolean;
+}>) {
+  return (
+    <TouchableOpacity
+      onPress={onToggle}
+      hitSlop={8}
+      activeOpacity={0.7}
+      style={[
+        styles.checkbox,
+        { borderColor: colors.border.primary },
+        checked && { backgroundColor: colors.primary, borderColor: colors.primary },
+      ]}
+    >
+      {checked ? <Check size={14} color={isDark ? '#0D1117' : '#FFFFFF'} strokeWidth={3} /> : null}
+    </TouchableOpacity>
+  );
+}
+
 // ── Field row with focus state ───────────────────────────────────────────────
 function InputRow({
   icon,
@@ -156,11 +192,17 @@ export default function RegisterScreen() {
   const { t } = useTranslation();
   const { theme } = useTheme();
   const colors = getColors(theme);
+  const isDark = theme === 'dark' || theme === 'darkGreen';
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [acceptTerms, setAcceptTerms] = useState(false);
+  const [acceptPrivacy, setAcceptPrivacy] = useState(false);
+  const [newsletterDaily, setNewsletterDaily] = useState(false);
+  const [newsletterWeekly, setNewsletterWeekly] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -176,6 +218,7 @@ export default function RegisterScreen() {
   const { showAlert } = useGlobalAlert();
 
   const lastNameRef = useRef<TextInput>(null);
+  const displayNameRef = useRef<TextInput>(null);
   const emailRef = useRef<TextInput>(null);
   const passwordRef = useRef<TextInput>(null);
   const confirmRef = useRef<TextInput>(null);
@@ -187,7 +230,16 @@ export default function RegisterScreen() {
   }, []);
 
   const handleRegister = async () => {
-    const newErrors = buildRegisterFieldErrors(firstName, lastName, email, password, confirmPassword);
+    const newErrors = buildRegisterFieldErrors({
+      firstName,
+      lastName,
+      displayName,
+      email,
+      password,
+      confirmPassword,
+      acceptTerms,
+      acceptPrivacy,
+    });
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;
 
@@ -207,15 +259,27 @@ export default function RegisterScreen() {
 
     setGeneralError('');
     setLoading(true);
-    const registerResult = await userRegisterVal.userRegisterApi(firstName, lastName, password, email);
+    const registerResult = await userRegisterVal.userRegisterApi({
+      email: email.trim(),
+      password,
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      displayName: displayName.trim(),
+      acceptTerms,
+      acceptPrivacy,
+      newsletterDaily,
+      newsletterWeekly,
+    });
     setLoading(false);
     if (registerResult.success) {
+      setPending({ email });
+      showAlert(t('common.success'), t('auth.register.verificationEmailSent'));
       requestAnimationFrame(() => {
-        setPending({ firstName, lastName, email, password });
         router.push('/auth/registerConfirm');
       });
       return;
     }
+    
     alertRegisterFailure(registerResult.error, password, t, showAlert);
   };
 
@@ -311,9 +375,32 @@ export default function RegisterScreen() {
             returnKeyType: 'next',
             onFocus: () => setFocusedField('lastName'),
             onBlur: () => setFocusedField(''),
-            onSubmitEditing: () => emailRef.current?.focus(),
+            onSubmitEditing: () => displayNameRef.current?.focus(),
           })}
           <RegisterFieldError messageKey={errors.lastName} t={t} />
+        </View>
+
+        {/* Display name */}
+        <View style={styles.fieldGroup}>
+          {renderPillInput({
+            ref: displayNameRef as React.Ref<TextInput>,
+            fieldKey: 'displayName',
+            hasError: !!errors.displayName,
+            value: displayName,
+            onChangeText: (text) => {
+              setDisplayName(text.replace(/\s/g, ''));
+              setErrors({ ...errors, displayName: '' });
+            },
+            placeholder: t('auth.register.displayName'),
+            placeholderTextColor: colors.text.primary,
+            autoCapitalize: 'none',
+            autoComplete: 'username',
+            returnKeyType: 'next',
+            onFocus: () => setFocusedField('displayName'),
+            onBlur: () => setFocusedField(''),
+            onSubmitEditing: () => emailRef.current?.focus(),
+          })}
+          <RegisterFieldError messageKey={errors.displayName} t={t} />
         </View>
 
         {/* Email */}
@@ -397,6 +484,95 @@ export default function RegisterScreen() {
             <PasswordToggle visible={showConfirmPassword} onToggle={() => setShowConfirmPassword(!showConfirmPassword)} />
           </View>
           <RegisterPwFieldError code={errors.cpwField} t={t} />
+        </View>
+
+        {/* Newsletter */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>
+            {t('auth.register.newsletterSection')}
+          </Text>
+          <Text style={[styles.sectionDesc, { color: colors.text.secondary }]}>
+            {t('auth.register.newsletterDesc')}
+          </Text>
+          <View style={styles.toggleRow}>
+            <View style={styles.toggleSwitchWrap}>
+              <View style={styles.toggleSwitchScale}>
+                <Switch
+                  value={newsletterWeekly}
+                  onValueChange={setNewsletterWeekly}
+                  trackColor={{ false: colors.border.primary, true: colors.primary }}
+                  ios_backgroundColor={colors.border.primary}
+                  thumbColor="#FFFFFF"
+                />
+              </View>
+            </View>
+            <Text style={[styles.toggleLabel, { color: colors.text.primary }]}>
+              {t('profile.profileScreen.weeklyNewsletter')}
+            </Text>
+          </View>
+          <View style={styles.toggleRow}>
+            <View style={styles.toggleSwitchWrap}>
+              <View style={styles.toggleSwitchScale}>
+                <Switch
+                  value={newsletterDaily}
+                  onValueChange={setNewsletterDaily}
+                  trackColor={{ false: colors.border.primary, true: colors.primary }}
+                  ios_backgroundColor={colors.border.primary}
+                  thumbColor="#FFFFFF"
+                />
+              </View>
+            </View>
+            <Text style={[styles.toggleLabel, { color: colors.text.primary }]}>
+              {t('profile.profileScreen.dailyNewsletter')}
+            </Text>
+          </View>
+        </View>
+
+        {/* Terms & privacy */}
+        <View style={styles.consentSection}>
+          <View style={styles.checkboxRow}>
+            <RegisterCheckbox
+              checked={acceptTerms}
+              onToggle={() => {
+                setAcceptTerms((prev) => !prev);
+                setErrors({ ...errors, acceptTerms: '' });
+              }}
+              colors={colors}
+              isDark={isDark}
+            />
+            <Text style={[styles.checkboxLabel, { color: colors.text.primary }]}>
+              {t('auth.register.acceptTermsPrefix')}{' '}
+              <Text
+                style={[styles.checkboxLink, { color: colors.primary }]}
+                onPress={() => router.push('/account/impressum')}
+              >
+                {t('auth.register.termsLink')}
+              </Text>
+            </Text>
+          </View>
+          <RegisterFieldError messageKey={errors.acceptTerms} t={t} />
+
+          <View style={[styles.checkboxRow, styles.checkboxRowSpaced]}>
+            <RegisterCheckbox
+              checked={acceptPrivacy}
+              onToggle={() => {
+                setAcceptPrivacy((prev) => !prev);
+                setErrors({ ...errors, acceptPrivacy: '' });
+              }}
+              colors={colors}
+              isDark={isDark}
+            />
+            <Text style={[styles.checkboxLabel, { color: colors.text.primary }]}>
+              {t('auth.register.acceptPrivacyPrefix')}{' '}
+              <Text
+                style={[styles.checkboxLink, { color: colors.primary }]}
+                onPress={() => router.push('/account/datenschutz')}
+              >
+                {t('auth.register.privacyLink')}
+              </Text>
+            </Text>
+          </View>
+          <RegisterFieldError messageKey={errors.acceptPrivacy} t={t} />
         </View>
 
         {generalError ? <Text style={styles.generalError}>{t(generalError)}</Text> : null}
@@ -521,6 +697,66 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Regular',
   },
   eyeButton: { padding: 6 },
+
+  section: { marginTop: 8, marginBottom: 6 },
+  sectionTitle: {
+    fontFamily: 'Inter-SemiBold',
+    fontSize: 16,
+    lineHeight: 22,
+    marginBottom: 4,
+  },
+  sectionDesc: {
+    fontFamily: 'Roboto-Light',
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  toggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  toggleSwitchWrap: {
+    width: 52,
+    marginRight: 12,
+  },
+  toggleSwitchScale: {
+    transform: [{ scaleX: 0.85 }, { scaleY: 0.85 }],
+    alignSelf: 'flex-start',
+  },
+  toggleLabel: {
+    flex: 1,
+    fontFamily: 'Roboto-Light',
+    fontSize: 15,
+    lineHeight: 21,
+  },
+  consentSection: { marginTop: 8, marginBottom: 4 },
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  checkboxRowSpaced: { marginTop: 12 },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 1,
+    flexShrink: 0,
+  },
+  checkboxLabel: {
+    flex: 1,
+    fontFamily: 'Roboto-Light',
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  checkboxLink: {
+    fontFamily: 'Inter-Medium',
+    textDecorationLine: 'underline',
+  },
 
   errorText: {
     color: '#EF4444',
