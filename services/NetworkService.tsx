@@ -19,6 +19,12 @@ const ENDPOINTS_WITHOUT_TOKEN_REFRESH = new Set([
   "/oauth2/token",
 ]);
 
+/** Platform validation and OAuth must not send stored user tokens — stale tokens can cause 401. */
+const ENDPOINTS_WITHOUT_AUTH_HEADERS = new Set([
+  "/validate-platform",
+  "/oauth2/token",
+]);
+
 type RequestMeta = Readonly<{
   endpoint: string;
 }>;
@@ -46,6 +52,14 @@ class NetworkService {
     // Request Interceptor - Attach token
     this.api.interceptors.request.use(
       async (config: InternalAxiosRequestConfig): Promise<InternalAxiosRequestConfig> => {
+        const requestPath = config.url ?? "";
+        const skipAuthHeaders = [...ENDPOINTS_WITHOUT_AUTH_HEADERS].some(
+          (endpoint) =>
+            requestPath === endpoint || requestPath.endsWith(endpoint),
+        );
+        if (skipAuthHeaders) {
+          return config;
+        }
         try {
           const token = await AsyncStorage.getItem("IDToken");
           const refreshToken = await AsyncStorage.getItem("RefreshToken");

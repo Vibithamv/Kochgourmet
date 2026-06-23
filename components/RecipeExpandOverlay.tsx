@@ -15,7 +15,7 @@ import Animated, {
   interpolate,
   Extrapolation,
 } from 'react-native-reanimated';
-import { Clock, Star } from 'lucide-react-native';
+import { Clock, Star, Heart } from 'lucide-react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -39,6 +39,7 @@ import {
 
 const HERO_HEIGHT = RECIPE_HERO_IMAGE_HEIGHT;
 const CARD_RADIUS = 12;
+const REZEPE_META_COLOR = '#525252';
 
 const EXPAND_SPRING = {
   damping: 28,
@@ -98,6 +99,9 @@ export default function RecipeExpandOverlay({
     heroAtTop,
     statusBarStripBackground,
   );
+
+  const heartColor = recipe.isFavourite ? colors.primary : REZEPE_META_COLOR;
+  const heartStrokeWidth = recipe.isFavourite ? 1.5 : 0.55;
 
   const handleClose = useCallback(() => {
     if (closing) return;
@@ -162,6 +166,9 @@ export default function RecipeExpandOverlay({
         Extrapolation.CLAMP,
       ),
       borderRadius: interpolate(p, [0, 1], [CARD_RADIUS, 0], Extrapolation.CLAMP),
+      borderWidth: isClosing.value
+        ? interpolate(p, [0, 1], [1, 0], Extrapolation.CLAMP)
+        : interpolate(p, [0, 0.85], [1, 0], Extrapolation.CLAMP),
       overflow: 'hidden',
     };
   }, [
@@ -229,7 +236,15 @@ export default function RecipeExpandOverlay({
           <Pressable style={StyleSheet.absoluteFill} onPress={handleClose} />
         </Animated.View>
 
-        <Animated.View style={[shellStyle, { backgroundColor: colors.background.primary }]}>
+        <Animated.View
+          style={[
+            shellStyle,
+            {
+              backgroundColor: colors.background.primary,
+              borderColor: colors.border.primary,
+            },
+          ]}
+        >
           {shellBottomBleed > 0 ? (
             <View
               pointerEvents="none"
@@ -262,18 +277,22 @@ export default function RecipeExpandOverlay({
                 {recipe.title}
               </Text>
               <View style={styles.previewMeta}>
-                <View style={styles.metaItem}>
-                  <Clock size={13} color={colors.text.tertiary} />
-                  <Text style={[styles.previewMetaText, { color: colors.text.tertiary }]}>
-                    {recipe.durationMinutes} Min
-                  </Text>
+                <View style={styles.previewMetaLeft}>
+                  <View style={styles.previewMetaItem}>
+                    <Clock size={11} color={REZEPE_META_COLOR} />
+                    <Text style={styles.previewMetaText}>{recipe.durationMinutes} Min</Text>
+                  </View>
+                  <View style={styles.previewMetaItem}>
+                    <Star size={11} color={REZEPE_META_COLOR} />
+                    <Text style={styles.previewMetaText}>{recipe.rating}</Text>
+                  </View>
                 </View>
-                <View style={styles.metaItem}>
-                  <Star size={13} color={colors.text.tertiary} />
-                  <Text style={[styles.previewMetaText, { color: colors.text.tertiary }]}>
-                    {recipe.rating}
-                  </Text>
-                </View>
+                <Heart
+                  size={16}
+                  color={heartColor}
+                  fill={recipe.isFavourite ? colors.primary : 'transparent'}
+                  strokeWidth={heartStrokeWidth}
+                />
               </View>
             </Animated.View>
           )}
@@ -354,7 +373,28 @@ const styles = StyleSheet.create({
     lineHeight: 21,
     letterSpacing: 0,
   },
-  previewMeta: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  metaItem: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  previewMetaText: { fontSize: 12, fontFamily: 'Inter-Regular' },
+  previewMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  previewMetaLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+  },
+  previewMetaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  previewMetaText: {
+    fontFamily: 'Roboto-Light',
+    fontSize: 12,
+    lineHeight: 16,
+    letterSpacing: 0,
+    color: REZEPE_META_COLOR,
+    marginTop: 1,
+  },
 });

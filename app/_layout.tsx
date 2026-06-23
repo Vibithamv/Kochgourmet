@@ -213,9 +213,6 @@ async function runAuthRouting(
 ) {
   try {
     const result = await platform.validatePlatform();
-    console.log('result.....',
-      JSON.stringify(result, null, 2)
-    );
     if (!result.success || !result.data) {
       router.replace('/screens/platformError');
       return;
@@ -260,6 +257,15 @@ export default function RootLayout() {
   });
   const [bootstrapComplete, setBootstrapComplete] = useState(false);
   const userAccount = useMemo(() => userManagement(), []);
+
+  // Fast refresh / dev reload remounts RootLayout; reset guards so bootstrap runs again.
+  useEffect(() => {
+    if (!__DEV__) return undefined;
+    return () => {
+      splashInitialNavigationDone = false;
+      splashAuthBootstrapCompleted = false;
+    };
+  }, []);
 
   // After Android BackHandler.exitApp(), the process often resumes with the old stack; open the home tab.
   useEffect(() => {

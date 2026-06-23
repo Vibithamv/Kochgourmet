@@ -1,17 +1,21 @@
 import { mobileAppUserManagement } from '@/hooks/mobileApp';
-import type { RegisterUserPayload } from '@/types/mobileAppApi';
+import type { RegisterUserPayload, MobileAppUser } from '@/types/mobileAppApi';
+
+type RegisterApiResult =
+  | { success: true; data: MobileAppUser | undefined }
+  | { success: false; error: unknown; status?: number };
 
 export const userRegister = () => {
   const api = mobileAppUserManagement();
 
-  const userRegisterApi = async (payload: RegisterUserPayload) => {
+  const userRegisterApi = async (payload: RegisterUserPayload): Promise<RegisterApiResult> => {
     try {
       const response = await api.register(payload);
 
       if (response.success) {
         return { success: true, data: response.data };
       }
-      return { success: false, error: response.error };
+      return { success: false, error: response.error, status: response.status };
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
       return { success: false, error: errorMessage };

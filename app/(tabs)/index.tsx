@@ -29,7 +29,8 @@ import { useRecipeFavorite } from '@/hooks/useRecipeFavorite';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import { userManagement } from '@/hooks/userManagement';
-import { mobileAppRecipes } from '@/hooks/mobileApp';
+import { mobileAppRecipes, mobileAppUserManagement } from '@/hooks/mobileApp';
+import { getMobileAppJwt } from '@/utils/mobileAppAuthUtils';
 import { mapRecipeListItem } from '@/utils/mobileAppMappers';
 import { useGlobalAlert } from '@/contexts/AlertContext';
 import { replaceLoginClearingAuthStack } from '@/utils/authNavigation';
@@ -129,6 +130,7 @@ export default function RezepteScreen() {
   const insets = useSafeAreaInsets();
   const { showAlert } = useGlobalAlert();
   const userAccount = useMemo(() => userManagement(), []);
+  const profileApi = useMemo(() => mobileAppUserManagement(), []);
   const recipesApi = useMemo(() => mobileAppRecipes(), []);
 
   const { setRecipeFavorite, syncRecipesFromList } = useFavourites();
@@ -238,27 +240,57 @@ export default function RezepteScreen() {
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
-      userAccount.getUser().then((res) => {
+
+      const applyProfileLoaded = (name: string, pictureUrl: string | null) => {
+        setUserName(name);
+        setProfilePictureUrl(pictureUrl);
+        if (!bannerShownRef.current) {
+          bannerShownRef.current = true;
+          setTimeout(() => setShowBanner(true), 800);
+        }
+      };
+
+      const loadProfile = async () => {
+        const jwt = await getMobileAppJwt();
+        if (jwt) {
+          const res = await profileApi.getProfile();
+          if (cancelled) return;
+          if (res.success && res.data) {
+            const profile = res.data;
+            const pic = profile.profileImageUrl ?? profile.image;
+            applyProfileLoaded(
+              profile.firstName || profile.displayName || '',
+              typeof pic === 'string' && pic.trim() ? pic : null,
+            );
+          } else if (res.status === 401) {
+            showAlert(t('profile.sessionExpired'), t('profile.loginAgain'));
+            replaceLoginClearingAuthStack();
+          }
+          setProfileLoading(false);
+          return;
+        }
+
+        const res = await userAccount.getUser();
         if (cancelled) return;
         if (res.success && res.data) {
           const u = res.data.data.user;
-          setUserName(u.first_name ?? '');
           const pic = u.profile_picture;
-          setProfilePictureUrl(typeof pic === 'string' && pic.trim() ? pic : null);
-          if (!bannerShownRef.current) {
-            bannerShownRef.current = true;
-            setTimeout(() => setShowBanner(true), 800);
-          }
+          applyProfileLoaded(
+            u.first_name ?? '',
+            typeof pic === 'string' && pic.trim() ? pic : null,
+          );
         } else if (res.status === 401) {
           showAlert(t('profile.sessionExpired'), t('profile.loginAgain'));
           replaceLoginClearingAuthStack();
         }
         setProfileLoading(false);
-      });
+      };
+
+      void loadProfile();
       return () => {
         cancelled = true;
       };
-    }, [showAlert, t, userAccount]),
+    }, [profileApi, showAlert, t, userAccount]),
   );
 
   useEffect(() => {
@@ -477,6 +509,7 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 26,
+    overflow: 'hidden',
   },
   avatarFallback: {
     alignItems: 'center',

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -34,6 +34,7 @@ import {
 } from '@/app/auth/loginPasswordFieldErrors';
 import {
   localizedAuthErrorMessage,
+  localizedLoginErrorMessage,
 } from '@/utils/apiErrorMessage';
 import { promptPushNotificationsAfterLogin } from '@/utils/logFcmToken';
 import NetworkService from '@/services/NetworkService';
@@ -112,8 +113,13 @@ function buildLoginFieldErrors(email: string, password: string): FieldErrors {
   return next;
 }
 
+type LoginApiError = {
+  error?: unknown;
+  status?: number;
+};
+
 export default function LoginScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -129,7 +135,12 @@ export default function LoginScreen() {
   }>();
   const { theme } = useTheme();
   const colors = getColors(theme);
-  const [generalError, setGeneralError] = useState('');
+  const isDark = theme === 'dark' || theme === 'darkGreen';
+  const [loginError, setLoginError] = useState<LoginApiError | null>(null);
+  const generalErrorMessage = useMemo(() => {
+    if (!loginError) return '';
+    return localizedLoginErrorMessage(loginError.error, loginError.status, t);
+  }, [loginError, t, i18n.language]);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [emailFocused, setEmailFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
@@ -274,15 +285,12 @@ export default function LoginScreen() {
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;
 
-    setGeneralError('');
+    setLoginError(null);
     setLoading(true);
     try {
       const response = await signIn(email, password);
       if (!response.success) {
-        showAlert(
-          t('auth.errors.loginFailed'),
-          localizedAuthErrorMessage(response.error, t, 'auth.errors.loginFailed')
-        );
+        setLoginError({ error: response.error, status: response.status });
         setLoading(false);
         return;
       }
@@ -290,8 +298,8 @@ export default function LoginScreen() {
       await navigateAfterLoginSuccess(response.data.data);
       setEmail('');
       setPassword('');
-    } catch (error: any) {
-      showAlert(t('auth.errors.loginFailed'), error.message);
+    } catch {
+      setLoginError({});
       setLoading(false);
     }
   };
@@ -443,6 +451,36 @@ export default function LoginScreen() {
           {t('auth.login.subtitle')}
         </Text>
 
+        {generalErrorMessage ? (
+          <View
+            style={[
+              styles.errorAlert,
+              {
+                backgroundColor: isDark ? 'rgba(220, 38, 38, 0.12)' : '#f2dede',
+                borderColor: isDark ? 'rgba(220, 38, 38, 0.35)' : '#ebccd1',
+              },
+            ]}
+          >
+            <Text
+              style={[
+                styles.errorAlertText,
+                { color: isDark ? colors.error : '#a94442' },
+              ]}
+            >
+              {generalErrorMessage}
+            </Text>
+            <TouchableOpacity
+              onPress={() => setLoginError(null)}
+              hitSlop={8}
+              style={styles.errorAlertDismiss}
+              accessibilityRole="button"
+              accessibilityLabel={t('common.close')}
+            >
+              <X size={16} color={isDark ? colors.text.tertiary : '#999999'} />
+            </TouchableOpacity>
+          </View>
+        ) : null}
+
         {/* Email */}
         <View style={styles.fieldGroup}>
           <TextInput
@@ -459,6 +497,7 @@ export default function LoginScreen() {
             onChangeText={(text) => {
               setEmail(text);
               if (errors.email) setErrors({ ...errors, email: '' });
+              if (loginError) setLoginError(null);
             }}
             placeholder={t('auth.login.email')}
             placeholderTextColor={colors.text.primary}
@@ -493,6 +532,7 @@ export default function LoginScreen() {
               onChangeText={(text) => {
                 setPassword(text);
                 if (errors.pwField) setErrors({ ...errors, pwField: '' });
+                if (loginError) setLoginError(null);
               }}
               placeholder={t('auth.login.password')}
               placeholderTextColor={colors.text.primary}
@@ -519,10 +559,6 @@ export default function LoginScreen() {
             </Text>
           ) : null}
         </View>
-
-        {generalError ? (
-          <Text style={styles.generalError}>{t(generalError)}</Text>
-        ) : null}
 
         {/* Sign in button + forgot link on same row */}
         <View style={styles.actionRow}>
@@ -674,7 +710,7 @@ const styles = StyleSheet.create({
     fontSize: 17,
     lineHeight: 23,
     letterSpacing: 0,
-    marginBottom: 32,
+    marginBottom: 12,
     marginTop: 20,
   },
 
@@ -719,12 +755,27 @@ const styles = StyleSheet.create({
     marginTop: 5,
     marginLeft: 22,
   },
-  generalError: {
-    color: '#EF4444',
-    textAlign: 'center',
-    marginBottom: 12,
-    fontSize: 13,
+  errorAlert: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    borderWidth: 1,
+    borderRadius: 4,
+    paddingVertical: 12,
+    paddingLeft: 14,
+    paddingRight: 10,
+    marginBottom: 16,
+    marginTop: 4,
+  },
+  errorAlertText: {
+    flex: 1,
+    fontSize: 14,
+    lineHeight: 20,
     fontFamily: 'Inter-Regular',
+    paddingRight: 8,
+  },
+  errorAlertDismiss: {
+    paddingTop: 2,
+    paddingLeft: 4,
   },
 
   // Action row (Einloggen + forgot password)
@@ -735,11 +786,12 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   primaryBtn: {
-    paddingVertical: 14,
-    paddingHorizontal: 32,
+    paddingVertical: 12,
+    paddingHorizontal: 25,
     borderRadius: 9999,
     alignItems: 'center',
     justifyContent: 'center',
+    alignSelf: 'flex-start',
   },
   primaryBtnInner: {
     alignItems: 'center',
@@ -799,7 +851,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     overflow: 'visible',
   },
-  signupCardLeft: { flex: 1, gap: 14, maxWidth: '78%', zIndex: 1 },
+  signupCardLeft: { flex: 1, gap: 14, maxWidth: '72%', zIndex: 1 },
   signupTitle: {
     fontFamily: 'PlayfairDisplay_700Bold',
     fontSize: 20,

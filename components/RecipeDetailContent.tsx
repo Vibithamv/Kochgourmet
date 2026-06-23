@@ -332,6 +332,8 @@ export default function RecipeDetailContent({
     return null;
   }
 
+  const heroImageUri = heroImageUriOverride ?? recipe.imageUrl;
+
   return (
     <View style={[styles.fill, { backgroundColor: colors.background.secondary }]}>
       {ownsStatusBar && (
@@ -368,7 +370,7 @@ export default function RecipeDetailContent({
         {/* Hero image — full bleed */}
         {showHeroImage && (
           <View style={[styles.heroWrap, { backgroundColor: colors.background.secondary }]}>
-            <Image source={{ uri: recipe.imageUrl }} style={styles.heroImage} resizeMode="cover" />
+            <Image source={{ uri: heroImageUri }} style={styles.heroImage} resizeMode="cover" />
             <View style={heroSteamOverlayStyle.icon}>
               <HeroSteamIcon />
             </View>

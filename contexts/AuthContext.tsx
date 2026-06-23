@@ -17,7 +17,7 @@ import { resolveMobileAppAuthUser } from '@/utils/mobileAppAuthResponse';
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ success: boolean; data?: any; error?: any }>;
+  signIn: (email: string, password: string) => Promise<{ success: boolean; data?: any; error?: any; status?: number }>;
   /** Exchange Google OAuth authorization code (same redirect_uri as used when starting OAuth). */
   signInWithGoogleCode: (
     code: string,
@@ -114,7 +114,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const response = await authApi.login(email, password);
 
       if (!response.success || !response.data?.token) {
-        return { success: false, error: response.error };
+        return { success: false, error: response.error, status: response.status };
       }
 
       await persistMobileAppAuth({

@@ -17,7 +17,7 @@ function readHydraErrorMessage(record: Record<string, unknown>): string | undefi
   return undefined;
 }
 
-function readHydraErrorCode(record: Record<string, unknown>): number | undefined {
+export function readHydraErrorCode(record: Record<string, unknown>): number | undefined {
   const code = record['hydra:code'];
   if (typeof code === 'number') return code;
   if (typeof code === 'string' && code.trim()) {
@@ -27,7 +27,7 @@ function readHydraErrorCode(record: Record<string, unknown>): number | undefined
   return undefined;
 }
 
-function extractErrorRecord(error: unknown): Record<string, unknown> | undefined {
+export function extractErrorRecord(error: unknown): Record<string, unknown> | undefined {
   if (!error || typeof error !== 'object') return undefined;
 
   const record = error as Record<string, unknown>;
@@ -36,6 +36,31 @@ function extractErrorRecord(error: unknown): Record<string, unknown> | undefined
     return nested as Record<string, unknown>;
   }
   return record;
+}
+
+export type HydraViolation = {
+  propertyPath?: string;
+  message?: string;
+  code?: number | string;
+};
+
+export function extractHydraViolations(error: unknown): HydraViolation[] {
+  const record = extractErrorRecord(error);
+  if (!record || !Array.isArray(record.violations)) return [];
+
+  return record.violations.flatMap((item) => {
+    if (!item || typeof item !== 'object') return [];
+    const violation = item as Record<string, unknown>;
+    return [{
+      propertyPath:
+        typeof violation.propertyPath === 'string' ? violation.propertyPath : undefined,
+      message: typeof violation.message === 'string' ? violation.message : undefined,
+      code:
+        typeof violation.code === 'number' || typeof violation.code === 'string'
+          ? violation.code
+          : undefined,
+    }];
+  });
 }
 
 export function messageFromApiError(error: unknown, fallback: string): string {
@@ -68,6 +93,9 @@ const AUTH_ERROR_CODE_I18N_KEYS: Record<number, string> = {
   1748000002: 'auth.errors.userNotConfirmed',
 };
 
+/** Kochgourmet login: account exists but email not confirmed yet. */
+export const ACCOUNT_NOT_ACTIVATED_HYDRA_CODE = 1748000002;
+
 export function getAuthErrorI18nKey(error: unknown): string | undefined {
   const record = extractErrorRecord(error);
   if (record) {
@@ -92,4 +120,28 @@ export function localizedAuthErrorMessage(
   const raw = messageFromApiError(error, '');
   if (raw) return raw;
   return t(fallbackKey);
+}
+
+/** Login-specific mapping — never surface API hints about which credential failed. */
+export function localizedLoginErrorMessage(
+  error: unknown,
+  status: number | undefined,
+  t: (key: string) => string,
+): string {
+  if (status === 401) {
+    return t('auth.errors.invalidEmailOrPassword');
+  }
+
+  if (status === 403) {
+    const record = extractErrorRecord(error);
+    const code = record ? readHydraErrorCode(record) : undefined;
+    if (code === ACCOUNT_NOT_ACTIVATED_HYDRA_CODE) {
+      return t('auth.errors.userNotConfirmed');
+    }
+  }
+
+  const i18nKey = getAuthErrorI18nKey(error);
+  if (i18nKey) return t(i18nKey);
+
+  return t('auth.errors.loginFailed');
 }

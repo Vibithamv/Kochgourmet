@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
   Modal,
   Pressable,
   Platform,
+  FlatList,
   type NativeSyntheticEvent,
   type NativeScrollEvent,
   type LayoutChangeEvent,
@@ -34,8 +35,19 @@ import { replaceLoginClearingAuthStack } from '@/utils/authNavigation';
 import { ProfileScreenShimmer } from '@/components/Shimmer';
 import { ProfilePhotoTopLeftIcon } from '@/components/ProfilePhotoTopLeftIcon';
 import { ProfilePhotoBottomRightIcon } from '@/components/ProfilePhotoBottomRightIcon';
+import {
+  filterCountries,
+  getCountryNameByAlpha2,
+  resolveCountryAlpha2,
+  type CountryRecord,
+} from '@/utils/countries';
 
 const ANREDE_OPTIONS = ['Herr', 'Frau', 'Divers', 'Keine Angabe'];
+const PHONE_MAX_LENGTH = 10;
+
+function sanitizePhone(value: string): string {
+  return value.replace(/\D/g, '').slice(0, PHONE_MAX_LENGTH);
+}
 
 function genderFromApi(gender?: number | string): string {
   if (gender === 1 || gender === '1') return 'Herr';
@@ -79,11 +91,11 @@ function applyProfileToState(
   setters.setLastName(profile.lastName ?? '');
   setters.setEmail(profile.email ?? '');
   setters.setUsername(profile.username ?? profile.email ?? '');
-  setters.setPhone(profile.telephone ?? '');
+  setters.setPhone(sanitizePhone(profile.telephone ?? ''));
   setters.setStreet(profile.address ?? '');
   setters.setPostal(profile.zip ?? '');
   setters.setCity(profile.city ?? '');
-  setters.setCountry(profile.country ?? '');
+  setters.setCountry(resolveCountryAlpha2(profile.country ?? ''));
   setters.setWeeklyNewsletter(profile.newsletterWeekly ?? false);
   setters.setDailyNewsletter(profile.newsletterDaily ?? false);
   const pic = profile.profileImageUrl ?? profile.image;
@@ -134,6 +146,8 @@ export default function ProfileScreen() {
   const [postal, setPostal] = useState('');
   const [city, setCity] = useState('');
   const [country, setCountry] = useState('');
+  const [countryOpen, setCountryOpen] = useState(false);
+  const [countrySearch, setCountrySearch] = useState('');
   const [phone, setPhone] = useState('');
 
   const [weeklyNewsletter, setWeeklyNewsletter] = useState(false);
@@ -148,7 +162,14 @@ export default function ProfileScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+  const countryDisplayName = useMemo(() => getCountryNameByAlpha2(country), [country]);
+  const filteredCountries = useMemo(
+    () => filterCountries(countrySearch),
+    [countrySearch],
+  );
+
   const kasvRef = useRef<InstanceType<typeof KeyboardAwareScrollView> | null>(null);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [scrollY, setScrollY] = useState(0);
   const [viewportHeight, setViewportHeight] = useState(0);
   const [actionsLayout, setActionsLayout] = useState({ y: 0, height: 0 });
@@ -168,6 +189,26 @@ export default function ProfileScreen() {
 
   const handleViewportLayout = useCallback((event: LayoutChangeEvent) => {
     setViewportHeight(event.nativeEvent.layout.height);
+  }, []);
+
+  const keyboardVerticalOffset = useMemo(
+    () => Math.max(insets.top, 44) + 56,
+    [insets.top],
+  );
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const showSubscription = Keyboard.addListener(showEvent, (event) => {
+      setKeyboardHeight(event.endCoordinates.height);
+    });
+    const hideSubscription = Keyboard.addListener(hideEvent, () => {
+      setKeyboardHeight(0);
+    });
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
+    };
   }, []);
 
   const styles = useMemo(
@@ -441,6 +482,28 @@ export default function ProfileScreen() {
           fontSize: 16,
           lineHeight: 22,
         },
+        countryPickerText: {
+          paddingVertical: 0,
+        },
+        countrySheet: {
+          borderTopLeftRadius: 20,
+          borderTopRightRadius: 20,
+          paddingHorizontal: 26,
+          paddingTop: 12,
+          height: '72%',
+        },
+        countrySearchInput: {
+          borderWidth: 1,
+          borderRadius: 9999,
+          paddingHorizontal: 18,
+          paddingVertical: 12,
+          fontFamily: 'Roboto-Light',
+          fontSize: 16,
+          marginBottom: 8,
+        },
+        countryList: {
+          flex: 1,
+        },
       }),
     [colors.background.overlay, isDark]
   );
@@ -574,6 +637,11 @@ export default function ProfileScreen() {
     const profilePayload = {
       firstName,
       lastName,
+      address: street.trim() || undefined,
+      telephone: phone.trim() || undefined,
+      zip: postal.trim() || undefined,
+      city: city.trim() || undefined,
+      country: country.trim() || undefined,
       profileImageUrl: profilePictureUrl,
       newsletterDaily: dailyNewsletter,
       newsletterWeekly: weeklyNewsletter,
@@ -669,7 +737,18 @@ export default function ProfileScreen() {
   const pillBorder = { borderColor: colors.border.primary, backgroundColor: colors.background.card };
   const fieldColor = { color: colors.text.primary };
   const placeholderColor = colors.text.primary;
+  const disabledFieldStyle = {
+    borderColor: colors.border.primary,
+    backgroundColor: '#F2F2F2',
+  };
+  const disabledFieldColor = { color: colors.text.disabled };
   const bottomBarInset = Math.max(insets.bottom, 16);
+  const floatingFooterHeight = 72;
+  const keyboardOpen = keyboardHeight > 0;
+  const showFloatingActions = showFixedActions && !keyboardOpen;
+  const scrollBottomPadding =
+    bottomBarInset + 16 + (keyboardOpen ? 24 : showFloatingActions ? floatingFooterHeight : 0);
+  const scrollExtraHeight = Math.max(120, keyboardHeight);
 
   const renderActionButtons = () => (
     <View style={styles.actionsRow}>
@@ -727,11 +806,14 @@ export default function ProfileScreen() {
         onLayout={handleViewportLayout}
         onScroll={handleScroll}
         scrollEventThrottle={16}
-        contentContainerStyle={{ paddingBottom: bottomBarInset + 16 }}
+        contentContainerStyle={{ paddingBottom: scrollBottomPadding }}
         showsVerticalScrollIndicator={false}
         enableOnAndroid
+        enableAutomaticScroll
         keyboardShouldPersistTaps="handled"
-        extraScrollHeight={120}
+        keyboardVerticalOffset={keyboardVerticalOffset}
+        extraScrollHeight={scrollExtraHeight}
+        extraHeight={Platform.OS === 'ios' ? 24 : 80}
       >
         <View style={styles.photoBlock}>
           <View style={styles.photoOuter}>
@@ -808,7 +890,7 @@ export default function ProfileScreen() {
             placeholder={t('profile.profileScreen.strasse')}
             placeholderTextColor={placeholderColor}
             value={street}
-            editable={false}
+            onChangeText={setStreet}
           />
 
           <View style={styles.row2}>
@@ -817,31 +899,45 @@ export default function ProfileScreen() {
               placeholder={t('profile.profileScreen.plz')}
               placeholderTextColor={placeholderColor}
               value={postal}
-              editable={false}
+              onChangeText={setPostal}
             />
             <TextInput
               style={[styles.pillInput, styles.pillField, styles.flex1, pillBorder, fieldColor]}
               placeholder={t('profile.profileScreen.ort')}
               placeholderTextColor={placeholderColor}
               value={city}
-              editable={false}
+              onChangeText={setCity}
             />
           </View>
 
-          <TextInput
-            style={[styles.pillInput, styles.pillField, pillBorder, fieldColor]}
-            placeholder={t('profile.profileScreen.land')}
-            placeholderTextColor={placeholderColor}
-            value={country}
-            editable={false}
-          />
+          <TouchableOpacity
+            style={[styles.pillInput, pillBorder]}
+            onPress={() => {
+              setCountrySearch('');
+              setCountryOpen(true);
+            }}
+            activeOpacity={0.7}
+          >
+            <Text
+              style={[
+                styles.pillInputText,
+                styles.countryPickerText,
+                { color: countryDisplayName ? colors.text.primary : placeholderColor },
+              ]}
+            >
+              {countryDisplayName || t('profile.profileScreen.land')}
+            </Text>
+            <ChevronDown size={18} color={colors.text.tertiary} />
+          </TouchableOpacity>
 
           <TextInput
             style={[styles.pillInput, styles.pillField, pillBorder, fieldColor]}
             placeholder={t('profile.profileScreen.telefonnummer')}
             placeholderTextColor={placeholderColor}
             value={phone}
-            editable={false}
+            onChangeText={(text) => setPhone(sanitizePhone(text))}
+            keyboardType="number-pad"
+            maxLength={PHONE_MAX_LENGTH}
           />
         </View>
 
@@ -851,6 +947,8 @@ export default function ProfileScreen() {
           </Text>
           <Text style={[styles.sectionDesc, { color: colors.text.primary }]}>
             {t('profile.profileScreen.newsletterDesc')}
+            {' '}
+            😊
           </Text>
           <View style={styles.toggleRow}>
             <View style={styles.toggleSwitchWrap}>
@@ -895,17 +993,17 @@ export default function ProfileScreen() {
           </Text>
 
           <TextInput
-            style={[styles.pillInput, styles.pillField, pillBorder, fieldColor]}
+            style={[styles.pillInput, styles.pillField, disabledFieldStyle, disabledFieldColor]}
             placeholder={t('profile.profileScreen.email')}
-            placeholderTextColor={placeholderColor}
+            placeholderTextColor={colors.text.disabled}
             value={email}
             editable={false}
             autoCapitalize="none"
           />
           <TextInput
-            style={[styles.pillInput, styles.pillField, pillBorder, fieldColor]}
+            style={[styles.pillInput, styles.pillField, disabledFieldStyle, disabledFieldColor]}
             placeholder={t('profile.profileScreen.username')}
-            placeholderTextColor={placeholderColor}
+            placeholderTextColor={colors.text.disabled}
             value={username}
             editable={false}
             autoCapitalize="none"
@@ -1005,7 +1103,7 @@ export default function ProfileScreen() {
         </View>
       </KeyboardAwareScrollView>
 
-      {showFixedActions ? (
+      {showFloatingActions ? (
         <View
           style={[
             styles.floatingFooter,
@@ -1050,6 +1148,71 @@ export default function ProfileScreen() {
                 {anrede === opt ? <Check size={18} color={colors.primary} /> : null}
               </TouchableOpacity>
             ))}
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      <Modal
+        visible={countryOpen}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setCountryOpen(false)}
+      >
+        <Pressable style={styles.sheetOverlay} onPress={() => setCountryOpen(false)}>
+          <Pressable
+            style={[
+              styles.countrySheet,
+              {
+                backgroundColor: colors.background.card,
+                paddingBottom: Math.max(insets.bottom, 16),
+              },
+            ]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View style={[styles.sheetHandle, { backgroundColor: colors.border.primary }]} />
+            <Text style={[styles.sheetTitle, { color: colors.text.primary }]}>
+              {t('profile.profileScreen.countryChoose')}
+            </Text>
+            <TextInput
+              style={[
+                styles.countrySearchInput,
+                {
+                  backgroundColor: colors.background.secondary,
+                  borderColor: colors.border.primary,
+                  color: colors.text.primary,
+                },
+              ]}
+              placeholder={t('profile.profileScreen.countrySearch')}
+              placeholderTextColor={colors.text.tertiary}
+              value={countrySearch}
+              onChangeText={setCountrySearch}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            <FlatList
+              data={filteredCountries}
+              keyExtractor={(item) => item['alpha-2']}
+              keyboardShouldPersistTaps="handled"
+              style={styles.countryList}
+              renderItem={({ item }: { item: CountryRecord }) => (
+                <TouchableOpacity
+                  style={[styles.sheetRow, { borderBottomColor: colors.border.primary }]}
+                  onPress={() => {
+                    setCountry(item['alpha-2']);
+                    setCountryOpen(false);
+                    setCountrySearch('');
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.sheetRowText, { color: colors.text.primary }]}>
+                    {item.name}
+                  </Text>
+                  {country === item['alpha-2'] ? (
+                    <Check size={18} color={colors.primary} />
+                  ) : null}
+                </TouchableOpacity>
+              )}
+            />
           </Pressable>
         </Pressable>
       </Modal>

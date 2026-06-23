@@ -19,6 +19,13 @@ export const listOfferings = () => {
         }
       );
 
+      console.log('[Offering API] GET /offerings — response', {
+        success: response.success,
+        status: response.status,
+        data: JSON.stringify(response.data, null, 2),
+        error: response.error,
+      });
+
       if (response.success) {
         return { success: true, data: response.data };
       } else {

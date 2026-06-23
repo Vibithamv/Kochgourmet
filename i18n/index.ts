@@ -58,7 +58,6 @@ i18n
   .use(initReactI18next)
   .init({
     resources,
-    lng: 'de',
     fallbackLng: 'de',
     supportedLngs: [...SUPPORTED_LANGUAGES],
     debug: __DEV__,
@@ -75,9 +74,5 @@ i18n
     defaultNS: 'translation',
     ns: ['translation'],
   });
-
-i18n.on('languageChanged', (lng) => {
-  void persistLanguage(lng);
-});
 
 export default i18n;

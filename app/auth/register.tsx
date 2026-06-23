@@ -25,53 +25,14 @@ import {
   registerPasswordFieldErrorI18nKey,
   type RegisterPasswordFieldErrorCode,
 } from '@/app/auth/registerPasswordFieldErrors';
+import { localizedAuthErrorMessage } from '@/utils/apiErrorMessage';
 import {
-  formatPasswordRequirementsAlertMessage,
-  getUnmetPasswordRequirementCodes,
-  isPasswordRequirementsError,
-  isPasswordRequirementsMet,
-} from '@/utils/passwordValidation';
-import {
-  getAuthErrorI18nKey,
-  localizedAuthErrorMessage,
-  messageFromApiError,
-} from '@/utils/apiErrorMessage';
+  buildRegisterFieldErrors,
+  getRegisterApiFieldErrors,
+} from '@/utils/registerValidation';
 import type { TFunction } from 'i18next';
 
 type FieldErrors = { [key: string]: string };
-
-const SIGNUP_PASSWORD_MAX_LENGTH = 20;
-
-function validateEmailFormat(username: string) {
-  const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return regex.test(username);
-}
-
-type RegisterFormValues = {
-  firstName: string;
-  lastName: string;
-  displayName: string;
-  email: string;
-  password: string;
-  confirmPassword: string;
-  acceptTerms: boolean;
-  acceptPrivacy: boolean;
-};
-
-function buildRegisterFieldErrors(values: RegisterFormValues): FieldErrors {
-  const next: FieldErrors = {};
-  if (!values.firstName) next.firstName = 'auth.register.enterFirstName';
-  if (!values.lastName) next.lastName = 'auth.register.enterLastName';
-  if (!values.displayName.trim()) next.displayName = 'auth.register.enterDisplayName';
-  if (!values.email) next.email = 'auth.register.enterEmail';
-  else if (!validateEmailFormat(values.email)) next.email = 'auth.register.enterValidEmail';
-  if (!values.password) next.pwField = 'missing_pw';
-  if (!values.confirmPassword) next.cpwField = 'missing_cpw';
-  else if (values.password !== values.confirmPassword) next.cpwField = 'mismatch_cpw';
-  if (!values.acceptTerms) next.acceptTerms = 'auth.register.acceptTermsRequired';
-  if (!values.acceptPrivacy) next.acceptPrivacy = 'auth.register.acceptPrivacyRequired';
-  return next;
-}
 
 type ShowAlertFn = (
   title: string,
@@ -81,30 +42,9 @@ type ShowAlertFn = (
 
 function alertRegisterFailure(
   error: unknown,
-  password: string,
   t: TFunction,
   showAlert: ShowAlertFn
 ): void {
-  const message = messageFromApiError(error, '');
-
-  if (getAuthErrorI18nKey(error) === 'auth.register.userAlreadyExists') {
-    showAlert(t('common.alert'), t('auth.register.userAlreadyExists'), {
-      buttonText: t('auth.register.signIn'),
-      buttonCallback: () => replaceLoginClearingAuthStack(),
-      secondaryButtonText: t('common.cancel'),
-    });
-    return;
-  }
-  if (isPasswordRequirementsError(message)) {
-    const unmet = getUnmetPasswordRequirementCodes(password);
-    showAlert(
-      t('auth.register.passwordRequirementsTitle'),
-      unmet.length > 0
-        ? formatPasswordRequirementsAlertMessage(unmet, t)
-        : t('profile.validationError')
-    );
-    return;
-  }
   showAlert(
     t('common.alert'),
     localizedAuthErrorMessage(error, t, 'auth.register.registerFailed')
@@ -112,18 +52,16 @@ function alertRegisterFailure(
 }
 
 // ── Field helpers ────────────────────────────────────────────────────────────
-function RegisterFieldError({ messageKey, t }: Readonly<{ messageKey?: string; t: TFunction }>) {
+function RegisterFieldError({
+  messageKey,
+  t,
+  errorColor,
+}: Readonly<{ messageKey?: string; t: TFunction; errorColor: string }>) {
   if (!messageKey) return null;
-  return <Text style={styles.errorText}>{t(messageKey)}</Text>;
-}
-
-function RegisterPwFieldError({ code, t }: Readonly<{ code?: string; t: TFunction }>) {
-  if (!code) return null;
-  return (
-    <Text style={styles.errorText}>
-      {t(registerPasswordFieldErrorI18nKey[code as RegisterPasswordFieldErrorCode])}
-    </Text>
-  );
+  const resolved =
+    registerPasswordFieldErrorI18nKey[messageKey as RegisterPasswordFieldErrorCode] ??
+    messageKey;
+  return <Text style={[styles.errorText, { color: errorColor }]}>{t(resolved)}</Text>;
 }
 
 function PasswordToggle({ visible, onToggle }: Readonly<{ visible: boolean; onToggle: () => void }>) {
@@ -243,17 +181,6 @@ export default function RegisterScreen() {
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;
 
-    if (!isPasswordRequirementsMet(password)) {
-      const unmet = getUnmetPasswordRequirementCodes(password);
-      showAlert(
-        t('auth.register.passwordRequirementsTitle'),
-        formatPasswordRequirementsAlertMessage(unmet, t)
-      );
-      return;
-    }
-
-    // With keyboardShouldPersistTaps="handled", tapping Create Account does not blur the
-    // active field — keystrokes would keep going to the form behind the OTP dialog.
     Keyboard.dismiss();
     setFocusedField('');
 
@@ -279,8 +206,20 @@ export default function RegisterScreen() {
       });
       return;
     }
-    
-    alertRegisterFailure(registerResult.error, password, t, showAlert);
+
+    if (!registerResult.success) {
+      const apiFieldErrors = getRegisterApiFieldErrors(
+        registerResult.error,
+        registerResult.status,
+        password,
+      );
+      if (Object.keys(apiFieldErrors).length > 0) {
+        setErrors(apiFieldErrors);
+        return;
+      }
+
+      alertRegisterFailure(registerResult.error, t, showAlert);
+    }
   };
 
   const onClose = () => {
@@ -358,7 +297,7 @@ export default function RegisterScreen() {
             onBlur: () => setFocusedField(''),
             onSubmitEditing: () => lastNameRef.current?.focus(),
           })}
-          <RegisterFieldError messageKey={errors.firstName} t={t} />
+          <RegisterFieldError messageKey={errors.firstName} t={t} errorColor={colors.error} />
         </View>
 
         {/* Last name */}
@@ -377,7 +316,7 @@ export default function RegisterScreen() {
             onBlur: () => setFocusedField(''),
             onSubmitEditing: () => displayNameRef.current?.focus(),
           })}
-          <RegisterFieldError messageKey={errors.lastName} t={t} />
+          <RegisterFieldError messageKey={errors.lastName} t={t} errorColor={colors.error} />
         </View>
 
         {/* Display name */}
@@ -400,7 +339,7 @@ export default function RegisterScreen() {
             onBlur: () => setFocusedField(''),
             onSubmitEditing: () => emailRef.current?.focus(),
           })}
-          <RegisterFieldError messageKey={errors.displayName} t={t} />
+          <RegisterFieldError messageKey={errors.displayName} t={t} errorColor={colors.error} />
         </View>
 
         {/* Email */}
@@ -421,7 +360,7 @@ export default function RegisterScreen() {
             onBlur: () => setFocusedField(''),
             onSubmitEditing: () => passwordRef.current?.focus(),
           })}
-          <RegisterFieldError messageKey={errors.email} t={t} />
+          <RegisterFieldError messageKey={errors.email} t={t} errorColor={colors.error} />
         </View>
 
         {/* Password */}
@@ -444,7 +383,7 @@ export default function RegisterScreen() {
               placeholderTextColor={colors.text.primary}
               secureTextEntry={!showPassword}
               autoComplete="new-password"
-              maxLength={SIGNUP_PASSWORD_MAX_LENGTH}
+              maxLength={20}
               returnKeyType="next"
               onFocus={() => setFocusedField('password')}
               onBlur={() => setFocusedField('')}
@@ -452,7 +391,7 @@ export default function RegisterScreen() {
             />
             <PasswordToggle visible={showPassword} onToggle={() => setShowPassword(!showPassword)} />
           </View>
-          <RegisterPwFieldError code={errors.pwField} t={t} />
+          <RegisterFieldError messageKey={errors.pwField} t={t} errorColor={colors.error} />
         </View>
 
         {/* Confirm password */}
@@ -475,7 +414,7 @@ export default function RegisterScreen() {
               placeholderTextColor={colors.text.primary}
               secureTextEntry={!showConfirmPassword}
               autoComplete="new-password"
-              maxLength={SIGNUP_PASSWORD_MAX_LENGTH}
+              maxLength={20}
               returnKeyType="done"
               onFocus={() => setFocusedField('confirm')}
               onBlur={() => setFocusedField('')}
@@ -483,7 +422,7 @@ export default function RegisterScreen() {
             />
             <PasswordToggle visible={showConfirmPassword} onToggle={() => setShowConfirmPassword(!showConfirmPassword)} />
           </View>
-          <RegisterPwFieldError code={errors.cpwField} t={t} />
+          <RegisterFieldError messageKey={errors.cpwField} t={t} errorColor={colors.error} />
         </View>
 
         {/* Newsletter */}
@@ -550,7 +489,7 @@ export default function RegisterScreen() {
               </Text>
             </Text>
           </View>
-          <RegisterFieldError messageKey={errors.acceptTerms} t={t} />
+          <RegisterFieldError messageKey={errors.acceptTerms} t={t} errorColor={colors.error} />
 
           <View style={[styles.checkboxRow, styles.checkboxRowSpaced]}>
             <RegisterCheckbox
@@ -572,10 +511,12 @@ export default function RegisterScreen() {
               </Text>
             </Text>
           </View>
-          <RegisterFieldError messageKey={errors.acceptPrivacy} t={t} />
+          <RegisterFieldError messageKey={errors.acceptPrivacy} t={t} errorColor={colors.error} />
         </View>
 
-        {generalError ? <Text style={styles.generalError}>{t(generalError)}</Text> : null}
+        {generalError ? (
+          <Text style={[styles.generalError, { color: colors.error }]}>{t(generalError)}</Text>
+        ) : null}
 
         {/* Register button */}
         <TouchableOpacity
@@ -759,14 +700,12 @@ const styles = StyleSheet.create({
   },
 
   errorText: {
-    color: '#EF4444',
     fontSize: 12,
     fontFamily: 'Inter-Regular',
     marginTop: 5,
     marginLeft: 22,
   },
   generalError: {
-    color: '#EF4444',
     textAlign: 'center',
     marginBottom: 12,
     fontSize: 13,
@@ -802,7 +741,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     overflow: 'visible',
   },
-  signupCardLeft: { flex: 1, gap: 14, maxWidth: '78%', zIndex: 1 },
+  signupCardLeft: { flex: 1, gap: 14, maxWidth: '72%', zIndex: 1 },
   signupTitle: {
     fontFamily: 'PlayfairDisplay_700Bold',
     fontSize: 20,
