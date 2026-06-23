@@ -20,6 +20,7 @@ const TABS = [
 
 const TAB_LABEL_ACTIVE_COLOR = '#EE7051';
 const TAB_LABEL_INACTIVE_COLOR = '#000000';
+const GLASS_BG_OPACITY = 0.8;
 
 const HIDDEN_PATHS = new Set([
   '/auth/login', '/auth/register', '/auth/registerConfirm', '/auth/forgotPassword',
@@ -68,21 +69,37 @@ export default function GlobalFloatingTabBar({
 
   const blurTint = isDark ? 'dark' : 'light';
   const glassOverlay = isDark
-    ? 'rgba(34, 30, 28, 0.42)'
-    : '#FFF6EACC';
+    ? theme === 'darkGreen'
+      ? `rgba(21, 37, 28, ${GLASS_BG_OPACITY})`
+      : `rgba(34, 30, 28, ${GLASS_BG_OPACITY})`
+    : `rgba(255, 246, 234, ${GLASS_BG_OPACITY})`;
   const glassBorder = isDark
-    ? 'rgba(255, 255, 255, 0.1)'
-    : 'rgba(255, 255, 255, 0.72)';
+    ? 'rgba(255, 255, 255, 0.14)'
+    : 'rgba(255, 255, 255, 0.65)';
 
   return (
     <View style={[styles.wrapper, { bottom }]} pointerEvents="box-none">
       <View style={[styles.bar, shadows.card, { borderColor: glassBorder }]}>
         <BlurView
-          intensity={Platform.OS === 'ios' ? 68 : 85}
+          intensity={Platform.OS === 'ios' ? 72 : 90}
           tint={blurTint}
           style={StyleSheet.absoluteFill}
         />
-        <View style={[StyleSheet.absoluteFill, { backgroundColor: glassOverlay }]} />
+        <View
+          pointerEvents="none"
+          style={[StyleSheet.absoluteFill, { backgroundColor: glassOverlay }]}
+        />
+        <View
+          pointerEvents="none"
+          style={[
+            StyleSheet.absoluteFill,
+            {
+              borderRadius: 32,
+              borderWidth: StyleSheet.hairlineWidth,
+              borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.35)',
+            },
+          ]}
+        />
         <View style={styles.barInner}>
           {TABS.map(tab => {
             const isFocused = activeTab.route === tab.route;
@@ -134,7 +151,7 @@ const styles = StyleSheet.create({
   bar: {
     borderRadius: 32,
     overflow: 'hidden',
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 1,
   },
   barInner: {
     flexDirection: 'row',

@@ -6,29 +6,46 @@ import {
 import { KOCHGOURMET_OPERATIONS } from '@/config/kochgourmetApi';
 import type { KochgourmetRefreshResponse } from '@/types/kochgourmetApi';
 import { redactBody } from '@/utils/apiLogger';
+import { extractErrorRecord, readHydraErrorCode } from '@/utils/apiErrorMessage';
 import { getMobileAppRefreshToken, persistMobileAppAuth } from '@/utils/mobileAppAuthUtils';
 
 export const KOCHGOURMET_TOKEN_EXPIRED_CODE = 'kochgourmet_access_token_expired';
+export const KOCHGOURMET_TOKEN_EXPIRED_HYDRA_CODE = 1748000020;
 
 let refreshInFlight: Promise<boolean> | null = null;
 
-function extractErrorPayload(data: unknown): Record<string, unknown> | null {
-  if (!data || typeof data !== 'object') return null;
+function collectErrorRecords(data: unknown): Record<string, unknown>[] {
+  const records: Record<string, unknown>[] = [];
+  const seen = new Set<Record<string, unknown>>();
 
-  const obj = data as Record<string, unknown>;
-  if (typeof obj.code === 'string') return obj;
+  const push = (value: unknown) => {
+    const record = extractErrorRecord(value);
+    if (!record || seen.has(record)) return;
+    seen.add(record);
+    records.push(record);
+  };
 
-  if (obj.error && typeof obj.error === 'object') {
-    const nested = obj.error as Record<string, unknown>;
-    if (typeof nested.code === 'string') return nested;
+  push(data);
+
+  if (data && typeof data === 'object') {
+    const obj = data as Record<string, unknown>;
+    push(obj.data);
+    push(obj.error);
   }
 
-  return null;
+  return records;
+}
+
+function hasExpiredAccessTokenCode(record: Record<string, unknown>): boolean {
+  if (readHydraErrorCode(record) === KOCHGOURMET_TOKEN_EXPIRED_HYDRA_CODE) {
+    return true;
+  }
+
+  return record.code === KOCHGOURMET_TOKEN_EXPIRED_CODE;
 }
 
 export function isKochgourmetTokenExpiredError(data: unknown): boolean {
-  const payload = extractErrorPayload(data);
-  return payload?.code === KOCHGOURMET_TOKEN_EXPIRED_CODE;
+  return collectErrorRecords(data).some(hasExpiredAccessTokenCode);
 }
 
 export async function refreshKochgourmetAccessToken(): Promise<boolean> {

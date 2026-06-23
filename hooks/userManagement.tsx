@@ -157,10 +157,84 @@ export const userManagement = () => {
     }
   };
 
+  const updateBankDetails = async (payload: {
+    account_holder_name: string;
+    bank_name: string;
+    iban: string;
+    bic: string;
+    is_bank_payout: boolean;
+  }) => {
+    try {
+      const trimmedHolder = payload.account_holder_name.trim();
+      const trimmedBank = payload.bank_name.trim();
+      const trimmedIban = payload.iban.trim();
+      const trimmedBic = payload.bic.trim();
+
+      const response = await NetworkService.patch(
+        '/profile',
+        {
+          type: 'BANK_ACCOUNT',
+          account_holder_name: trimmedHolder,
+          bank_name: trimmedBank,
+          iban: trimmedIban,
+          ibc: trimmedBic,
+          is_bank_payout: payload.is_bank_payout,
+          accountHolderName: trimmedHolder,
+          bankName: trimmedBank,
+          bic: trimmedBic,
+        },
+        {
+          ...API_HEADER_CONFIG,
+          Authorization: `Bearer ${await AsyncStorage.getItem('IDToken')}`,
+          'x-refresh-token': `${await AsyncStorage.getItem('RefreshToken')}`,
+        },
+      );
+
+      if (response.success) {
+        return { success: true as const, data: response.data, status: response.status };
+      }
+      return { success: false as const, error: response.error, status: response.status };
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+      return { success: false as const, error: errorMessage };
+    }
+  };
+
+  const updateSecuritiesAccount = async (payload: {
+    securities_account_number: string;
+    securities_bic_swift_code: string;
+  }) => {
+    try {
+      const response = await NetworkService.patch(
+        '/profile',
+        {
+          type: 'SECURITY_ACCOUNT',
+          securities_account_number: payload.securities_account_number,
+          securities_bic_swift_code: payload.securities_bic_swift_code,
+        },
+        {
+          ...API_HEADER_CONFIG,
+          Authorization: `Bearer ${await AsyncStorage.getItem('IDToken')}`,
+          'x-refresh-token': `${await AsyncStorage.getItem('RefreshToken')}`,
+        },
+      );
+
+      if (response.success) {
+        return { success: true as const, data: response.data, status: response.status };
+      }
+      return { success: false as const, error: response.error, status: response.status };
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+      return { success: false as const, error: errorMessage };
+    }
+  };
+
   return {
     getUser,
     updateProfile,
     updateProfilePicture,
-    switchAccount
+    switchAccount,
+    updateSecuritiesAccount,
+    updateBankDetails,
   };
 };

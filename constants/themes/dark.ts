@@ -24,6 +24,7 @@ export const DarkTheme = {
     tertiary: '#2A2420',
     card: '#221E1C',
     overlay: 'rgba(0, 0, 0, 0.78)',
+    overlaySecondary: 'rgba(255, 246, 234, 0.78)',
   },
 
   text: {

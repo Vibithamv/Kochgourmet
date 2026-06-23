@@ -21,9 +21,9 @@ import LanguageSelector from '@/components/LanguageSelector';
 import { useGlobalAlert } from '@/contexts/AlertContext';
 import {
   loadStoredPlatformSignInOptions,
-  persistPlatformSignInOptionsFromValidateResponse,
   type PlatformSignInOptions,
 } from '@/constants/platformSignInOptions';
+import { persistPlatformValidateResponse } from '@/utils/persistPlatformValidateResponse';
 import { platformValidation } from '@/hooks/platformValidation';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
@@ -176,7 +176,7 @@ export default function LoginScreen() {
       void (async () => {
         const result = await platform.validatePlatform();
         if (result.success && result.data) {
-          await persistPlatformSignInOptionsFromValidateResponse(result.data);
+          await persistPlatformValidateResponse(result.data);
           const opts = result.data.data?.data?.sign_in_options;
           applySignInOptions(opts);
           return;
@@ -245,14 +245,7 @@ export default function LoginScreen() {
         }
         await promptPushNotificationsAfterLogin({ showAlert, t });
         const result = await userAccount.getUser();
-        console.log('result...user...',
-          JSON.stringify(result.data.data, null, 2)
-        );
-        // await userAccount.getUser().then((data) => {
-        //   console.log('data.....',
-        //     JSON.stringify(data.data.data, null, 2)
-        //   );
-        // });
+        console.log('[Auth] post-login kyc_status (oauth):', result.data?.data?.activeAccount?.kyc_status);
         await navigateAfterLoginSuccess(
           result.data.data as LoginSuccessPayload,
         );
@@ -295,7 +288,14 @@ export default function LoginScreen() {
         return;
       }
       await promptPushNotificationsAfterLogin({ showAlert, t });
-      await navigateAfterLoginSuccess(response.data.data);
+      const userResult = await userAccount.getUser();
+      if (userResult.success && userResult.data?.data) {
+        console.log('[Auth] post-login kyc_status (password):', userResult.data.data.activeAccount?.kyc_status);
+        await navigateAfterLoginSuccess(userResult.data.data as LoginSuccessPayload);
+      } else {
+        console.log('[Auth] post-login kyc_status (password, fallback):', response.data.data.activeAccount?.kyc_status);
+        await navigateAfterLoginSuccess(response.data.data);
+      }
       setEmail('');
       setPassword('');
     } catch {

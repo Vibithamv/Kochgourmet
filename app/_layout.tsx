@@ -37,8 +37,12 @@ import { FcmNotificationBridge } from '@/components/FcmNotificationBridge';
 import CustomSplash from '@/components/CustomSplash';
 import GlobalFloatingTabBar from '@/components/GlobalFloatingTabBar';
 import { ThemedStatusBar } from '@/components/ThemedStatusBar';
-import { persistPlatformSignInOptionsFromValidateResponse } from '@/constants/platformSignInOptions';
+import { persistPlatformValidateResponse } from '@/utils/persistPlatformValidateResponse';
 import { getMobileAppJwt } from '@/utils/mobileAppAuthUtils';
+import {
+  routeAuthenticatedUser,
+  type LoginSuccessPayload,
+} from '@/app/auth/authNavigation';
 
 void SplashScreen.preventAutoHideAsync();
 
@@ -92,43 +96,10 @@ console.warn = (...args) => {
 
 type UserAccountClient = ReturnType<typeof userManagement>;
 
-async function persistOfferingAndTenantFromPlatform(data: {
-  data: { data: { selected_offerings: { id: string }[]; tenant_id: string } };
+async function navigateFromUserPayload(payload: {
+  data: { data: LoginSuccessPayload };
 }) {
-  await AsyncStorage.setItem(
-    'offeringID',
-    data.data.data.selected_offerings[0].id
-  );
-  await AsyncStorage.setItem('tenantID', data.data.data.tenant_id);
-}
-
-async function navigateFromUserPayload(
-  payload: {
-    data: {
-      data: {
-        activeAccount: { kyc_status: string };
-        user: { first_name: string; last_name: string; id: string };
-      };
-    };
-  },
-  router: Router,
-) {
-  const kyc = payload.data.data.activeAccount.kyc_status;
-  if (kyc === 'CONFIRMED') {
-    router.replace('/(tabs)');
-    return;
-  }
-  if (kyc === 'REQUIRED') {
-    router.replace({
-      pathname: '/auth/kycRequest',
-      params: {
-        name: `${payload.data.data.user.first_name || ''} ${payload.data.data.user.last_name || ''}`,
-        id: payload.data.data.user.id,
-      },
-    });
-    return;
-  }
-  router.replace('/screens/kycWaiting');
+  await routeAuthenticatedUser(payload.data.data);
 }
 
 async function runSplashAuthenticatedRouting(
@@ -139,17 +110,11 @@ async function runSplashAuthenticatedRouting(
     (await AsyncStorage.getItem(ASYNC_STORAGE_EXIT_RESET_TO_HOME)) === '1';
 
   const kochgourmetJwt = await getMobileAppJwt();
-  if (kochgourmetJwt) {
-    if (resetToHomeAfterExit) {
-      await AsyncStorage.removeItem(ASYNC_STORAGE_EXIT_RESET_TO_HOME);
-    }
-    router.replace('/(tabs)');
-    return;
-  }
+  const hasSession = Boolean(kochgourmetJwt) ||
+    (await AsyncStorage.getItem('AccessToken')) ||
+    (await AsyncStorage.getItem('RefreshToken'));
 
-  const accessToken = await AsyncStorage.getItem('AccessToken');
-  const refreshToken = await AsyncStorage.getItem('RefreshToken');
-  if (!accessToken && !refreshToken) {
+  if (!hasSession) {
     if (resetToHomeAfterExit) {
       await AsyncStorage.removeItem(ASYNC_STORAGE_EXIT_RESET_TO_HOME);
     }
@@ -180,15 +145,7 @@ async function runSplashAuthenticatedRouting(
         return;
       }
       await navigateFromUserPayload(
-        data as {
-          data: {
-            data: {
-              activeAccount: { kyc_status: string };
-              user: { first_name: string; last_name: string; id: string };
-            };
-          };
-        },
-        router,
+        data as { data: { data: LoginSuccessPayload } },
       );
     } else {
       if (resetToHomeAfterExit) {
@@ -217,8 +174,7 @@ async function runAuthRouting(
       router.replace('/screens/platformError');
       return;
     }
-    await persistOfferingAndTenantFromPlatform(result.data);
-    await persistPlatformSignInOptionsFromValidateResponse(result.data);
+    await persistPlatformValidateResponse(result.data);
     if (!(fontsLoaded || fontError)) return;
     try {
       await runSplashAuthenticatedRouting(router, userAccount);

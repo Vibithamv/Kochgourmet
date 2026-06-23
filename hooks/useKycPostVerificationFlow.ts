@@ -3,6 +3,10 @@ import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
 import { userManagement } from '@/hooks/userManagement';
+import {
+  routeAuthenticatedUser,
+  type LoginSuccessPayload,
+} from '@/app/auth/authNavigation';
 import { useGlobalAlert } from '@/contexts/AlertContext';
 
 /** KYC confirmed — continue into the app. */
@@ -41,22 +45,18 @@ export function useKycPostVerificationFlow() {
         return;
       }
 
-      const { kyc_status: kycStatus, id: activeAccountId } =
-        data.data.data.activeAccount;
-      if (kycStatus === 'CONFIRMED') {
-        await navigateAfterConfirmedKyc(activeAccountId);
-        return;
-      }
-      if (kycStatus === 'PENDING') {
-        router.replace('/screens/kycWaiting');
-        return;
-      }
+      const userPayload = data.data.data as LoginSuccessPayload;
       if (options?.alertWhenIncomplete) {
-        showAlert(
-          t('kycRequest.completeKycToContinueTitle'),
-          t('kycRequest.completeKycToContinueMessage')
-        );
+        const kycStatus = userPayload.activeAccount.kyc_status.toUpperCase();
+        if (kycStatus !== 'CONFIRMED' && kycStatus !== 'PENDING') {
+          showAlert(
+            t('kycRequest.completeKycToContinueTitle'),
+            t('kycRequest.completeKycToContinueMessage'),
+          );
+          return;
+        }
       }
+      await routeAuthenticatedUser(userPayload);
     },
     [userAccount, showAlert, t],
   );

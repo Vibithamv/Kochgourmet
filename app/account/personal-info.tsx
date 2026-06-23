@@ -364,7 +364,7 @@ export default function PersonalInfoScreen() {
             </Text>
             <TouchableOpacity
               style={[styles.kycButton, { backgroundColor: colors.primary }]}
-              onPress={() => router.push('/auth/kycRequest')}
+              onPress={() => router.push('/auth/kycRequest?from=menu')}
               activeOpacity={0.8}
             >
               <Shield size={18} color="#fff" />

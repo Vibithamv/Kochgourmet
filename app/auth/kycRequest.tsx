@@ -5,17 +5,16 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
+  Image,
   ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
-import { CheckCircle, LogOut } from 'lucide-react-native';
+import { ArrowLeft } from 'lucide-react-native';
 import {
   getColors,
-  getTypography,
-  Typography,
+  getShadows,
   Spacing,
-  Colors,
 } from '@/constants/theme';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useTranslation } from 'react-i18next';
@@ -31,60 +30,52 @@ export default function VerifyIdentityScreen() {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const colors = getColors(theme);
-  const typography = getTypography(theme);
+  const shadows = getShadows(theme);
   const isDark = theme === 'dark' || theme === 'darkGreen';
   const primaryButtonTextColor = isDark ? '#0D1117' : '#FFFFFF';
-  const { name, id } = useLocalSearchParams();
+  const { id, from } = useLocalSearchParams();
+  const showBackButton = from === 'menu';
   const request = kycRequest();
   const { showAlert } = useGlobalAlert();
   const { signOut } = useAuth();
-  const [loading, setLoading] = React.useState(false);
+  const [submitting, setSubmitting] = React.useState(false);
   const [kycStatus, setKycStatus] = React.useState<string | null>(null);
-  // `fetchActiveAccountKycStatus` reads the status without redirecting,
-  // so users entering from the Menü don't get bounced when already verified.
   const { fetchActiveAccountKycStatus } = useKycPostVerificationFlow();
 
   const loadData = async () => {
-    setLoading(true);
     try {
       const status = await fetchActiveAccountKycStatus();
       setKycStatus(status);
     } catch (error) {
       console.error('Error loading KYC status:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadData();
+    void loadData();
   }, []);
 
   useFocusEffect(
     React.useCallback(() => {
       void loadData();
-    }, [])
+    }, []),
   );
 
   const handleCompleteKYC = async () => {
-    setLoading(true);
+    setSubmitting(true);
     const result = await request.request(Array.isArray(id) ? id[0] : id, 'INDIVIDUAL');
-    setLoading(false);
+    setSubmitting(false);
     if (result.success) {
-      console.log('Kyc Request Result:', result.data);
       if (result.data.data.verification_url !== '') {
         router.push({
           pathname: '/screens/KYCWebView',
           params: { url: result.data.data.verification_url },
         });
       }
-
-      //   router.replace("/screens/kycWaiting")
     } else {
-      //  router.replace("/screens/kycWaiting")
       showAlert(
         t('kycRequest.requestFailedTitle'),
-        result.error.message || t('common.tryAgain')
+        result.error.message || t('common.tryAgain'),
       );
     }
   };
@@ -94,100 +85,139 @@ export default function VerifyIdentityScreen() {
     replaceLoginClearingAuthStack();
   };
 
-  // Derive content from kycStatus so the JSX has no nested ternaries.
+  const handleCancel = () => {
+    if (showBackButton) {
+      router.back();
+      return;
+    }
+    showAlert(t('common.logout'), t('common.logoutMsg'), {
+      buttonText: t('common.logout'),
+      buttonCallback: () => {
+        void handleLogout();
+      },
+      secondaryButtonText: t('common.cancel'),
+    });
+  };
+
   const isKycSettled = kycStatus === 'CONFIRMED' || kycStatus === 'PENDING';
   let titleText: string;
   let subtitleText: string;
-  let buttonLabel: string;
+  let primaryLabel: string;
   if (kycStatus === 'CONFIRMED') {
-    titleText = 'KYC abgeschlossen';
-    subtitleText = 'Deine Identität wurde erfolgreich verifiziert.';
-    buttonLabel = 'Zurück';
+    titleText = t('kycRequest.confirmedTitle');
+    subtitleText = t('kycRequest.confirmedSubtitle');
+    primaryLabel = t('kycRequest.backButton');
   } else if (kycStatus === 'PENDING') {
-    titleText = 'KYC wird überprüft';
-    subtitleText = 'Wir prüfen deine Angaben. Das dauert in der Regel 24–48 Stunden.';
-    buttonLabel = 'Zurück';
+    titleText = t('kycRequest.pendingTitle');
+    subtitleText = t('kycRequest.pendingSubtitle');
+    primaryLabel = t('kycRequest.backButton');
   } else {
     titleText = t('kycRequest.title');
     subtitleText = t('kycRequest.subtitle');
-    buttonLabel = t('kycRequest.completeButton');
+    primaryLabel = t('kycRequest.completeButton');
   }
 
+  const screenBackground = isDark ? colors.background.primary : colors.background.secondary;
+
   return (
-    <View style={[styles.screen, { backgroundColor: colors.background.primary }]}>
-      <TouchableOpacity
-        style={[
-          styles.logoutBtn,
-          { top: insets.top + 10, backgroundColor: colors.background.secondary },
-        ]}
-        onPress={() =>
-          showAlert(t('common.logout'), t('common.logoutMsg'), {
-            buttonText: t('common.logout'),
-            buttonCallback: () => {
-              void handleLogout();
-            },
-            secondaryButtonText: t('common.cancel'),
-          })
-        }
-      >
-        <LogOut size={22} color={colors.text.primary} />
-      </TouchableOpacity>
+    <View style={[styles.screen, { backgroundColor: screenBackground }]}>
+      {showBackButton ? (
+        <TouchableOpacity
+          style={[
+            styles.headerBtn,
+            { top: insets.top + 10, backgroundColor: colors.background.card },
+          ]}
+          onPress={() => router.back()}
+          hitSlop={8}
+          activeOpacity={0.7}
+        >
+          <ArrowLeft size={22} color={colors.text.primary} />
+        </TouchableOpacity>
+      ) : null}
+
       <ScrollView
         contentContainerStyle={[
           styles.container,
-          { paddingBottom: Math.max(insets.bottom, 30) },
+          {
+            paddingTop: Math.max(insets.top, 44) + Spacing['2xl'],
+            paddingBottom: Math.max(insets.bottom, 30),
+          },
         ]}
         showsVerticalScrollIndicator={false}
       >
-        <View style={[styles.iconContainer, { backgroundColor: colors.interactive.hover }]}>
-          <CheckCircle size={56} color={colors.success} />
-        </View>
+        <Image
+          source={require('../../assets/images/kyc-identity-illustration.png')}
+          style={styles.illustration}
+          resizeMode="contain"
+        />
 
-        <Text style={[styles.welcomeText, { color: colors.text.primary, fontFamily: typography.fontFamily.medium }]}>
-          {name}
-        </Text>
-
-        <Text style={[styles.title, { color: colors.text.primary, fontFamily: typography.fontFamily.display }]}>
+        <Text style={[styles.title, { color: colors.text.primary }]}>
           {titleText}
         </Text>
 
-        <Text style={[styles.subtitle, { color: colors.text.secondary, fontFamily: typography.fontFamily.regular }]}>
+        <Text style={[styles.subtitle, { color: colors.text.secondary }]}>
           {subtitleText}
         </Text>
 
-        <TouchableOpacity
-          style={[
-            styles.primaryBtn,
-            { backgroundColor: colors.primary, opacity: loading ? 0.6 : 1 },
-          ]}
-          disabled={loading}
-          onPress={isKycSettled ? () => router.back() : handleCompleteKYC}
-        >
-          {loading ? (
-            <ActivityIndicator size="small" color={primaryButtonTextColor} />
-          ) : (
-            <Text
+        {isKycSettled ? (
+          <TouchableOpacity
+            style={[
+              styles.primaryBtn,
+              styles.singleBtn,
+              { backgroundColor: colors.primary, opacity: submitting ? 0.6 : 1 },
+            ]}
+            disabled={submitting}
+            onPress={() => router.back()}
+            activeOpacity={0.85}
+          >
+            <Text style={[styles.primaryBtnText, { color: primaryButtonTextColor }]}>
+              {primaryLabel}
+            </Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.buttonRow}>
+            <TouchableOpacity
               style={[
-                styles.primaryBtnText,
+                styles.primaryBtn,
+                styles.rowBtn,
+                { backgroundColor: colors.primary, opacity: submitting ? 0.6 : 1 },
+              ]}
+              disabled={submitting}
+              onPress={handleCompleteKYC}
+              activeOpacity={0.85}
+            >
+              {submitting ? (
+                <ActivityIndicator size="small" color={primaryButtonTextColor} />
+              ) : (
+                <Text
+                  style={[styles.primaryBtnText, { color: primaryButtonTextColor }]}
+                  numberOfLines={1}
+                >
+                  {primaryLabel}
+                </Text>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.secondaryBtn,
+                styles.rowBtn,
+                shadows.card,
                 {
-                  color: primaryButtonTextColor,
-                  fontFamily: typography.fontFamily.regular,
+                  backgroundColor: isDark ? colors.background.card : colors.background.primary,
+                  borderColor: colors.border.primary,
                 },
               ]}
+              disabled={submitting}
+              onPress={handleCancel}
+              activeOpacity={0.85}
             >
-              {buttonLabel}
-            </Text>
-          )}
-        </TouchableOpacity>
-
-        {/* <View style={styles.footer}>
-          <Text style={[styles.footerText, { color: colors.text.secondary }]}>
-            {t('common.poweredBy')}{' '}
-          </Text>
-          <Text style={[styles.brandText, { color: colors.primary }]}>
-            {t('common.brandName')}
-          </Text>
-        </View> */}
+              <Text style={[styles.secondaryBtnText, { color: colors.text.primary }]}>
+                {t('kycRequest.cancelButton')}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </ScrollView>
     </View>
   );
@@ -197,149 +227,85 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
   },
-  logoutBtn: {
+  headerBtn: {
     position: 'absolute',
-    right: 20,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 10,
+    left: 20,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
     zIndex: 999,
   },
   container: {
     flexGrow: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: Spacing['3xl'],
-    paddingTop: Spacing['5xl'],
+    paddingHorizontal: Spacing['2xl'],
   },
-  stepText: {
-    fontSize: Typography.fontSize.sm,
-    fontFamily: Typography.fontFamily.medium,
+  illustration: {
+    width: 260,
+    height: 248,
     marginBottom: Spacing['3xl'],
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  iconContainer: {
-    borderRadius: 100,
-    padding: Spacing['2xl'],
-    marginBottom: Spacing['3xl'],
-    alignSelf: 'center',
-  },
-  welcomeText: {
-    fontSize: Typography.fontSize.lg,
-    marginBottom: Spacing.sm,
-    textAlign: 'center',
-    width: '100%',
   },
   title: {
-    fontSize: Typography.fontSize['5xl'],
+    fontFamily: 'PlayfairDisplay_700Bold',
+    fontSize: 35,
+    lineHeight: 44,
+    letterSpacing: -0.3,
     textAlign: 'center',
     marginBottom: Spacing.lg,
+    width: '100%',
   },
   subtitle: {
-    fontSize: Typography.fontSize.base,
+    fontFamily: 'Roboto-Light',
+    fontSize: 17,
+    lineHeight: 24,
     textAlign: 'center',
-    lineHeight: 22,
     marginBottom: Spacing['4xl'],
+    maxWidth: 320,
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    width: '100%',
+    maxWidth: 360,
   },
   primaryBtn: {
-    minWidth: 200,
-    maxWidth: '100%',
-    minHeight: 45,
+    minHeight: 48,
     paddingVertical: 14,
-    paddingHorizontal: 32,
+    paddingHorizontal: Spacing.lg,
     borderRadius: 9999,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  singleBtn: {
+    minWidth: 200,
     alignSelf: 'center',
+  },
+  rowBtn: {
+    flex: 1,
   },
   primaryBtnText: {
-    fontSize: 17,
-    lineHeight: 23,
-    letterSpacing: 0,
+    fontFamily: 'Roboto-Regular',
+    fontSize: 16,
+    lineHeight: 22,
     textAlign: 'center',
   },
-  footer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: Spacing['5xl'],
-    alignSelf: 'center',
-  },
-  footerText: {
-    fontSize: Typography.fontSize.sm,
-    fontFamily: Typography.fontFamily.regular,
-  },
-  brandText: {
-    fontSize: Typography.fontSize.sm,
-    fontFamily: Typography.fontFamily.medium,
-  },
-  circleBtn: {
-    position: 'absolute',
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 1,
+  secondaryBtn: {
+    minHeight: 48,
+    paddingVertical: 14,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: 9999,
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 999,
+    borderWidth: StyleSheet.hairlineWidth,
   },
-  alertModalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  modalBox: {
-    width: "80%",
-    padding: 20,
-    borderRadius: 16,
-    alignItems: "center",
-  },
-
-
-
-  modalMessage: {
+  secondaryBtnText: {
+    fontFamily: 'Roboto-Regular',
     fontSize: 16,
-    textAlign: "center",
-    marginBottom: 20,
-  },
-
-  modalButtons: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    width: "100%",
-  },
-
-  cancelBtn: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 10,
-    borderWidth: 1,
-    marginRight: 10,
-    alignItems: "center",
-  },
-
-  okBtn: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: "center",
-    marginLeft: 10,
-  },
-
-  cancelText: {
-    fontSize: 16,
-    fontWeight: "600",
-  },
-
-  okText: {
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  modalTitle: {
-    fontSize: Typography.fontSize.xl,
-    fontFamily: Typography.fontFamily.bold,
-    color: Colors.secondary,
+    lineHeight: 22,
+    textAlign: 'center',
   },
 });

@@ -62,7 +62,9 @@ export default function MenuScreen() {
     () => [
       { id: 'portfolio', labelKey: 'portfolio.title', route: '/screens/portfolio' },
       { id: 'investment', labelKey: 'account.investment', route: '/offerings' },
-      { id: 'kyc', labelKey: 'account.kycVerification', route: '/auth/kycRequest' },
+      { id: 'securitiesAccount', labelKey: 'account.securitiesAccount', route: '/account/securities-account' },
+      { id: 'bankDetails', labelKey: 'account.bankDetails', route: '/account/bank-details' },
+      { id: 'kyc', labelKey: 'account.kycVerification', route: '/auth/kycRequest?from=menu' },
       { id: 'help', labelKey: 'account.helpSupport', route: '/account/help-support' },
     ],
     [],
@@ -158,10 +160,10 @@ export default function MenuScreen() {
               {item.id !== 'signOut' && renderDivider()}
             </View>
           ))}
-        </View>
 
-        <View style={styles.languageContainer}>
-          <LanguageSelector />
+          <View style={styles.languageContainer}>
+            <LanguageSelector />
+          </View>
         </View>
       </ScrollView>
     </View>
@@ -206,7 +208,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   languageContainer: {
-    marginTop: 56,
-    alignItems: 'center',
+    marginTop: 8,
+    alignSelf: 'flex-start',
   },
 });

@@ -451,6 +451,11 @@ export default function ProfileScreen() {
           backgroundColor: colors.background.overlay,
           justifyContent: 'flex-end',
         },
+        countrySheetOverlay: {
+          flex: 1,
+          backgroundColor: colors.background.overlaySecondary,
+          justifyContent: 'flex-end',
+        },
         sheet: {
           borderTopLeftRadius: 20,
           borderTopRightRadius: 20,
@@ -505,7 +510,7 @@ export default function ProfileScreen() {
           flex: 1,
         },
       }),
-    [colors.background.overlay, isDark]
+    [colors.background.overlay, colors.background.overlaySecondary, isDark]
   );
 
   const loadUser = useCallback(async () => {
@@ -1158,7 +1163,7 @@ export default function ProfileScreen() {
         animationType="slide"
         onRequestClose={() => setCountryOpen(false)}
       >
-        <Pressable style={styles.sheetOverlay} onPress={() => setCountryOpen(false)}>
+        <Pressable style={styles.countrySheetOverlay} onPress={() => setCountryOpen(false)}>
           <Pressable
             style={[
               styles.countrySheet,

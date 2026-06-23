@@ -24,6 +24,7 @@ export const LightTheme = {
     tertiary: '#F5EDE4',
     card: '#FEFFFF',
     overlay: 'rgba(45, 70, 53, 0.45)',
+    overlaySecondary: 'rgba(255, 246, 234, 0.45)',
   },
 
   text: {

@@ -1381,3 +1381,106 @@ export function ProfileScreenShimmer() {
     </ScrollView>
   );
 }
+
+// ---------------------------------------------------------------------------
+// SecuritiesAccountShimmer / BankDetailsShimmer
+// ---------------------------------------------------------------------------
+
+interface AccountFormFieldGroupShimmerProps {
+  anim: Animated.Value;
+  labelWidth: string;
+}
+
+function AccountFormFieldGroupShimmer({ anim, labelWidth }: Readonly<AccountFormFieldGroupShimmerProps>) {
+  return (
+    <View style={{ marginBottom: 20, gap: 8 }}>
+      <ShimmerBlock anim={anim} width={labelWidth} height={15} borderRadius={4} />
+      <ShimmerBlock anim={anim} width="100%" height={48} borderRadius={9999} />
+    </View>
+  );
+}
+
+interface AccountDetailsFormShimmerProps {
+  fieldCount: number;
+  showToggle?: boolean;
+}
+
+function AccountDetailsFormShimmer({ fieldCount, showToggle = false }: Readonly<AccountDetailsFormShimmerProps>) {
+  const { theme } = useTheme();
+  const colors = getColors(theme);
+  const insets = useSafeAreaInsets();
+  const anim = useShimmerAnim();
+
+  const labelWidths = ['52%', '48%', '36%', '30%'];
+
+  return (
+    <View style={{ flex: 1, backgroundColor: colors.background.primary }}>
+      <View
+        style={{
+          paddingTop: Math.max(insets.top, 44) + 16,
+          paddingBottom: 16,
+          paddingHorizontal: 24,
+          flexDirection: 'row',
+          alignItems: 'center',
+          backgroundColor: colors.background.primary,
+          borderBottomWidth: 1,
+          borderBottomColor: colors.border.primary,
+        }}
+      >
+        <ShimmerBlock anim={anim} width={40} height={40} borderRadius={20} style={{ marginRight: 12 }} />
+        <ShimmerBlock anim={anim} width="58%" height={36} borderRadius={8} />
+      </View>
+
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{
+          paddingHorizontal: 26,
+          paddingTop: 24,
+          paddingBottom: Math.max(insets.bottom, 16) + 100,
+        }}
+        showsVerticalScrollIndicator={false}
+      >
+        <ShimmerBlock anim={anim} width="100%" height={16} borderRadius={4} style={{ marginBottom: 6 }} />
+        <ShimmerBlock anim={anim} width="78%" height={16} borderRadius={4} style={{ marginBottom: 28 }} />
+
+        {Array.from({ length: fieldCount }, (_, index) => (
+          <AccountFormFieldGroupShimmer
+            key={`field-${index}`}
+            anim={anim}
+            labelWidth={labelWidths[index] ?? '40%'}
+          />
+        ))}
+
+        {showToggle ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, marginBottom: 8, gap: 12 }}>
+            <ShimmerBlock anim={anim} width={51} height={31} borderRadius={16} />
+            <ShimmerBlock anim={anim} width="68%" height={15} borderRadius={4} />
+          </View>
+        ) : null}
+      </ScrollView>
+
+      <View
+        style={{
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          bottom: 0,
+          paddingHorizontal: 26,
+          paddingTop: 16,
+          paddingBottom: Math.max(insets.bottom, 16) + 90,
+          backgroundColor: colors.background.primary,
+        }}
+      >
+        <ShimmerBlock anim={anim} width="100%" height={48} borderRadius={9999} />
+      </View>
+    </View>
+  );
+}
+
+export function SecuritiesAccountShimmer() {
+  return <AccountDetailsFormShimmer fieldCount={2} />;
+}
+
+export function BankDetailsShimmer() {
+  return <AccountDetailsFormShimmer fieldCount={4} showToggle />;
+}
