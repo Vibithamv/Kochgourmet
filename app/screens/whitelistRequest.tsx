@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -10,6 +10,10 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useGlobalAlert } from "@/contexts/AlertContext";
 
 export default function KycWaitingScreen() {
+  useEffect(() => {
+    router.replace('/(tabs)');
+  }, []);
+
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const colors = getColors(theme);
@@ -21,7 +25,7 @@ export default function KycWaitingScreen() {
     const result = await request.whiteListRequest(await AsyncStorage.getItem('AccountID'),
       offeringID);
     if (result.success) {
-      router.replace("/screens/whitelistResponseWaiting");
+      router.replace("/(tabs)");
       //   router.replace("/screens/kycWaiting")
     } else if (result.status === 401) {
       showAlert("Session Expired", "Please login again....");

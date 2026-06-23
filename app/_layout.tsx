@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Stack, useRouter, type Router } from 'expo-router';
-import { Alert, AppState, LogBox, Platform, Text, TextInput } from 'react-native';
+import { AppState, LogBox, Platform, Text, TextInput } from 'react-native';
 import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
 import {
   PlayfairDisplay_500Medium,
@@ -33,7 +33,6 @@ import {
 } from '@/app/auth/oauthDeepLinkUtils';
 import { platformValidation } from '@/hooks/platformValidation';
 import { userManagement } from '@/hooks/userManagement';
-import { whitelistManagement } from '@/hooks/whitelistManagement';
 import { FcmNotificationBridge } from '@/components/FcmNotificationBridge';
 import CustomSplash from '@/components/CustomSplash';
 import GlobalFloatingTabBar from '@/components/GlobalFloatingTabBar';
@@ -91,7 +90,6 @@ console.warn = (...args) => {
   }
 };
 
-type WhitelistRequestClient = ReturnType<typeof whitelistManagement>;
 type UserAccountClient = ReturnType<typeof userManagement>;
 
 async function persistOfferingAndTenantFromPlatform(data: {
@@ -104,44 +102,6 @@ async function persistOfferingAndTenantFromPlatform(data: {
   await AsyncStorage.setItem('tenantID', data.data.data.tenant_id);
 }
 
-async function resolveWhitelistRouteStatus(
-  request: WhitelistRequestClient
-): Promise<'APPROVED' | 'PENDING' | 'REQUEST' | undefined> {
-  const offeringID = (await AsyncStorage.getItem('offeringID')) ?? '';
-  const accountID = (await AsyncStorage.getItem('AccountID')) ?? '';
-  const result = await request.checkWhitelistStatus(accountID, offeringID);
-  if (result.success && result.data) {
-    const rows = result.data.data.whitelistRequestData;
-    if (rows.length > 0) {
-      return rows[0].status === 'APPROVED' ? 'APPROVED' : 'PENDING';
-    }
-    return 'REQUEST';
-  }
-  Alert.alert('Error', result.error.message || 'Please try again.');
-  return undefined;
-}
-
-async function navigateAfterConfirmedKycForSplash(
-  visibilityStatus: string,
-  router: Router,
-  request: WhitelistRequestClient
-) {
-  if (visibilityStatus === 'privatesale' || visibilityStatus === 'whitelisting') {
-    const wl = await resolveWhitelistRouteStatus(request);
-    if (wl === 'APPROVED') {
-      router.replace('/(tabs)');
-      return;
-    }
-    if (wl === 'PENDING') {
-      router.replace('/screens/whitelistResponseWaiting');
-      return;
-    }
-    router.replace('/auth/whitelistRequest');
-    return;
-  }
-  router.replace('/(tabs)');
-}
-
 async function navigateFromUserPayload(
   payload: {
     data: {
@@ -151,13 +111,11 @@ async function navigateFromUserPayload(
       };
     };
   },
-  visibilityStatus: string,
   router: Router,
-  request: WhitelistRequestClient
 ) {
   const kyc = payload.data.data.activeAccount.kyc_status;
   if (kyc === 'CONFIRMED') {
-    await navigateAfterConfirmedKycForSplash(visibilityStatus, router, request);
+    router.replace('/(tabs)');
     return;
   }
   if (kyc === 'REQUIRED') {
@@ -176,8 +134,6 @@ async function navigateFromUserPayload(
 async function runSplashAuthenticatedRouting(
   router: Router,
   userAccount: UserAccountClient,
-  request: WhitelistRequestClient,
-  visibilityStatus: string
 ) {
   const resetToHomeAfterExit =
     (await AsyncStorage.getItem(ASYNC_STORAGE_EXIT_RESET_TO_HOME)) === '1';
@@ -232,9 +188,7 @@ async function runSplashAuthenticatedRouting(
             };
           };
         },
-        visibilityStatus,
         router,
-        request
       );
     } else {
       if (resetToHomeAfterExit) {
@@ -255,7 +209,6 @@ async function runAuthRouting(
   fontError: boolean,
   router: Router,
   userAccount: UserAccountClient,
-  request: WhitelistRequestClient,
   onBootstrapComplete: () => void,
 ) {
   try {
@@ -269,15 +222,9 @@ async function runAuthRouting(
     }
     await persistOfferingAndTenantFromPlatform(result.data);
     await persistPlatformSignInOptionsFromValidateResponse(result.data);
-    const visibilityStatus = result.data.data.data.visibilityStatus;
     if (!(fontsLoaded || fontError)) return;
     try {
-      await runSplashAuthenticatedRouting(
-        router,
-        userAccount,
-        request,
-        visibilityStatus
-      );
+      await runSplashAuthenticatedRouting(router, userAccount);
     } catch (err) {
       console.error('Error loading user', err);
     }
@@ -313,7 +260,6 @@ export default function RootLayout() {
   });
   const [bootstrapComplete, setBootstrapComplete] = useState(false);
   const userAccount = useMemo(() => userManagement(), []);
-  const request = useMemo(() => whitelistManagement(), []);
 
   // After Android BackHandler.exitApp(), the process often resumes with the old stack; open the home tab.
   useEffect(() => {
@@ -352,14 +298,13 @@ export default function RootLayout() {
         Boolean(fontError),
         router,
         userAccount,
-        request,
         () => setBootstrapComplete(true),
       ).catch(
         (err) => console.error('Auth routing error:', err)
       );
     }, delay);
     return () => clearTimeout(authTimer);
-  }, [fontsLoaded, fontError, router, userAccount, request]);
+  }, [fontsLoaded, fontError, router, userAccount]);
 
   return (
     <ThirdwebProvider>

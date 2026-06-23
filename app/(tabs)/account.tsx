@@ -15,6 +15,7 @@ import { getColors } from '@/constants/theme';
 import { useGlobalAlert } from '@/contexts/AlertContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { replaceLoginClearingAuthStack } from '@/utils/authNavigation';
+import LanguageSelector from '@/components/LanguageSelector';
 
 interface MenuItem {
   id: string;
@@ -158,6 +159,10 @@ export default function MenuScreen() {
             </View>
           ))}
         </View>
+
+        <View style={styles.languageContainer}>
+          <LanguageSelector />
+        </View>
       </ScrollView>
     </View>
   );
@@ -199,5 +204,9 @@ const styles = StyleSheet.create({
   divider: {
     height: StyleSheet.hairlineWidth,
     opacity: 0.6,
+  },
+  languageContainer: {
+    marginTop: 56,
+    alignItems: 'center',
   },
 });

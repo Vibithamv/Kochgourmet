@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useState } from 'react';
+import React, { useEffect, useCallback, useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -90,6 +90,30 @@ export default function OfferingExpandOverlay({
   const [scrollLayoutReady, setScrollLayoutReady] = useState(false);
   const [closing, setClosing] = useState(false);
   const [scrollY, setScrollY] = useState(0);
+  const [heroImageUri, setHeroImageUri] = useState(offering.imageUrl);
+  const [heroHandoffReady, setHeroHandoffReady] = useState(false);
+  const heroImageUriRef = useRef(offering.imageUrl);
+
+  useEffect(() => {
+    heroImageUriRef.current = heroImageUri;
+  }, [heroImageUri]);
+
+  const markHeroHandoffReady = useCallback(() => {
+    setHeroHandoffReady(true);
+  }, []);
+
+  const prefetchHero = useCallback(async (uri: string) => {
+    if (!uri?.trim()) {
+      markHeroHandoffReady();
+      return;
+    }
+    try {
+      await Image.prefetch(uri);
+    } catch {
+      // Still allow handoff — overlay image may already be decoded.
+    }
+    markHeroHandoffReady();
+  }, [markHeroHandoffReady]);
 
   const normalizedLayout = normalizeCardLayoutForModal(sourceLayout);
   const sourceImageHeight = normalizedLayout.height;
@@ -121,6 +145,24 @@ export default function OfferingExpandOverlay({
     suppressTabBar();
     return () => restoreTabBar();
   }, []);
+
+  useEffect(() => {
+    setHeroImageUri(offering.imageUrl);
+    setHeroHandoffReady(false);
+    void prefetchHero(offering.imageUrl);
+  }, [offering.imageUrl, prefetchHero]);
+
+  const handleDetailLoaded = useCallback(
+    ({ heroImageUri: loadedHeroUri }: { heroImageUri: string }) => {
+      if (!loadedHeroUri?.trim() || loadedHeroUri === heroImageUriRef.current) return;
+      setHeroHandoffReady(false);
+      setHeroImageUri(loadedHeroUri);
+      void prefetchHero(loadedHeroUri);
+    },
+    [prefetchHero],
+  );
+
+  const showDetailHero = detailInteractive && heroHandoffReady;
 
   useEffect(() => {
     progress.value = withSpring(1, EXPAND_SPRING);
@@ -256,11 +298,16 @@ export default function OfferingExpandOverlay({
             style={[
               imageStyle,
               heroLayoutActive && styles.expandHeroAbsolute,
-              detailInteractive && !closing && styles.expandHeroHidden,
+              showDetailHero && !closing && styles.expandHeroHidden,
             ]}
             pointerEvents="none"
           >
-            <Image source={{ uri: offering.imageUrl }} style={styles.image} resizeMode="cover" />
+            <Image
+              source={{ uri: heroImageUri }}
+              style={styles.image}
+              resizeMode="cover"
+              onLoad={markHeroHandoffReady}
+            />
           </Animated.View>
 
           {!detailInteractive && (
@@ -313,11 +360,13 @@ export default function OfferingExpandOverlay({
                 <OfferingDetailContent
                   offeringId={offering.id}
                   onClose={handleClose}
-                  showHeroImage={detailInteractive}
-                  heroImageUriOverride={offering.imageUrl}
+                  showHeroImage={showDetailHero}
+                  heroImageUriOverride={heroImageUri}
+                  heroReady={heroHandoffReady}
                   bodyOnlyLoading
                   onScrollOffsetChange={handleScrollOffsetChange}
                   onInvestNavigate={onInvestNavigate}
+                  onDetailLoaded={handleDetailLoaded}
                   floatingActionsBottom={floatingActionsBottom}
                 />
               </Animated.View>

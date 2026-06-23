@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
@@ -13,6 +13,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useTranslation } from "react-i18next";
 
 export default function WhitelistResponseWaiting() {
+  useEffect(() => {
+    router.replace('/(tabs)');
+  }, []);
+
   const { t } = useTranslation();
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();

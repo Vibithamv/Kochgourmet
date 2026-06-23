@@ -28,6 +28,10 @@ import { userManagement } from '@/hooks/userManagement';
 import { useFocusEffect } from '@react-navigation/native';
 
 export default function WhitelistRequestScreen() {
+  useEffect(() => {
+    router.replace('/(tabs)');
+  }, []);
+
   const { t } = useTranslation();
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
@@ -70,7 +74,7 @@ export default function WhitelistRequestScreen() {
     );
     setLoading(false);
     if (result.success) {
-      router.replace('/screens/whitelistResponseWaiting');
+      router.replace('/(tabs)');
     } else {
       showAlert(t('common.error'), result.error.message || t('common.tryAgain'));
     }

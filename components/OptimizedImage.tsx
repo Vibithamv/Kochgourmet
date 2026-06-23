@@ -11,6 +11,8 @@ interface OptimizedImageProps {
   style?: any;
   resizeMode?: 'cover' | 'contain' | 'stretch' | 'repeat' | 'center';
   placeholder?: React.ReactNode;
+  /** Skip shimmer when the image is already visible/cached (e.g. expand overlay handoff). */
+  assumeCached?: boolean;
 }
 
 function LogoShimmer({ style }: Readonly<{ style?: any }>) {
@@ -71,12 +73,20 @@ function OptimizedImage({
   style,
   resizeMode = 'cover',
   placeholder,
+  assumeCached = false,
 }: Readonly<OptimizedImageProps>) {
   const { theme } = useTheme();
   const colors = getColors(theme);
-  const [loading, setLoading] = useState(!isIos);
+  const [loading, setLoading] = useState(!isIos && !assumeCached);
   const [error, setError] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (assumeCached) {
+      setLoading(false);
+      setError(false);
+    }
+  }, [assumeCached, source.uri]);
 
   const clearLoadTimeout = useCallback(() => {
     if (timeoutRef.current) {
@@ -86,9 +96,10 @@ function OptimizedImage({
   }, []);
 
   const handleLoadStart = useCallback(() => {
+    if (assumeCached) return;
     setLoading(true);
     setError(false);
-  }, []);
+  }, [assumeCached]);
 
   const handleLoad = useCallback(() => {
     clearLoadTimeout();

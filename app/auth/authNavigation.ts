@@ -6,37 +6,17 @@ export type LoginSuccessPayload = {
   user: { first_name: string; last_name: string; id: string };
 };
 
-export async function navigateTabsOrWhitelist(
-  checkVisibilityStatus: () => Promise<boolean | undefined>,
-  checkStatus: () => Promise<string | undefined>
-): Promise<void> {
-  if (await checkVisibilityStatus()) {
-    router.replace('/(tabs)');
-    return;
-  }
-  const whitelistStatus = await checkStatus();
-  if (whitelistStatus === 'APPROVED') {
-    router.replace('/(tabs)');
-    return;
-  }
-  if (whitelistStatus === 'PENDING') {
-    router.replace('/screens/whitelistResponseWaiting');
-    return;
-  }
-  router.replace('/auth/whitelistRequest');
-}
-
 export async function navigateAfterLoginSuccess(
   data: LoginSuccessPayload,
-  checkVisibilityStatus: () => Promise<boolean | undefined>,
-  checkStatus: () => Promise<string | undefined>
 ): Promise<void> {
-  if (JSON.stringify(data.activeAccount) !== '{}') {
-    await AsyncStorage.setItem('AccountID', data.activeAccount.id)
+  const accountId = data.activeAccount.id || data.user.id;
+  if (accountId) {
+    await AsyncStorage.setItem('AccountID', accountId);
   }
+
   const kycStatus = data.activeAccount.kyc_status;
   if (kycStatus === 'CONFIRMED') {
-    await navigateTabsOrWhitelist(checkVisibilityStatus, checkStatus);
+    router.replace('/(tabs)');
     return;
   }
   if (kycStatus === 'REQUIRED') {

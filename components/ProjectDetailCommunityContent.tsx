@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,7 +8,7 @@ import {
   type NativeScrollEvent,
   type NativeSyntheticEvent,
 } from 'react-native';
-import { Clock, Coins, Share2, Plus } from 'lucide-react-native';
+import { Clock, Coins, Share2, Plus, Check, CircleCheck, Rocket, Calendar } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -19,6 +19,11 @@ import {
   OfferingDescriptionHtml,
   OfferingFaqHtml,
 } from '@/components/OfferingApiHtml';
+import {
+  getOfferingVisibilityStatusEmoji,
+  getOfferingVisibilityStatusLabel,
+  type OfferingVisibilityStatus,
+} from '@/utils/offeringVisibilityStatus';
 
 const HERO_HEIGHT = 320;
 const CONTENT_PADDING = 26;
@@ -35,7 +40,9 @@ export interface ProjectDetailCommunityProject {
   main_currency: string;
   fundingStartDate: string;
   fundingEndDate: string;
+  fundingStartAt?: string;
   investors: string;
+  status: OfferingVisibilityStatus;
 }
 
 export interface ProjectDetailCommunityContentProps {
@@ -54,6 +61,14 @@ export interface ProjectDetailCommunityContentProps {
   readonly showHeroImage?: boolean;
   readonly floatingActionsBottom?: number;
   readonly onScrollOffsetChange?: (offsetY: number) => void;
+  readonly showBuyButton?: boolean;
+  readonly whitelistAction?: {
+    readonly label: string;
+    readonly loading: boolean;
+    readonly onPress: () => void;
+  } | null;
+  readonly showWhitelistApprovedBanner?: boolean;
+  readonly heroAssumeCached?: boolean;
 }
 
 function formatDisplayDate(dateStr: string): string {
@@ -67,6 +82,178 @@ function formatInvestorCount(count: string, locale: string): string {
   const num = Number.parseInt(count, 10);
   if (Number.isNaN(num)) return count;
   return new Intl.NumberFormat(locale === 'de' ? 'de-DE' : locale).format(num);
+}
+
+type CountdownParts = {
+  days: number;
+  hours: number;
+  minutes: number;
+  seconds: number;
+};
+
+function parseFundingStartDate(value: string): Date | null {
+  if (!value) return null;
+
+  const isoDate = new Date(value);
+  if (!Number.isNaN(isoDate.getTime())) {
+    return isoDate;
+  }
+
+  const [day, month, year] = value.split('-');
+  if (day && month && year) {
+    const parsed = new Date(`${year}-${month}-${day}T00:00:00`);
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed;
+    }
+  }
+
+  return null;
+}
+
+function getCountdownParts(targetIso: string): CountdownParts {
+  const target = parseFundingStartDate(targetIso);
+  if (!target) {
+    return { days: 0, hours: 0, minutes: 0, seconds: 0 };
+  }
+
+  const diffMs = target.getTime() - Date.now();
+  if (diffMs <= 0) {
+    return { days: 0, hours: 0, minutes: 0, seconds: 0 };
+  }
+
+  const totalSeconds = Math.floor(diffMs / 1000);
+  return {
+    days: Math.floor(totalSeconds / 86400),
+    hours: Math.floor((totalSeconds % 86400) / 3600),
+    minutes: Math.floor((totalSeconds % 3600) / 60),
+    seconds: totalSeconds % 60,
+  };
+}
+
+function formatFundingStartLabel(isoDate: string, locale: string): string {
+  const date = parseFundingStartDate(isoDate);
+  if (!date) return '';
+
+  const localeTag = locale === 'de' ? 'de-DE' : locale === 'es' ? 'es-ES' : 'en-US';
+  return new Intl.DateTimeFormat(localeTag, {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  }).format(date);
+}
+
+function padCountdownValue(value: number): string {
+  return value.toString().padStart(2, '0');
+}
+
+function FundingCountdownBanner({
+  fundingStartAt,
+  variant,
+}: {
+  readonly fundingStartAt: string;
+  readonly variant: 'announcement' | 'presaleannouncement';
+}) {
+  const { t, i18n } = useTranslation();
+  const { theme } = useTheme();
+  const colors = getColors(theme);
+  const [countdown, setCountdown] = useState<CountdownParts>(() =>
+    getCountdownParts(fundingStartAt),
+  );
+
+  useEffect(() => {
+    setCountdown(getCountdownParts(fundingStartAt));
+    const interval = setInterval(() => {
+      setCountdown(getCountdownParts(fundingStartAt));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [fundingStartAt]);
+
+  const timerBackgroundColor = '#FFF6EA';
+  const timerTitleColor = '#141414';
+  const timerTextColor = '#141414';
+  const timerUnitColor = colors.text.tertiary;
+  const timerCellBg = 'rgba(45, 70, 53, 0.08)';
+  const startLabel = formatFundingStartLabel(fundingStartAt, i18n.language);
+  const isAnnouncement = variant === 'announcement';
+
+  const units: { key: keyof CountdownParts; label: string }[] = [
+    { key: 'days', label: t('projectDetail.countdownDays') },
+    { key: 'hours', label: t('projectDetail.countdownHours') },
+    { key: 'minutes', label: t('projectDetail.countdownMinutes') },
+    { key: 'seconds', label: t('projectDetail.countdownSeconds') },
+  ];
+
+  return (
+    <View style={styles.presaleAnnouncementCard}>
+      <View style={styles.presaleAnnouncementHeader}>
+        <View
+          style={[
+            styles.presaleAnnouncementHeaderIcon,
+            { backgroundColor: colors.background.secondary },
+          ]}
+        >
+          {isAnnouncement ? (
+            <Calendar size={18} color={colors.warning} strokeWidth={2} />
+          ) : (
+            <Rocket size={18} color={colors.warning} strokeWidth={2} />
+          )}
+        </View>
+        <Text style={[styles.presaleAnnouncementHeaderLabel, { color: timerTitleColor }]}>
+          {isAnnouncement
+            ? t('projectDetail.upcomingProject')
+            : t('projectDetail.launchingSoon')}
+        </Text>
+      </View>
+
+      <View style={[styles.presaleAnnouncementTimer, { backgroundColor: timerBackgroundColor }]}>
+        <Text style={[styles.presaleAnnouncementTimerHeading, { color: timerTitleColor }]}>
+          {isAnnouncement
+            ? t('projectDetail.fundingOpensIn')
+            : t('projectDetail.publicFundingStartsIn')}
+        </Text>
+
+        <View style={styles.presaleAnnouncementCountdownRow}>
+          {units.map(({ key, label }) => (
+            <View key={key} style={styles.presaleAnnouncementCountdownCell}>
+              <View style={[styles.presaleAnnouncementCountdownValueWrap, { backgroundColor: timerCellBg }]}>
+                <Text style={[styles.presaleAnnouncementCountdownValue, { color: timerTextColor }]}>
+                  {padCountdownValue(countdown[key])}
+                </Text>
+              </View>
+              <Text style={[styles.presaleAnnouncementCountdownUnit, { color: timerUnitColor }]}>
+                {label}
+              </Text>
+            </View>
+          ))}
+        </View>
+
+        {startLabel ? (
+          <>
+            <View style={[styles.presaleAnnouncementDivider, { backgroundColor: timerCellBg }]} />
+            <Text style={[styles.presaleAnnouncementStartLabel, { color: timerTextColor }]}>
+              {t('projectDetail.fundingStartsAt', { date: startLabel })}
+            </Text>
+          </>
+        ) : null}
+      </View>
+
+      {!isAnnouncement ? (
+        <View
+          style={[
+            styles.presaleAnnouncementMessageBox,
+            { backgroundColor: colors.background.secondary },
+          ]}
+        >
+          <Text style={[styles.presaleAnnouncementMessage, { color: colors.text.secondary }]}>
+            {t('projectDetail.presaleAnnouncementMessage')}
+          </Text>
+        </View>
+      ) : null}
+    </View>
+  );
 }
 
 export default function ProjectDetailCommunityContent({
@@ -85,6 +272,10 @@ export default function ProjectDetailCommunityContent({
   showHeroImage = true,
   floatingActionsBottom,
   onScrollOffsetChange,
+  showBuyButton = true,
+  whitelistAction = null,
+  showWhitelistApprovedBanner = false,
+  heroAssumeCached = false,
 }: ProjectDetailCommunityContentProps) {
   const { t, i18n } = useTranslation();
   const { theme } = useTheme();
@@ -100,6 +291,12 @@ export default function ProjectDetailCommunityContent({
       : '#FFFFFF';
 
   const investorCount = formatInvestorCount(project.investors, i18n.language);
+  const statusLabel = getOfferingVisibilityStatusLabel(project.status, t);
+  const statusEmoji = getOfferingVisibilityStatusEmoji(project.status);
+  const isFinished = project.status === 'finished';
+  const isPresaleAnnouncement = project.status === 'presaleannouncement';
+  const isAnnouncement = project.status === 'announcement';
+  const fundingStartAt = project.fundingStartAt ?? project.fundingStartDate;
   const displayedMinTokens = Math.max(
     Math.round(project.minimum_investment),
     Math.round(selectedTokens),
@@ -131,7 +328,19 @@ export default function ProjectDetailCommunityContent({
             }}
             style={styles.heroImage}
             resizeMode="cover"
+            assumeCached={heroAssumeCached}
           />
+          <View style={[styles.heroOverlayBadges, { top: Math.max(insets.top, 44) + 8 }]}>
+            <View style={styles.heroBadge}>
+              <Text style={styles.heroBadgeEmoji}>{statusEmoji}</Text>
+              <Text style={styles.heroBadgeText}>{statusLabel}</Text>
+            </View>
+            {project.asset_symbol ? (
+              <View style={styles.heroBadge}>
+                <Text style={styles.heroBadgeText}>{project.asset_symbol}</Text>
+              </View>
+            ) : null}
+          </View>
         </View>
       ) : null}
 
@@ -147,6 +356,98 @@ export default function ProjectDetailCommunityContent({
         <Text style={[styles.title, { color: colors.text.primary }]}>
           {project.title}
         </Text>
+
+        {isAnnouncement ? (
+          <FundingCountdownBanner fundingStartAt={fundingStartAt} variant="announcement" />
+        ) : isPresaleAnnouncement ? (
+          <FundingCountdownBanner fundingStartAt={fundingStartAt} variant="presaleannouncement" />
+        ) : isFinished ? (
+          <View style={styles.fundingCompleteCard}>
+            {/* <View style={styles.fundingCompleteHeader}>
+              <View
+                style={[
+                  styles.fundingCompleteHeaderIcon,
+                  { backgroundColor: colors.background.secondary },
+                ]}
+              >
+                <CircleCheck size={18} color={colors.warning} strokeWidth={2} />
+              </View>
+              <Text style={[styles.fundingCompleteHeaderLabel, { color: '#141414' }]}>
+                {t('projectDetail.fundingClosed')}
+              </Text>
+            </View> */}
+
+            <View
+              style={[
+                styles.fundingCompleteIconWrap,
+                { backgroundColor: colors.background.secondary },
+              ]}
+            >
+              <CircleCheck size={40} color={colors.warning} strokeWidth={1.5} />
+            </View>
+
+            <Text style={[styles.fundingCompleteTitle, { color: '#141414' }]}>
+              {t('projectDetail.fundingCompleteTitle')}
+            </Text>
+            <Text style={[styles.fundingCompleteMessage, { color: colors.text.secondary }]}>
+              {t('projectDetail.fundingCompleteMessage')}
+            </Text>
+          </View>
+        ) : showWhitelistApprovedBanner ? (
+          <View style={styles.whitelistApprovedCard}>
+            <View style={styles.whitelistApprovedHeader}>
+              <View
+                style={[
+                  styles.whitelistApprovedIconWrap,
+                  { backgroundColor: colors.background.secondary },
+                ]}
+              >
+                <Check size={18} color={colors.warning} strokeWidth={2.5} />
+              </View>
+              <Text style={[styles.whitelistApprovedHeading, { color: colors.warning }]}>
+                {statusLabel}
+              </Text>
+            </View>
+
+            <View style={styles.whitelistApprovedInner}>
+              <Text style={[styles.whitelistApprovedTitle, { color: colors.warning }]}>
+                {t('projectDetail.whitelistApprovedTitle')}
+              </Text>
+              <Text style={[styles.whitelistApprovedMessage, { color: colors.text.secondary }]}>
+                {t('projectDetail.whitelistApprovedMessage')}
+              </Text>
+            </View>
+
+            <View style={styles.whitelistApprovedFooter}>
+              <View style={[styles.whitelistApprovedDot, { backgroundColor: colors.warning }]} />
+              <Text style={[styles.whitelistApprovedFooterText, { color: colors.text.secondary }]}>
+                {t('projectDetail.whitelistInvestmentSoon')}
+              </Text>
+            </View>
+          </View>
+        ) : whitelistAction ? (
+          <TouchableOpacity
+            style={[
+              styles.whitelistButton,
+              {
+                backgroundColor: colors.primary,
+                opacity: whitelistAction.loading ? 0.7 : 1,
+              },
+            ]}
+            onPress={whitelistAction.onPress}
+            disabled={whitelistAction.loading}
+            activeOpacity={0.85}
+          >
+            <Text
+              style={[
+                styles.whitelistButtonText,
+                { color: isDark ? '#0D1117' : '#FFFFFF' },
+              ]}
+            >
+              {whitelistAction.label}
+            </Text>
+          </TouchableOpacity>
+        ) : null}
 
         {project.hardcap >= project.minimum_investment ? (
           <OfferingTokenSlider
@@ -284,23 +585,25 @@ export default function ProjectDetailCommunityContent({
         style={[styles.floatingActions, { bottom: floatingBottom }]}
         pointerEvents="box-none"
       >
-        <TouchableOpacity
-          style={[
-            styles.buyButton,
-            {
-              backgroundColor: investDisabled
-                ? colors.interactive.disabled
-                : colors.primary,
-            },
-          ]}
-          onPress={onInvest}
-          disabled={investDisabled}
-          activeOpacity={0.85}
-        >
-          <Text style={[styles.buyButtonText, { color: buyTextColor }]}>
-            {investLabel}
-          </Text>
-        </TouchableOpacity>
+        {showBuyButton ? (
+          <TouchableOpacity
+            style={[
+              styles.buyButton,
+              {
+                backgroundColor: investDisabled
+                  ? colors.interactive.disabled
+                  : colors.primary,
+              },
+            ]}
+            onPress={onInvest}
+            disabled={investDisabled}
+            activeOpacity={0.85}
+          >
+            <Text style={[styles.buyButtonText, { color: buyTextColor }]}>
+              {investLabel}
+            </Text>
+          </TouchableOpacity>
+        ) : null}
 
         <TouchableOpacity
           style={[
@@ -350,12 +653,232 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
+  heroOverlayBadges: {
+    position: 'absolute',
+    left: 16,
+    gap: 8,
+    zIndex: 2,
+  },
+  heroBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: 'rgba(0,0,0,0.65)',
+    gap: 6,
+  },
+  heroBadgeEmoji: {
+    fontSize: 14,
+  },
+  heroBadgeText: {
+    fontFamily: 'Roboto-Regular',
+    fontSize: 13,
+    color: '#F2F2F2',
+    letterSpacing: 0,
+  },
   sheet: {
     borderTopLeftRadius: HERO_RADIUS,
     borderTopRightRadius: HERO_RADIUS,
     paddingHorizontal: CONTENT_PADDING,
     paddingTop: 24,
     gap: 20,
+  },
+  whitelistButton: {
+    height: 45,
+    borderRadius: 9999,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  whitelistButtonText: {
+    fontFamily: 'Roboto-Regular',
+    fontSize: 17,
+    lineHeight: 22,
+    letterSpacing: 0,
+  },
+  whitelistApprovedCard: {
+    gap: 16,
+  },
+  whitelistApprovedHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  whitelistApprovedIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  whitelistApprovedHeading: {
+    fontFamily: 'PlayfairDisplay_700Bold',
+    fontSize: 22,
+    lineHeight: 28,
+  },
+  whitelistApprovedInner: {
+    borderRadius: 12,
+    padding: 16,
+    gap: 8,
+  },
+  whitelistApprovedTitle: {
+    fontFamily: 'PlayfairDisplay_700Bold',
+    fontSize: 20,
+    lineHeight: 26,
+  },
+  whitelistApprovedMessage: {
+    fontFamily: 'Roboto-Light',
+    fontSize: 15,
+    lineHeight: 22,
+  },
+  whitelistApprovedFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 4,
+  },
+  whitelistApprovedDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  whitelistApprovedFooterText: {
+    fontFamily: 'Roboto-Light',
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  fundingCompleteCard: {
+    alignItems: 'center',
+    gap: 16,
+  },
+  fundingCompleteHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'center',
+    gap: 10,
+  },
+  fundingCompleteHeaderIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fundingCompleteHeaderLabel: {
+    fontFamily: 'PlayfairDisplay_700Bold',
+    fontSize: 18,
+    lineHeight: 24,
+    textAlign: 'center',
+  },
+  fundingCompleteIconWrap: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 4,
+  },
+  fundingCompleteTitle: {
+    fontFamily: 'PlayfairDisplay_700Bold',
+    fontSize: 24,
+    lineHeight: 32,
+    textAlign: 'center',
+  },
+  fundingCompleteMessage: {
+    fontFamily: 'Roboto-Light',
+    fontSize: 15,
+    lineHeight: 22,
+    textAlign: 'center',
+  },
+  presaleAnnouncementCard: {
+    gap: 16,
+  },
+  presaleAnnouncementHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  presaleAnnouncementHeaderIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  presaleAnnouncementHeaderLabel: {
+    fontFamily: 'PlayfairDisplay_700Bold',
+    fontSize: 22,
+    lineHeight: 28,
+  },
+  presaleAnnouncementTimer: {
+    borderRadius: 14,
+    padding: 16,
+    gap: 14,
+  },
+  presaleAnnouncementTimerHeading: {
+    fontFamily: 'Roboto-Regular',
+    fontSize: 13,
+    lineHeight: 18,
+    letterSpacing: 0.8,
+    textAlign: 'center',
+    textTransform: 'uppercase',
+  },
+  presaleAnnouncementCountdownRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  presaleAnnouncementCountdownCell: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 6,
+  },
+  presaleAnnouncementCountdownValueWrap: {
+    width: '100%',
+    minHeight: 52,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  presaleAnnouncementCountdownValue: {
+    fontFamily: 'Roboto-Medium',
+    fontSize: 24,
+    lineHeight: 28,
+  },
+  presaleAnnouncementCountdownUnit: {
+    fontFamily: 'Roboto-Light',
+    fontSize: 11,
+    lineHeight: 14,
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+  },
+  presaleAnnouncementDivider: {
+    height: 1,
+    width: '100%',
+  },
+  presaleAnnouncementStartLabel: {
+    fontFamily: 'Roboto-Medium',
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
+  },
+  presaleAnnouncementMessageBox: {
+    borderRadius: 12,
+    padding: 16,
+  },
+  presaleAnnouncementMessage: {
+    fontFamily: 'Roboto-Light',
+    fontSize: 15,
+    lineHeight: 22,
+    textAlign: 'center',
   },
   title: {
     fontFamily: 'PlayfairDisplay_700Bold',

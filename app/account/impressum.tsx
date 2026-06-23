@@ -23,7 +23,6 @@ export default function ImpressumScreen() {
   const colors = getColors(theme);
   const insets = useSafeAreaInsets();
   const contentApi = useMemo(() => mobileAppContent(), []);
-  const [title, setTitle] = useState('Impressum');
   const [html, setHtml] = useState('');
   const [loading, setLoading] = useState(true);
   const [loadFailed, setLoadFailed] = useState(false);
@@ -37,7 +36,6 @@ export default function ImpressumScreen() {
         const response = await contentApi.getImpressum();
         if (!active) return;
         if (response.success && response.data) {
-          setTitle(response.data.title || 'Impressum');
           setHtml(response.data.content ?? '');
         } else {
           setLoadFailed(true);
@@ -63,6 +61,9 @@ export default function ImpressumScreen() {
         >
           <ArrowLeft size={20} color={colors.text.primary} />
         </TouchableOpacity>
+        <Text style={[styles.headerTitle, { color: colors.text.primary }]} numberOfLines={1}>
+          {t('account.legalNotice')}
+        </Text>
       </View>
 
       {loading ? (
@@ -74,9 +75,6 @@ export default function ImpressumScreen() {
           contentContainerStyle={[styles.scroll, { paddingBottom: Math.max(insets.bottom, 16) + 90 }]}
           showsVerticalScrollIndicator={false}
         >
-          <Text style={[styles.title, { color: colors.text.primary }]}>
-            {title}
-          </Text>
           {loadFailed ? (
             <Text style={[styles.fallback, { color: colors.text.tertiary }]}>
               {t('common.errorMessage')}
@@ -98,8 +96,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 20,
-    paddingBottom: 8,
+    paddingBottom: 16,
+    gap: 12,
   },
   backCircle: {
     width: 40,
@@ -108,17 +109,18 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
+  },
+  headerTitle: {
+    flex: 1,
+    fontSize: 28,
+    lineHeight: 36,
+    letterSpacing: -0.3,
+    fontFamily: 'PlayfairDisplay_700Bold',
   },
   scroll: {
     paddingHorizontal: 24,
-    paddingTop: 12,
-  },
-  title: {
-    fontSize: 42,
-    lineHeight: 52,
-    letterSpacing: -0.5,
-    marginBottom: 24,
-    fontFamily: 'PlayfairDisplay_700Bold',
+    paddingTop: 8,
   },
   fallback: {
     fontSize: 15,

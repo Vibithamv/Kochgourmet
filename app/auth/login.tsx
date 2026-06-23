@@ -27,7 +27,6 @@ import {
 import { platformValidation } from '@/hooks/platformValidation';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
-import { whitelistManagement } from '@/hooks/whitelistManagement';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import {
   loginPasswordFieldErrorI18nKey,
@@ -136,7 +135,6 @@ export default function LoginScreen() {
   const [passwordFocused, setPasswordFocused] = useState(false);
   const { showAlert } = useGlobalAlert();
   const platform = platformValidation();
-  const request = whitelistManagement();
   const passwordRef = useRef<TextInput>(null);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const googleOAuthExchangeRef = useRef<string | null>(null);
@@ -181,48 +179,6 @@ export default function LoginScreen() {
       };
     }, [])
   );
-
-  const checkVisibilityStatus = async () => {
-    const result = await platform.validatePlatform();
-    if (result.success && result.data) {
-      await AsyncStorage.setItem(
-        'offeringID',
-        result.data.data.data.selected_offerings[0].id
-      );
-      if (
-        result.data.data.data.visibilityStatus === 'privatesale' ||
-        result.data.data.data.visibilityStatus === 'whitelisting'
-      ) {
-        return false;
-      }
-      return true;
-    }
-  };
-
-  const checkStatus = async () => {
-    try {
-      const offeringID = (await AsyncStorage.getItem('offeringID')) ?? '';
-      const accountID = (await AsyncStorage.getItem('AccountID')) ?? '';
-      const result = await request.checkWhitelistStatus(accountID, offeringID);
-      if (result.success && result.data) {
-        if (result.data.data.whitelistRequestData.length > 0) {
-          if (result.data.data.whitelistRequestData[0].status === 'APPROVED') {
-            return 'APPROVED';
-          }
-          return 'PENDING';
-        }
-        return 'REQUEST';
-      }
-      showAlert(t('common.error'), result.error.error.message || t('common.tryAgain'));
-    } catch (error) {
-      console.error('Error loading data:', error);
-    }
-  };
-
-  const checkVisibilityRef = useRef(checkVisibilityStatus);
-  const checkStatusRef = useRef(checkStatus);
-  checkVisibilityRef.current = checkVisibilityStatus;
-  checkStatusRef.current = checkStatus;
 
   useEffect(() => {
     console.log('loginParams.....',
@@ -288,8 +244,6 @@ export default function LoginScreen() {
         // });
         await navigateAfterLoginSuccess(
           result.data.data as LoginSuccessPayload,
-          checkVisibilityRef.current,
-          checkStatusRef.current
         );
       } catch (error: unknown) {
         if (!cancelled) {
@@ -333,11 +287,7 @@ export default function LoginScreen() {
         return;
       }
       await promptPushNotificationsAfterLogin({ showAlert, t });
-      await navigateAfterLoginSuccess(
-        response.data.data,
-        checkVisibilityStatus,
-        checkStatus
-      );
+      await navigateAfterLoginSuccess(response.data.data);
       setEmail('');
       setPassword('');
     } catch (error: any) {

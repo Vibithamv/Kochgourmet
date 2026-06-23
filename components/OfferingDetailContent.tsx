@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -11,12 +11,15 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import i18n from '@/i18n';
 import { getColors } from '@/constants/theme';
 import { useTheme } from '@/contexts/ThemeContext';
 import { offeringDetails } from '@/hooks/offering_details';
+import { whitelistManagement } from '@/hooks/whitelistManagement';
 import { useGlobalAlert } from '@/contexts/AlertContext';
 import { useOfferingCheck } from '@/hooks/useOfferingCheck';
+import { replaceLoginClearingAuthStack } from '@/utils/authNavigation';
 import { ProjectDetailShimmer, ProjectDetailCommunityBodyShimmer } from '@/components/Shimmer';
 import ProjectDetailCommunityContent, {
   PROJECT_DETAIL_HERO_HEIGHT,
@@ -58,6 +61,7 @@ interface ExtendedProject {
   main_currency: string;
   fundingStartDate: string;
   fundingEndDate: string;
+  fundingStartAt: string;
   investors: string;
   asset_symbol: string;
 }
@@ -104,6 +108,10 @@ function formatApiDate(dateString: string): string {
   return `${day}-${month}-${year}`;
 }
 
+function offeringNeedsWhitelist(status: ProjectStatus): boolean {
+  return status === 'whitelisting' || status === 'privatesale';
+}
+
 export interface OfferingDetailContentProps {
   readonly offeringId: string;
   readonly onClose: () => void;
@@ -123,9 +131,11 @@ export interface OfferingDetailContentProps {
 function OfferingDetailScrollLoading({
   heroImageUri,
   onScrollOffsetChange,
+  heroAssumeCached = false,
 }: {
   readonly heroImageUri: string;
   readonly onScrollOffsetChange?: (offsetY: number) => void;
+  readonly heroAssumeCached?: boolean;
 }) {
   const { theme } = useTheme();
   const colors = getColors(theme);
@@ -153,6 +163,7 @@ function OfferingDetailScrollLoading({
           source={{ uri: heroImageUri }}
           style={{ width: '100%', height: '100%' }}
           resizeMode="cover"
+          assumeCached={heroAssumeCached}
         />
       </View>
       <ProjectDetailCommunityBodyShimmer />
@@ -179,8 +190,12 @@ export default function OfferingDetailContent({
   const [project, setProject] = useState<ExtendedProject | null>(null);
   const [selectedTokens, setSelectedTokens] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [whitelistApproved, setWhitelistApproved] = useState(false);
+  const [whitelistRequestSent, setWhitelistRequestSent] = useState(false);
+  const [whitelistLoading, setWhitelistLoading] = useState(false);
   const { showAlert } = useGlobalAlert();
   const offeringApi = useMemo(() => offeringDetails(), []);
+  const whitelistApi = useMemo(() => whitelistManagement(), []);
   const { performOfferingCheck } = useOfferingCheck();
   const performOfferingCheckRef = useRef(performOfferingCheck);
   const showAlertRef = useRef(showAlert);
@@ -192,12 +207,47 @@ export default function OfferingDetailContent({
     tRef.current = t;
   }, [performOfferingCheck, showAlert, t]);
 
+  const syncWhitelistStatus = useCallback(
+    async (offeringId: string, visibilityStatus: ProjectStatus) => {
+      if (!offeringNeedsWhitelist(visibilityStatus)) {
+        setWhitelistApproved(false);
+        setWhitelistRequestSent(false);
+        return;
+      }
+
+      const accountID = (await AsyncStorage.getItem('AccountID')) ?? '';
+      if (!accountID) return;
+
+      const result = await whitelistApi.checkWhitelistStatus(accountID, offeringId);
+      if (!result.success) return;
+
+      const requests = result.data?.data?.whitelistRequestData;
+      if (!Array.isArray(requests) || requests.length === 0) {
+        setWhitelistApproved(false);
+        setWhitelistRequestSent(false);
+        return;
+      }
+
+      const requestStatus = requests[0]?.status;
+      if (requestStatus === 'APPROVED') {
+        setWhitelistApproved(true);
+        setWhitelistRequestSent(false);
+      } else {
+        setWhitelistApproved(false);
+        setWhitelistRequestSent(true);
+      }
+    },
+    [whitelistApi],
+  );
+
   useEffect(() => {
     let cancelled = false;
 
     const loadProject = async () => {
       setLoading(true);
       setProject(null);
+      setWhitelistApproved(false);
+      setWhitelistRequestSent(false);
 
       await performOfferingCheckRef.current();
       const data = await offeringApi.details(offeringId);
@@ -233,12 +283,18 @@ export default function OfferingDetailContent({
           main_currency: data.data.data.main_currency,
           fundingStartDate: formatApiDate(data.data.data.funding_start_date),
           fundingEndDate: formatApiDate(data.data.data.funding_end_date),
+          fundingStartAt:
+            typeof data.data.data.funding_start_date === 'string'
+              ? data.data.data.funding_start_date
+              : '',
           investors: data.data.data.investors,
           asset_symbol: data.data.data.asset_symbol,
         };
         readOfferingTypeFromApi(data.data.data);
         setProject(projectData);
         setSelectedTokens(Math.max(1, Math.round(projectData.minimum_investment)));
+        await syncWhitelistStatus(projectData.id, projectData.status);
+        if (cancelled) return;
         setLoading(false);
         return;
       }
@@ -257,7 +313,79 @@ export default function OfferingDetailContent({
     return () => {
       cancelled = true;
     };
-  }, [offeringApi, offeringId]);
+  }, [offeringApi, offeringId, syncWhitelistStatus]);
+
+  const handleWhitelistRequest = async () => {
+    if (!project || whitelistLoading) return;
+
+    setWhitelistLoading(true);
+    try {
+      const accountID = (await AsyncStorage.getItem('AccountID')) ?? '';
+      const result = await whitelistApi.whiteListRequest(accountID, project.id);
+      if (result.success) {
+        setWhitelistRequestSent(true);
+        showAlert(t('common.notice'), t('projectDetail.whitelistRequestSubmitted'));
+      } else if (result.status === 401) {
+        showAlert(t('profile.sessionExpired'), t('profile.loginAgain'));
+        replaceLoginClearingAuthStack();
+      } else {
+        showAlert(
+          t('common.error'),
+          result.error?.message ?? t('common.tryAgain'),
+        );
+      }
+    } finally {
+      setWhitelistLoading(false);
+    }
+  };
+
+  const handleCheckWhitelistStatus = async () => {
+    if (!project || whitelistLoading) return;
+
+    setWhitelistLoading(true);
+    try {
+      const accountID = (await AsyncStorage.getItem('AccountID')) ?? '';
+      const result = await whitelistApi.checkWhitelistStatus(accountID, project.id);
+      if (result.success) {
+        const requests = result.data?.data?.whitelistRequestData;
+        if (!Array.isArray(requests) || requests.length === 0) {
+          showAlert(t('common.notice'), t('projectDetail.whitelistNoRequest'));
+          return;
+        }
+
+        const requestStatus = requests[0]?.status;
+        if (requestStatus === 'APPROVED') {
+          setWhitelistApproved(true);
+          setWhitelistRequestSent(false);
+          if (project.status === 'privatesale') {
+            showAlert(t('investment.whitelistSuccess'), t('investment.whitelistApproved'));
+          }
+        } else if (requestStatus === 'REJECTED') {
+          showAlert(t('common.notice'), t('projectDetail.whitelistRejected'));
+        } else {
+          showAlert(t('common.notice'), t('whitelistWaiting.pendingMessage'));
+        }
+      } else if (result.status === 401) {
+        showAlert(t('profile.sessionExpired'), t('profile.loginAgain'));
+        replaceLoginClearingAuthStack();
+      } else {
+        showAlert(
+          t('common.error'),
+          result.error?.message ?? t('common.tryAgain'),
+        );
+      }
+    } finally {
+      setWhitelistLoading(false);
+    }
+  };
+
+  const handleWhitelistAction = () => {
+    if (whitelistRequestSent) {
+      void handleCheckWhitelistStatus();
+      return;
+    }
+    void handleWhitelistRequest();
+  };
 
   useEffect(() => {
     if (loading || !onDetailLoaded) return;
@@ -274,6 +402,12 @@ export default function OfferingDetailContent({
 
   const handleInvestNow = () => {
     if (!project) return;
+    if (
+      offeringNeedsWhitelist(project.status) &&
+      !whitelistApproved
+    ) {
+      return;
+    }
     if (
       project.status === 'public' ||
       project.status === 'presale' ||
@@ -313,6 +447,7 @@ export default function OfferingDetailContent({
         <OfferingDetailScrollLoading
           heroImageUri={heroImageUriOverride}
           onScrollOffsetChange={onScrollOffsetChange}
+          heroAssumeCached={heroReady}
         />
       );
     }
@@ -377,6 +512,10 @@ export default function OfferingDetailContent({
         return htmlParsing(
           pickLocalizedHtmlField(project.presale_content, 'offering_description', localizedLang),
         );
+      case 'presaleannouncement':
+        return htmlParsing(
+          pickLocalizedHtmlField(project.presale_content, 'offering_description', localizedLang),
+        );
       case 'whitelisting':
         return htmlParsing(
           pickLocalizedHtmlField(project.whitelisting_content, 'offering_description', localizedLang),
@@ -406,6 +545,8 @@ export default function OfferingDetailContent({
         );
       case 'presale':
         return htmlParsing(pickLocalizedHtmlField(project.presale_content, 'faq', localizedLang));
+      case 'presaleannouncement':
+        return htmlParsing(pickLocalizedHtmlField(project.presale_content, 'faq', localizedLang));
       case 'whitelisting':
         return htmlParsing(
           pickLocalizedHtmlField(project.whitelisting_content, 'faq', localizedLang),
@@ -427,10 +568,20 @@ export default function OfferingDetailContent({
     }
   };
 
+  const needsWhitelist = offeringNeedsWhitelist(project.status);
+  const isWhitelistingPhase = project.status === 'whitelisting';
+  const isFinished = project.status === 'finished';
+  const isAnnouncement = project.status === 'announcement';
+  const showWhitelistApprovedBanner = isWhitelistingPhase && whitelistApproved;
+  const showBuyButton =
+    !isFinished &&
+    !isAnnouncement &&
+    (!needsWhitelist || (project.status === 'privatesale' && whitelistApproved)) &&
+    !showWhitelistApprovedBanner;
   const investDisabled =
     project.status === 'announcement' ||
     project.status === 'finished' ||
-    project.status === 'whitelisting';
+    (isWhitelistingPhase && !whitelistApproved);
 
   return (
     <ProjectDetailCommunityContent
@@ -449,6 +600,20 @@ export default function OfferingDetailContent({
       showHeroImage={showHeroImage}
       floatingActionsBottom={floatingActionsBottom}
       onScrollOffsetChange={onScrollOffsetChange}
+      heroAssumeCached={heroReady}
+      showBuyButton={showBuyButton}
+      showWhitelistApprovedBanner={showWhitelistApprovedBanner}
+      whitelistAction={
+        needsWhitelist && !whitelistApproved
+          ? {
+              label: whitelistRequestSent
+                ? t('whitelistWaiting.checkStatus')
+                : t('whitelistRequest.requestAccess'),
+              loading: whitelistLoading,
+              onPress: handleWhitelistAction,
+            }
+          : null
+      }
     />
   );
 }

@@ -8,9 +8,6 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { userManagement } from "@/hooks/userManagement";
 import { useGlobalAlert } from "@/contexts/AlertContext";
 import { useTranslation } from "react-i18next";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { platformValidation } from "@/hooks/platformValidation";
-import { whitelistManagement } from "@/hooks/whitelistManagement";
 import { replaceLoginClearingAuthStack } from '@/utils/authNavigation';
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -21,64 +18,10 @@ export default function KycResponseWaiting() {
   const colors = getColors(theme);
   const user = userManagement();
   const { showAlert } = useGlobalAlert();
-  const platform = platformValidation();
-  const whiteListRequest = whitelistManagement();
   const { signOut } = useAuth();
 
-  const checkVisibilityStatus = async () => {
-    const result = await platform.validatePlatform();
-    if (result.success && result.data) {
-      await AsyncStorage.setItem('offeringID', result.data.data.data.selected_offerings[0].id)
-      if (
-        result.data.data.data.visibilityStatus === 'privatesale' ||
-        result.data.data.data.visibilityStatus === 'whitelisting'
-      ) {
-        return false;
-      } else {
-        return true;
-      }
-    }
-  };
-
-  const checkWhitelistStatus = async () => {
-    try {
-      const offeringID = (await AsyncStorage.getItem('offeringID')) ?? '';
-      const accountID = (await AsyncStorage.getItem('AccountID')) ?? '';
-      const result = await whiteListRequest.checkWhitelistStatus(accountID, offeringID);
-      if (result.success && result.data) {
-        if (result.data.data.whitelistRequestData.length > 0) {
-          if (result.data.data.whitelistRequestData[0].status === 'APPROVED') {
-            return 'APPROVED';
-          } else {
-            return 'PENDING';
-          }
-        } else {
-          return 'REQUEST';
-        }
-      } else if (result.status === 401) {
-        showAlert(t('whitelistWaiting.sessionExpired'), t('whitelistWaiting.loginAgain'));
-        router.replace("/auth/login");
-      } else {
-        showAlert(t('common.error'), result.error.message || t('common.tryAgain'));
-      }
-    } catch (error) {
-      console.error('Error loading data:', error);
-    }
-  };
-
-  const routeAfterKycConfirmed = async () => {
-    if (await checkVisibilityStatus()) {
-      router.replace('/(tabs)');
-      return;
-    }
-    const wl = await checkWhitelistStatus();
-    if (wl === 'APPROVED') {
-      router.replace('/(tabs)');
-    } else if (wl === 'PENDING') {
-      router.replace('/screens/whitelistResponseWaiting');
-    } else {
-      router.replace('/auth/whitelistRequest');
-    }
+  const routeAfterKycConfirmed = () => {
+    router.replace('/(tabs)');
   };
 
   const processGetUserResponse = async (data: any) => {
@@ -87,7 +30,7 @@ export default function KycResponseWaiting() {
         return;
       }
       if (data.data.accounts[0].kyc_status === 'CONFIRMED') {
-        await routeAfterKycConfirmed();
+        routeAfterKycConfirmed();
         return;
       }
       showAlert(t('kycWaiting.requestStatusTitle'), t('kycWaiting.pendingMessage'));
