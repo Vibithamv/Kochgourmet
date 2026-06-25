@@ -2,7 +2,7 @@
   "expo": {
     "name": "KOCHGOURMET",
     "slug": "kochgourmet",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/kochgourmet-app-icon.png",
     "scheme": "kochgourmet",
@@ -65,6 +65,7 @@
         }
       },
       "infoPlist": {
+        "UIRequiresFullScreen": true,
         "NSPhotoLibraryUsageDescription": "Allow access to your photos to update your profile picture.",
         "NSPhotoLibraryAddUsageDescription": "Allow access to save photos to your library when needed.",
         "LSApplicationQueriesSchemes": [
