@@ -59,7 +59,7 @@ export const whitelistManagement = () => {
           ...API_HEADER_CONFIG,
           "Authorization": `Bearer ${await AsyncStorage.getItem("IDToken")}`,
           "x-refresh-token": `${await AsyncStorage.getItem("RefreshToken")}`,
-          "x-access-token": `${await AsyncStorage.getItem("AccessToken")}`
+          //"x-access-token": `${await AsyncStorage.getItem("AccessToken")}`
         }
       );
 

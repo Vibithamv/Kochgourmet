@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -40,25 +40,32 @@ export default function VerifyIdentityScreen() {
   const { signOut } = useAuth();
   const [submitting, setSubmitting] = React.useState(false);
   const [kycStatus, setKycStatus] = React.useState<string | null>(null);
+  const [statusLoading, setStatusLoading] = React.useState(true);
+  const initialLoadDoneRef = React.useRef(false);
   const { fetchActiveAccountKycStatus } = useKycPostVerificationFlow();
 
-  const loadData = async () => {
+  const loadData = React.useCallback(async () => {
+    const showLoader = !initialLoadDoneRef.current;
     try {
+      if (showLoader) {
+        setStatusLoading(true);
+      }
       const status = await fetchActiveAccountKycStatus();
       setKycStatus(status);
+      initialLoadDoneRef.current = true;
     } catch (error) {
       console.error('Error loading KYC status:', error);
+    } finally {
+      if (showLoader) {
+        setStatusLoading(false);
+      }
     }
-  };
-
-  useEffect(() => {
-    void loadData();
-  }, []);
+  }, [fetchActiveAccountKycStatus]);
 
   useFocusEffect(
     React.useCallback(() => {
       void loadData();
-    }, []),
+    }, [loadData]),
   );
 
   const handleCompleteKYC = async () => {
@@ -118,6 +125,29 @@ export default function VerifyIdentityScreen() {
   }
 
   const screenBackground = isDark ? colors.background.primary : colors.background.secondary;
+
+  if (statusLoading) {
+    return (
+      <View style={[styles.screen, { backgroundColor: screenBackground }]}>
+        {showBackButton ? (
+          <TouchableOpacity
+            style={[
+              styles.headerBtn,
+              { top: insets.top + 10, backgroundColor: colors.background.card },
+            ]}
+            onPress={() => router.back()}
+            hitSlop={8}
+            activeOpacity={0.7}
+          >
+            <ArrowLeft size={22} color={colors.text.primary} />
+          </TouchableOpacity>
+        ) : null}
+        <View style={styles.loadingWrap}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.screen, { backgroundColor: screenBackground }]}>
@@ -226,6 +256,11 @@ export default function VerifyIdentityScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
+  },
+  loadingWrap: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerBtn: {
     position: 'absolute',

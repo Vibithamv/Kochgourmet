@@ -2,6 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, AxiosError, InternalAxiosRequestConfig, AxiosHeaders } from "axios";
 import { CURRENT_ENVIRONMENT, ENVIRONMENT_CONFIG, EnvironmentName } from "../config/environment";
 import { updateAuthTokensFromHeaders } from "../utils/authUtils";
+import { attachApiLoggingInterceptors } from "../utils/apiLogger";
 import {
   isKochgourmetTokenExpiredError,
   refreshKochgourmetAccessToken,
@@ -89,10 +90,11 @@ class NetworkService {
         if (error.response?.headers) {
           await updateAuthTokensFromHeaders(error.response.headers);
         }
-        console.error("API Error:", error.response?.data || error.message);
         throw error;
       }
     );
+
+    attachApiLoggingInterceptors(this.api, "NetworkService");
   }
 
   /**

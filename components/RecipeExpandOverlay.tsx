@@ -98,6 +98,7 @@ export default function RecipeExpandOverlay({
     theme,
     heroAtTop,
     statusBarStripBackground,
+    { forceDarkContentOnAndroid: true },
   );
 
   const heartColor = recipe.isFavourite ? colors.primary : REZEPE_META_COLOR;

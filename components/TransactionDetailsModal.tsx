@@ -16,6 +16,7 @@ import {
   isOrderedTransactionStatus,
   type CustomIbanBankDetails,
 } from '@/utils/customIbanBankDetails';
+import { formatTransactionStatusLabel } from '@/utils/transactionStatusLabel';
 import { ShimmerBlock, useShimmerAnim } from '@/components/Shimmer';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -31,12 +32,6 @@ function formatActivityDate(iso: string): string {
     hour: 'numeric',
     minute: '2-digit',
   });
-}
-
-function formatStatusLabel(status: string): string {
-  if (!status) return '—';
-  const lower = status.toLowerCase();
-  return lower.charAt(0).toUpperCase() + lower.slice(1);
 }
 
 function buildBankRowsFromDetails(
@@ -290,7 +285,7 @@ export default function TransactionDetailsModal({
       {
         key: 'status',
         label: t('portfolio.transactionDetailStatus'),
-        value: formatStatusLabel(activity.status),
+        value: formatTransactionStatusLabel(activity.status, t),
       },
       {
         key: 'date',

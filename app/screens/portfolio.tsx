@@ -48,6 +48,7 @@ import {
   isOrderedTransactionStatus,
   type CustomIbanBankDetails,
 } from '@/utils/customIbanBankDetails';
+import { formatTransactionStatusLabel } from '@/utils/transactionStatusLabel';
 import { portfolio, PORTFOLIO_ACTIVITIES_LIMIT } from '@/hooks/portfolio';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
@@ -217,6 +218,7 @@ const PortfolioScreen = React.memo(() => {
   const [performance, setPerformance] = React.useState<number[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [accountId, setAccountId] = useState<string | null>(null);
   const downloadReportsData = downloadReports();
   const { performOfferingCheck } = useOfferingCheck();
 
@@ -248,14 +250,19 @@ const PortfolioScreen = React.memo(() => {
 
     try {
       await performOfferingCheck();
-      const accountId = await portfolioDatas.resolveActiveAccountId();
-      if (!accountId) {
+      const resolvedAccountId = await portfolioDatas.resolveActiveAccountId();
+      if (!resolvedAccountId) {
         setLoading(false);
         return;
       }
 
+      setAccountId(resolvedAccountId);
       const period = (await AsyncStorage.getItem('period')) || '6m';
-      await Promise.all([loadTransaction(accountId), loadInvestment(accountId, period)]);
+      setSelectedPeriod(period as '3m' | '6m' | '1y');
+      await Promise.all([
+        loadTransaction(resolvedAccountId),
+        loadInvestment(resolvedAccountId, period),
+      ]);
     } catch (error) {
       console.error('Load data error:', error);
       setLoading(false);
@@ -853,13 +860,13 @@ const PortfolioScreen = React.memo(() => {
           <Text
             style={[styles.transactionStatus, { color: colors.text.tertiary }]}
           >
-            {transaction.status}
+            {formatTransactionStatusLabel(transaction.status, t)}
           </Text>
         </View>
       </TouchableOpacity>
       );
     },
-    [formatCurrency, colors, currency]
+    [formatCurrency, colors, currency, t]
   );
 
   const keyExtractorTransaction = React.useCallback(
@@ -1004,19 +1011,6 @@ const PortfolioScreen = React.memo(() => {
                 <View style={styles.performanceHeaderActions}>
                   <TouchableOpacity
                     style={[
-                      styles.actionButton,
-                      {
-                        backgroundColor: colors.interactive.hover,
-                        borderColor: colors.border.primary,
-                      },
-                    ]}
-                    onPress={() => setReportsModalVisible(true)}
-                    accessibilityLabel={t('portfolio.downloadReports')}
-                  >
-                    <BarChart3 size={16} color={colors.primary} />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[
                       styles.periodDropdown,
                       {
                         backgroundColor: colors.background.primary,
@@ -1058,18 +1052,34 @@ const PortfolioScreen = React.memo(() => {
                   {t('portfolio.last30Days')}
                 </Text>
               </View>
-              <TouchableOpacity
-                style={[
-                  styles.actionButton,
-                  {
-                    backgroundColor: colors.interactive.hover,
-                    borderColor: colors.border.primary,
-                  },
-                ]}
-                onPress={downloadRecentTransactions}
-              >
-                <Download size={16} color={colors.primary} />
-              </TouchableOpacity>
+              <View style={styles.sectionHeaderActions}>
+                <TouchableOpacity
+                  style={[
+                    styles.actionButton,
+                    {
+                      backgroundColor: colors.interactive.hover,
+                      borderColor: colors.border.primary,
+                    },
+                  ]}
+                  onPress={() => setReportsModalVisible(true)}
+                  accessibilityLabel={t('portfolio.downloadReports')}
+                >
+                  <BarChart3 size={16} color={colors.primary} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.actionButton,
+                    {
+                      backgroundColor: colors.interactive.hover,
+                      borderColor: colors.border.primary,
+                    },
+                  ]}
+                  onPress={downloadRecentTransactions}
+                  accessibilityLabel={t('portfolio.recentTransactions')}
+                >
+                  <Download size={16} color={colors.primary} />
+                </TouchableOpacity>
+              </View>
             </View>
 
             <View
@@ -1120,7 +1130,10 @@ const PortfolioScreen = React.memo(() => {
         <View
           style={[
             styles.modalContent,
-            { backgroundColor: colors.background.primary },
+            {
+              backgroundColor: colors.background.primary,
+              paddingBottom: Math.max(insets.bottom, Spacing.lg),
+            },
           ]}
         >
           <View style={styles.modalHeader}>
@@ -1160,7 +1173,12 @@ const PortfolioScreen = React.memo(() => {
                   setSelectedPeriod(item.key);
                   setPeriodDropdownVisible(false);
                   await AsyncStorage.setItem('period', item.key);
-                  loadInvestment(item.key);
+                  const id =
+                    accountId ?? (await portfolioDatas.resolveActiveAccountId());
+                  if (!id) return;
+                  if (!accountId) setAccountId(id);
+                  setLoading(true);
+                  loadInvestment(id, item.key);
                 }}
               >
                 <Text
@@ -1192,7 +1210,10 @@ const PortfolioScreen = React.memo(() => {
         <View
           style={[
             styles.reportsModalContent,
-            { backgroundColor: colors.background.primary },
+            {
+              backgroundColor: colors.background.primary,
+              paddingBottom: Math.max(insets.bottom, Spacing.lg),
+            },
           ]}
         >
           <View style={styles.modalHeader}>
@@ -1534,7 +1555,6 @@ const createStyles = (colors: any) =>
       flex: 1,
       backgroundColor: 'rgba(0, 0, 0, 0.5)',
       justifyContent: 'flex-end',
-      bottom: 20,
     },
     modalContent: {
       borderTopLeftRadius: BorderRadius.xl,
@@ -1651,6 +1671,12 @@ const createStyles = (colors: any) =>
     sectionSubtitle: {
       fontSize: Typography.fontSize.sm,
       fontFamily: 'Roboto-Light',
+    },
+    sectionHeaderActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.sm,
+      flexShrink: 0,
     },
     actionButton: {
       width: 36,

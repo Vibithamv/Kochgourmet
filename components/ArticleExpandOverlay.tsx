@@ -96,6 +96,7 @@ export default function ArticleExpandOverlay({
     theme,
     heroAtTop,
     statusBarStripBackground,
+    { forceDarkContentOnAndroid: true },
   );
 
   const handleClose = useCallback(() => {

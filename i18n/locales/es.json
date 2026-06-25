@@ -307,6 +307,9 @@
     "failedFetchPortfolio": "Error al obtener el portafolio",
     "failedFetchActivities": "Error al obtener las actividades del portafolio",
     "noRecentTransactions": "No se encontraron transacciones recientes",
+    "transactionStatus": {
+      "noPayment": "Sin pago"
+    },
     "transactionDetails": "Detalles de la transacción",
     "transactionDetailType": "Tipo",
     "transactionDetailStatus": "Estado",
@@ -505,6 +508,7 @@
     "enterConfirmPassword": "Por favor confirme la contraseña.",
     "success": "Su perfil se ha actualizado correctamente.",
     "validationError": "La contraseña debe tener al menos 8 caracteres e incluir mayúsculas, minúsculas, números y caracteres especiales.",
+    "currentPasswordIncorrect": "La contraseña actual es incorrecta",
     "doNotMatch": "Las contraseñas no coinciden.",
     "settingsTitle": "Configuración del perfil",
     "settingsSubtitle": "Administra tu perfil y seguridad",

@@ -28,7 +28,7 @@ export function getOfferingDescriptionHtmlProps(
         color: colors.text.primary,
         backgroundColor: 'transparent',
         textAlign: 'justify' as const,
-        marginBottom: 10,
+        marginBottom: 4,
       },
     },
     baseStyle: {
@@ -53,7 +53,7 @@ export function getOfferingFaqHtmlProps(
         color: colors.text.primary,
         backgroundColor: 'transparent',
         marginTop: 6,
-        marginBottom: 16,
+        marginBottom: 8,
       },
       'faq-question': {
         color: colors.text.primary,
@@ -74,24 +74,24 @@ function getOfferingDescriptionTagsStyles(
   colors: AppColors,
 ): Record<string, MixedStyleDeclaration> {
   return {
-    body: { textAlign: 'justify', marginBottom: 4 },
-    div: { textAlign: 'justify', marginBottom: 10 },
+    body: { textAlign: 'justify', marginBottom: 0 },
+    div: { textAlign: 'justify', marginBottom: 4 },
     p: {
       fontSize: 14,
       lineHeight: 22,
       color: colors.text.secondary,
       textAlign: 'justify',
       marginTop: 0,
-      marginBottom: 12,
+      marginBottom: 6,
     },
     ul: {
       marginTop: 4,
-      marginBottom: 12,
+      marginBottom: 6,
       paddingLeft: 20,
     },
     ol: {
       marginTop: 4,
-      marginBottom: 12,
+      marginBottom: 6,
       paddingLeft: 20,
     },
     li: {
@@ -159,14 +159,14 @@ function getOfferingFaqTagsStyles(
   colors: AppColors,
 ): Record<string, MixedStyleDeclaration> {
   return {
-    body: { marginBottom: 4 },
-    div: { marginBottom: 10 },
+    body: { marginBottom: 0 },
+    div: { marginBottom: 6 },
     p: {
       fontSize: 14,
       lineHeight: 22,
       color: colors.text.secondary,
       marginTop: 0,
-      marginBottom: 12,
+      marginBottom: 8,
     },
     ul: {
       marginTop: 4,

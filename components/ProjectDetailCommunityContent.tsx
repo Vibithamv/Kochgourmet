@@ -363,56 +363,39 @@ export default function ProjectDetailCommunityContent({
           <FundingCountdownBanner fundingStartAt={fundingStartAt} variant="presaleannouncement" />
         ) : isFinished ? (
           <View style={styles.fundingCompleteCard}>
-            {/* <View style={styles.fundingCompleteHeader}>
+            <View style={styles.fundingCompleteTitleRow}>
               <View
                 style={[
-                  styles.fundingCompleteHeaderIcon,
+                  styles.fundingCompleteIconWrap,
                   { backgroundColor: colors.background.secondary },
                 ]}
               >
                 <CircleCheck size={18} color={colors.warning} strokeWidth={2} />
               </View>
-              <Text style={[styles.fundingCompleteHeaderLabel, { color: '#141414' }]}>
-                {t('projectDetail.fundingClosed')}
+              <Text style={[styles.fundingCompleteTitle, { color: colors.text.primary }]}>
+                {t('projectDetail.fundingCompleteTitle')}
               </Text>
-            </View> */}
-
-            <View
-              style={[
-                styles.fundingCompleteIconWrap,
-                { backgroundColor: colors.background.secondary },
-              ]}
-            >
-              <CircleCheck size={40} color={colors.warning} strokeWidth={1.5} />
             </View>
-
-            <Text style={[styles.fundingCompleteTitle, { color: '#141414' }]}>
-              {t('projectDetail.fundingCompleteTitle')}
-            </Text>
             <Text style={[styles.fundingCompleteMessage, { color: colors.text.secondary }]}>
               {t('projectDetail.fundingCompleteMessage')}
             </Text>
           </View>
         ) : showWhitelistApprovedBanner ? (
           <View style={styles.whitelistApprovedCard}>
-            <View style={styles.whitelistApprovedHeader}>
-              <View
-                style={[
-                  styles.whitelistApprovedIconWrap,
-                  { backgroundColor: colors.background.secondary },
-                ]}
-              >
-                <Check size={18} color={colors.warning} strokeWidth={2.5} />
-              </View>
-              <Text style={[styles.whitelistApprovedHeading, { color: colors.warning }]}>
-                {statusLabel}
-              </Text>
-            </View>
-
             <View style={styles.whitelistApprovedInner}>
-              <Text style={[styles.whitelistApprovedTitle, { color: colors.warning }]}>
-                {t('projectDetail.whitelistApprovedTitle')}
-              </Text>
+              <View style={styles.whitelistApprovedTitleRow}>
+                <View
+                  style={[
+                    styles.whitelistApprovedIconWrap,
+                    { backgroundColor: colors.background.secondary },
+                  ]}
+                >
+                  <Check size={18} color={colors.warning} strokeWidth={2.5} />
+                </View>
+                <Text style={[styles.whitelistApprovedTitle, { color: colors.text.primary }]}>
+                  {t('projectDetail.whitelistApprovedTitle')}
+                </Text>
+              </View>
               <Text style={[styles.whitelistApprovedMessage, { color: colors.text.secondary }]}>
                 {t('projectDetail.whitelistApprovedMessage')}
               </Text>
@@ -449,7 +432,7 @@ export default function ProjectDetailCommunityContent({
           </TouchableOpacity>
         ) : null}
 
-        {project.hardcap >= project.minimum_investment ? (
+        {showBuyButton && !investDisabled && project.hardcap >= project.minimum_investment ? (
           <OfferingTokenSlider
             variant="community"
             tokenSymbol={project.asset_symbol}
@@ -573,7 +556,7 @@ export default function ProjectDetailCommunityContent({
                     {formatDisplayDate(project.fundingEndDate)}
                   </Text>
                 </View>
-                <Text style={styles.timelineEmoji}>🎉</Text>
+                <Text style={styles.timelineEmoji}>👏</Text>
               </View>
             </View>
           </View>
@@ -582,44 +565,53 @@ export default function ProjectDetailCommunityContent({
       </ScrollView>
 
       <View
-        style={[styles.floatingActions, { bottom: floatingBottom }]}
+        style={[
+          styles.floatingActions,
+          { bottom: floatingBottom },
+          !showBuyButton && styles.floatingActionsCentered,
+        ]}
         pointerEvents="box-none"
       >
         {showBuyButton ? (
-          <TouchableOpacity
-            style={[
-              styles.buyButton,
-              {
-                backgroundColor: investDisabled
-                  ? colors.interactive.disabled
-                  : colors.primary,
-              },
-            ]}
-            onPress={onInvest}
-            disabled={investDisabled}
-            activeOpacity={0.85}
-          >
-            <Text style={[styles.buyButtonText, { color: buyTextColor }]}>
-              {investLabel}
-            </Text>
-          </TouchableOpacity>
+          <View style={styles.actionButtonSlot}>
+            <TouchableOpacity
+              style={[
+                styles.buyButton,
+                {
+                  backgroundColor: investDisabled
+                    ? colors.interactive.disabled
+                    : colors.primary,
+                },
+              ]}
+              onPress={onInvest}
+              disabled={investDisabled}
+              activeOpacity={0.85}
+            >
+              <Text style={[styles.buyButtonText, { color: buyTextColor }]}>
+                {investLabel}
+              </Text>
+            </TouchableOpacity>
+          </View>
         ) : null}
 
-        <TouchableOpacity
-          style={[
-            styles.closeButton,
-            {
-              backgroundColor: colors.background.card,
-              borderColor: colors.border.primary,
-            },
-          ]}
-          onPress={onClose}
-          activeOpacity={0.7}
-        >
-          <Text style={[styles.closeButtonText, { color: colors.text.primary }]}>
-            {t('common.close')}
-          </Text>
-        </TouchableOpacity>
+        <View style={showBuyButton ? styles.actionButtonSlot : undefined}>
+          <TouchableOpacity
+            style={[
+              styles.closeButton,
+              showBuyButton ? styles.closeButtonFilled : styles.closeButtonCompact,
+              {
+                backgroundColor: colors.background.card,
+                borderColor: colors.border.primary,
+              },
+            ]}
+            onPress={onClose}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.closeButtonText, { color: colors.text.primary }]}>
+              {t('common.close')}
+            </Text>
+          </TouchableOpacity>
+        </View>
 
         <TouchableOpacity
           style={[
@@ -705,11 +697,6 @@ const styles = StyleSheet.create({
   whitelistApprovedCard: {
     gap: 16,
   },
-  whitelistApprovedHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
   whitelistApprovedIconWrap: {
     width: 36,
     height: 36,
@@ -717,15 +704,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  whitelistApprovedHeading: {
-    fontFamily: 'PlayfairDisplay_700Bold',
-    fontSize: 22,
-    lineHeight: 28,
-  },
   whitelistApprovedInner: {
     borderRadius: 12,
     padding: 16,
     gap: 8,
+  },
+  whitelistApprovedTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
   whitelistApprovedTitle: {
     fontFamily: 'PlayfairDisplay_700Bold',
@@ -754,48 +741,33 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   fundingCompleteCard: {
-    alignItems: 'center',
-    gap: 16,
+    gap: 8,
+    alignSelf: 'stretch',
   },
-  fundingCompleteHeader: {
+  fundingCompleteTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    alignSelf: 'center',
-    gap: 10,
-  },
-  fundingCompleteHeaderIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  fundingCompleteHeaderLabel: {
-    fontFamily: 'PlayfairDisplay_700Bold',
-    fontSize: 18,
-    lineHeight: 24,
-    textAlign: 'center',
+    gap: 12,
   },
   fundingCompleteIconWrap: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 36,
+    height: 36,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 4,
   },
   fundingCompleteTitle: {
+    flex: 1,
     fontFamily: 'PlayfairDisplay_700Bold',
     fontSize: 24,
     lineHeight: 32,
-    textAlign: 'center',
+    textAlign: 'left',
   },
   fundingCompleteMessage: {
     fontFamily: 'Roboto-Light',
     fontSize: 15,
     lineHeight: 22,
-    textAlign: 'center',
+    textAlign: 'left',
   },
   presaleAnnouncementCard: {
     gap: 16,
@@ -892,12 +864,20 @@ const styles = StyleSheet.create({
     right: 0,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
+    gap: 12,
+    paddingTop: 8,
+    paddingBottom: 20,
     paddingHorizontal: CONTENT_PADDING,
   },
-  buyButton: {
+  floatingActionsCentered: {
+    justifyContent: 'center',
+  },
+  actionButtonSlot: {
     flex: 1,
+    minWidth: 0,
+  },
+  buyButton: {
+    width: '100%',
     height: 45,
     borderRadius: 9999,
     alignItems: 'center',
@@ -915,7 +895,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0,
   },
   closeButton: {
-    flex: 1,
     height: 45,
     borderRadius: 9999,
     borderWidth: 1,
@@ -926,6 +905,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: 12,
     elevation: 6,
+  },
+  closeButtonFilled: {
+    width: '100%',
+  },
+  closeButtonCompact: {
+    paddingHorizontal: 50,
   },
   closeButtonText: {
     fontFamily: 'Roboto-Light',
@@ -992,16 +977,22 @@ const styles = StyleSheet.create({
   },
   htmlSection: {
     gap: 8,
+    marginBottom: -8,
   },
   moreInfoSection: {
     gap: 16,
+    alignItems: 'flex-start',
+    marginBottom: 8,
   },
   moreInfoButton: {
+    width: '60%',
+    alignSelf: 'flex-start',
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     gap: 8,
     height: 45,
+    paddingHorizontal: 20,
     borderRadius: 9999,
     borderWidth: 1,
   },
@@ -1016,9 +1007,9 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   timelineTitle: {
-    fontFamily: 'Roboto-Regular',
+    fontFamily: 'Roboto-Medium',
     fontSize: 17,
-    lineHeight: 23,
+    lineHeight: 26,
     letterSpacing: 0,
   },
   timelineList: {
@@ -1037,15 +1028,15 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   timelineLabel: {
-    fontFamily: 'Roboto-Light',
+    fontFamily: 'Roboto-Regular',
     fontSize: 17,
-    lineHeight: 23,
+    lineHeight: 26,
     letterSpacing: 0,
   },
   timelineDate: {
-    fontFamily: 'Roboto-Regular',
+    fontFamily: 'Roboto-Light',
     fontSize: 17,
-    lineHeight: 23,
+    lineHeight: 26,
     letterSpacing: 0,
   },
   timelineEmoji: {

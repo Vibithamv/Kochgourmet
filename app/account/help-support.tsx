@@ -247,7 +247,14 @@ export default function HelpSupportScreen() {
                   <View style={[styles.supportIcon, { backgroundColor: colors.interactive.hover }]}>
                     <IconComponent size={24} color={option.available ? colors.primary : colors.text.tertiary} />
                   </View>
-                  <Text style={[styles.supportTitle, { color: colors.text.primary }]}>{option.title}</Text>
+                  <Text
+                    style={[styles.supportTitle, { color: colors.text.primary }]}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.75}
+                  >
+                    {option.title}
+                  </Text>
                   <Text style={[styles.supportDescription, { color: colors.text.secondary }]}>{option.description}</Text>
                   {!option.available && (
                     <View style={[styles.comingSoonBadge, { backgroundColor: colors.interactive.hover }]}>
@@ -549,6 +556,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Roboto-Regular',
     marginBottom: Spacing.xs,
     textAlign: 'center',
+    width: '100%',
   },
   supportDescription: {
     fontSize: Typography.fontSize.sm,

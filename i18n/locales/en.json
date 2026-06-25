@@ -306,6 +306,9 @@
     "failedFetchPortfolio": "Failed to fetch portfolio",
     "failedFetchActivities": "Failed to fetch portfolio activities",
     "noRecentTransactions": "No recent transactions found",
+    "transactionStatus": {
+      "noPayment": "No payment"
+    },
     "transactionDetails": "Transaction Details",
     "transactionDetailType": "Type",
     "transactionDetailStatus": "Status",
@@ -329,6 +332,7 @@
     "enterConfirmPassword": "Please enter confirm password",
     "success": "Your profile has been updated successfully.",
     "validationError": "Password must be at least 8 characters and include uppercase, lowercase, number, and special character.",
+    "currentPasswordIncorrect": "Current password is incorrect",
     "doNotMatch": "Passwords do not match",
     "settingsTitle": "Profile Settings",
     "settingsSubtitle": "Manage your profile and security",
@@ -666,7 +670,7 @@
     "title": "Waiting for\nWhitelisting",
     "subtitle": "You have successfully submitted for whitelisting. Your request will be reviewed by the administrator within 24-48 hours\n",
     "pendingMessage": "Your request is still pending. Please check back later.",
-    "checkStatus": "check status",
+    "checkStatus": "Check status",
     "sessionExpired": "Session Expired",
     "loginAgain": "Please login again...."
   },
@@ -674,7 +678,7 @@
     "title": "Waiting for\nKYC approval",
     "pendingMessage": "Your KYC request is under pending",
     "submittedMessage": "You have successfully submitted your KYC request.\n",
-    "checkStatus": "check status",
+    "checkStatus": "Check status",
     "requestStatusTitle": "KYC Request status"
   },
   "kycRequest": {
@@ -1028,7 +1032,7 @@
     "namePlaceholder": "Enter name",
     "folderNotFound": "Folder not found",
     "folderEmpty": "No recipes in this folder yet",
-    "createFolder": "Create folder",
+    "createFolder": "Create",
     "createFolderTitle": "New folder",
     "addRecipes": "Add",
     "addRecipesTitle": "Add recipes",

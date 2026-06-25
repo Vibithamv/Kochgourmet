@@ -14,6 +14,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { getColors } from '@/constants/theme';
 import { RECIPES_PER_PAGE } from '@/constants/recipeListDefaults';
 import { REZEPE_CARD_IMAGE_SIZE } from '@/components/RecipeCard';
+import { INVESTMENT_CONTENT_PADDING } from '@/components/InvestmentCommunityUI';
 
 // ---------------------------------------------------------------------------
 // Hook
@@ -900,104 +901,115 @@ export function ProjectDetailShimmer() {
 }
 
 // ---------------------------------------------------------------------------
-// InvestmentShimmer
+// InvestmentShimmer — matches InvestmentOrderStep + InvestmentFloatingBar
 // ---------------------------------------------------------------------------
+
+const INVESTMENT_ROW_PADDING_V = 16;
+const INVESTMENT_FLOATING_BOTTOM_OFFSET = 16;
+const INVESTMENT_FLOATING_BAR_RESERVE = 72;
 
 export function InvestmentShimmer() {
   const { theme } = useTheme();
   const colors = getColors(theme);
   const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
   const anim = useShimmerAnim();
+
+  const floatingBottom = Math.max(insets.bottom, 12) + INVESTMENT_FLOATING_BOTTOM_OFFSET;
+  const topInset = Math.max(insets.top, 16);
+  const bottomReserve = floatingBottom + INVESTMENT_FLOATING_BAR_RESERVE;
+  const contentMinHeight = windowHeight - topInset - bottomReserve;
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background.secondary }}>
-      {/* Fake header bar */}
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{
+          flexGrow: 1,
+          justifyContent: 'center',
+          paddingHorizontal: INVESTMENT_CONTENT_PADDING,
+          paddingTop: topInset,
+          paddingBottom: bottomReserve,
+          minHeight: contentMinHeight,
+        }}
+      >
+        <View style={{ marginBottom: 28, gap: 2, alignSelf: 'stretch' }}>
+          <ShimmerBlock anim={anim} width="28%" height={48} borderRadius={8} />
+          <ShimmerBlock anim={anim} width="92%" height={48} borderRadius={8} />
+          <ShimmerBlock anim={anim} width="68%" height={48} borderRadius={8} />
+        </View>
+
+        <View style={{ marginBottom: 28, alignSelf: 'stretch' }}>
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              paddingVertical: INVESTMENT_ROW_PADDING_V,
+              gap: 12,
+              borderBottomWidth: 1,
+              borderBottomColor: colors.border.primary,
+            }}
+          >
+            <ShimmerBlock anim={anim} width="44%" height={23} borderRadius={4} />
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <ShimmerBlock anim={anim} width={32} height={32} borderRadius={16} />
+              <ShimmerBlock anim={anim} width={24} height={23} borderRadius={4} />
+              <ShimmerBlock anim={anim} width={32} height={32} borderRadius={16} />
+            </View>
+          </View>
+
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              paddingVertical: INVESTMENT_ROW_PADDING_V,
+              gap: 12,
+              borderBottomWidth: 1,
+              borderBottomColor: colors.border.primary,
+            }}
+          >
+            <ShimmerBlock anim={anim} width="38%" height={23} borderRadius={4} />
+            <ShimmerBlock anim={anim} width="22%" height={23} borderRadius={4} />
+          </View>
+
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              paddingVertical: INVESTMENT_ROW_PADDING_V,
+              gap: 12,
+            }}
+          >
+            <ShimmerBlock anim={anim} width="34%" height={23} borderRadius={4} />
+            <ShimmerBlock anim={anim} width="24%" height={23} borderRadius={4} />
+          </View>
+        </View>
+
+        <View style={{ gap: 10, alignSelf: 'stretch' }}>
+          <ShimmerBlock anim={anim} width="58%" height={23} borderRadius={4} />
+          <ShimmerBlock anim={anim} width="100%" height={45} borderRadius={9999} />
+        </View>
+      </ScrollView>
+
       <View
         style={{
-          paddingTop: insets.top + 16,
-          paddingBottom: 16,
-          paddingHorizontal: 16,
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          bottom: floatingBottom,
           flexDirection: 'row',
           alignItems: 'center',
-          backgroundColor: colors.background.primary,
-          height: insets.top + 16 + 56,
+          gap: 10,
+          paddingHorizontal: INVESTMENT_CONTENT_PADDING,
         }}
+        pointerEvents="none"
       >
-        <ShimmerBlock anim={anim} width={40} height={40} borderRadius={20} />
-        <View style={{ flex: 1, alignItems: 'center' }}>
-          <ShimmerBlock anim={anim} width="40%" height={16} borderRadius={6} />
-        </View>
-        <View style={{ width: 40 }} />
+        <ShimmerBlock anim={anim} height={45} borderRadius={9999} style={{ flex: 1 }} />
+        <ShimmerBlock anim={anim} height={45} borderRadius={9999} style={{ flex: 1 }} />
       </View>
-
-      {/* Step indicator bar */}
-      <View
-        style={{
-          paddingHorizontal: 24,
-          paddingVertical: 16,
-          gap: 8,
-          backgroundColor: colors.background.primary,
-          borderBottomWidth: 1,
-          borderBottomColor: colors.border.primary,
-        }}
-      >
-        <ShimmerBlock anim={anim} width="30%" height={12} borderRadius={4} />
-        <ShimmerBlock anim={anim} width="100%" height={6} borderRadius={3} />
-      </View>
-
-      {/* Content */}
-      <ScrollView
-        contentContainerStyle={{
-          padding: 24,
-          paddingBottom: insets.bottom + 40,
-          alignItems: 'center',
-        }}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Header icon */}
-        <ShimmerBlock anim={anim} width={64} height={64} borderRadius={32} />
-
-        {/* Title */}
-        <ShimmerBlock anim={anim} width="70%" height={20} borderRadius={6} style={{ marginTop: 16 }} />
-
-        {/* Subtitle */}
-        <ShimmerBlock anim={anim} width="50%" height={14} borderRadius={4} style={{ marginTop: 8, marginBottom: 24 }} />
-
-        {/* Detail card */}
-        <View
-          style={{
-            width: '100%',
-            borderRadius: 16,
-            borderWidth: 1,
-            borderColor: colors.border.primary,
-            padding: 20,
-            marginBottom: 24,
-          }}
-        >
-          {[0, 1, 2, 3].map((i) => (
-            <View
-              key={i}
-              style={{
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: i < 3 ? 16 : 0,
-              }}
-            >
-              <ShimmerBlock anim={anim} width="35%" height={14} borderRadius={4} />
-              <ShimmerBlock anim={anim} width="30%" height={14} borderRadius={4} />
-            </View>
-          ))}
-        </View>
-
-        {/* Form: 2 input groups */}
-        {[0, 1].map((i) => (
-          <View key={i} style={{ width: '100%', marginBottom: 16 }}>
-            <ShimmerBlock anim={anim} width="25%" height={12} borderRadius={4} style={{ marginBottom: 8 }} />
-            <ShimmerBlock anim={anim} width="100%" height={56} borderRadius={12} />
-          </View>
-        ))}
-      </ScrollView>
     </View>
   );
 }
@@ -1386,15 +1398,9 @@ export function ProfileScreenShimmer() {
 // SecuritiesAccountShimmer / BankDetailsShimmer
 // ---------------------------------------------------------------------------
 
-interface AccountFormFieldGroupShimmerProps {
-  anim: Animated.Value;
-  labelWidth: string;
-}
-
-function AccountFormFieldGroupShimmer({ anim, labelWidth }: Readonly<AccountFormFieldGroupShimmerProps>) {
+function AccountFormFieldGroupShimmer({ anim }: Readonly<{ anim: Animated.Value }>) {
   return (
-    <View style={{ marginBottom: 20, gap: 8 }}>
-      <ShimmerBlock anim={anim} width={labelWidth} height={15} borderRadius={4} />
+    <View style={{ marginBottom: 20 }}>
       <ShimmerBlock anim={anim} width="100%" height={48} borderRadius={9999} />
     </View>
   );
@@ -1410,8 +1416,6 @@ function AccountDetailsFormShimmer({ fieldCount, showToggle = false }: Readonly<
   const colors = getColors(theme);
   const insets = useSafeAreaInsets();
   const anim = useShimmerAnim();
-
-  const labelWidths = ['52%', '48%', '36%', '30%'];
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background.primary }}>
@@ -1444,11 +1448,7 @@ function AccountDetailsFormShimmer({ fieldCount, showToggle = false }: Readonly<
         <ShimmerBlock anim={anim} width="78%" height={16} borderRadius={4} style={{ marginBottom: 28 }} />
 
         {Array.from({ length: fieldCount }, (_, index) => (
-          <AccountFormFieldGroupShimmer
-            key={`field-${index}`}
-            anim={anim}
-            labelWidth={labelWidths[index] ?? '40%'}
-          />
+          <AccountFormFieldGroupShimmer key={`field-${index}`} anim={anim} />
         ))}
 
         {showToggle ? (

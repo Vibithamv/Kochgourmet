@@ -155,6 +155,7 @@ export default function MagazinDetailContent({
     theme,
     heroAtTop,
     statusBarStripBackground,
+    { forceDarkContentOnAndroid: true },
   );
 
   const handleScroll = useCallback(
@@ -441,9 +442,11 @@ const styles = StyleSheet.create({
   closeBtn: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 6,
-    paddingVertical: 12,
-    paddingHorizontal: 22,
+    minHeight: 48,
+    paddingVertical: 10,
+    paddingHorizontal: 38,
     borderRadius: 9999,
     borderWidth: 1,
     shadowColor: '#000',
@@ -454,8 +457,8 @@ const styles = StyleSheet.create({
   },
   closeBtnText: {
     fontFamily: 'Roboto-Light',
-    fontSize: 17,
-    lineHeight: 23,
+    fontSize: 19,
+    lineHeight: 26,
     letterSpacing: 0,
     textAlign: 'center',
   },

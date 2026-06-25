@@ -19,6 +19,7 @@ import RenderHTML from 'react-native-render-html';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Clock, Star, Heart, Share2, ChevronDown, Minus, Plus, Check } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import HeroSteamIcon, { heroSteamOverlayStyle, HERO_STEAM_ICON_OVERHANG } from '@/components/HeroSteamIcon';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getColors, getTypography } from '@/constants/theme';
@@ -128,6 +129,7 @@ export default function RecipeDetailContent({
   deferStatusBarToParent = false,
   onScrollOffsetChange,
 }: RecipeDetailContentProps) {
+  const { t } = useTranslation();
   const { theme } = useTheme();
   const colors = getColors(theme);
   const typography = getTypography(theme);
@@ -200,6 +202,7 @@ export default function RecipeDetailContent({
     theme,
     heroAtTop,
     statusBarStripBackground,
+    { forceDarkContentOnAndroid: true },
   );
 
   const handleScroll = useCallback(
@@ -300,7 +303,9 @@ export default function RecipeDetailContent({
             onPress={onClose}
             activeOpacity={0.7}
           >
-            <Text style={[styles.closeBtnText, { color: colors.text.primary }]}>Schließen</Text>
+            <Text style={[styles.closeBtnText, { color: colors.text.primary }]}>
+              {t('common.close')}
+            </Text>
           </TouchableOpacity>
         </View>
       </>
@@ -574,7 +579,9 @@ export default function RecipeDetailContent({
           activeOpacity={0.7}
         >
           {/* <X size={16} color={colors.text.primary} /> */}
-          <Text style={[styles.closeBtnText, { color: colors.text.primary }]}>Schließen</Text>
+          <Text style={[styles.closeBtnText, { color: colors.text.primary }]}>
+            {t('common.close')}
+          </Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[
@@ -733,9 +740,10 @@ const styles = StyleSheet.create({
   closeBtn: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 6,
-    paddingVertical: 12,
-    paddingHorizontal: 22,
+    paddingVertical: 10,
+    paddingHorizontal: 38,
     borderRadius: 9999,
     borderWidth: 1,
     shadowColor: '#000',
@@ -746,8 +754,8 @@ const styles = StyleSheet.create({
   },
   closeBtnText: {
     fontFamily: 'Roboto-Light',
-    fontSize: 17,
-    lineHeight: 23,
+    fontSize: 19,
+    lineHeight: 26,
     letterSpacing: 0,
     textAlign: 'center',
   },

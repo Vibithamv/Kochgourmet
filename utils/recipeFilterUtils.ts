@@ -1,6 +1,6 @@
 import type { RecipeFilterOptions, RecipeFilterTimeBucket, RecipeListParams } from '@/types/mobileAppApi';
 
-export const RECIPE_MEDIA_BASE_URL = 'https://beta.kochgourmet.com/';
+export const RECIPE_MEDIA_BASE_URL = 'https://www.kochgourmet.com/';
 
 export interface RecipeFilterSelection {
   categoryUids: number[];
@@ -31,10 +31,14 @@ export const EMPTY_RECIPE_FILTER_SELECTION: RecipeFilterSelection = {
   exactMatch: false,
 };
 
+export function recipeMediaUrl(path?: string | null): string | null {
+  if (!path?.trim()) return null;
+  if (path.startsWith('http')) return path;
+  return `${RECIPE_MEDIA_BASE_URL}${path.replace(/^\//, '')}`;
+}
+
 export function countryFlagUrl(flagImage?: string): string | null {
-  if (!flagImage?.trim()) return null;
-  if (flagImage.startsWith('http')) return flagImage;
-  return `${RECIPE_MEDIA_BASE_URL}${flagImage.replace(/^\//, '')}`;
+  return recipeMediaUrl(flagImage);
 }
 
 export function recipeFilterSelectionToParams(

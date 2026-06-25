@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
@@ -27,7 +27,7 @@ export type SyncKycStatusOptions = {
 export function useKycPostVerificationFlow() {
   const { t } = useTranslation();
   const { showAlert } = useGlobalAlert();
-  const userAccount = userManagement();
+  const userAccount = useMemo(() => userManagement(), []);
 
   /** Poll-friendly: returns active account `kyc_status` or `null` if the request fails (no alerts). */
   const fetchActiveAccountKycStatus = useCallback(async (): Promise<string | null> => {

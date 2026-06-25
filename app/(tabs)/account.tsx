@@ -23,6 +23,7 @@ interface MenuItem {
   route?: string;
   onPress?: () => void;
   labelColor?: string;
+  hideChevron?: boolean;
 }
 
 const TAB_BAR_HEIGHT = 90;
@@ -74,7 +75,7 @@ export default function MenuScreen() {
     () => [
       { id: 'privacy', labelKey: 'account.privacyPolicy', route: '/account/datenschutz' },
       { id: 'legal', labelKey: 'account.legalNotice', route: '/account/impressum' },
-      { id: 'signOut', labelKey: 'account.signOut', labelColor: colors.primary, onPress: handleSignOut },
+      { id: 'signOut', labelKey: 'account.signOut', labelColor: colors.primary, onPress: handleSignOut, hideChevron: true },
     ],
     [colors.primary, handleSignOut],
   );
@@ -103,7 +104,9 @@ export default function MenuScreen() {
       ]}>
         {t(item.labelKey)}
       </Text>
-      <ChevronRight size={20} color={colors.text.tertiary} strokeWidth={1.5} />
+      {item.hideChevron ? null : (
+        <ChevronRight size={20} color={colors.text.tertiary} strokeWidth={1.5} />
+      )}
     </TouchableOpacity>
   );
 

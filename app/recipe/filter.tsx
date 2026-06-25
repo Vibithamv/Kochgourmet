@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -20,9 +20,11 @@ import {
   Soup, Beef, Salad, Cookie, Sandwich, Apple, CakeSlice,
   Droplet, Flame, Egg, CookingPot, Wine, Pizza, Star,
 } from 'lucide-react-native';
+import { SvgXml } from 'react-native-svg';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useGlobalAlert } from '@/contexts/AlertContext';
 import { getColors } from '@/constants/theme';
+import { inlineSvgStyles } from '@/utils/inlineSvgStyles';
 import { useRecipeFilters } from '@/contexts/RecipeFiltersContext';
 import { mobileAppRecipes } from '@/hooks/mobileApp';
 import type {
@@ -167,18 +169,84 @@ interface CircularFlagProps {
   readonly colors: ColorsType;
 }
 
+function FlagFallback({ colors }: { readonly colors: ColorsType }) {
+  return (
+    <View style={[styles.flagCircle, { backgroundColor: colors.primary }]}>
+      <Star size={14} color="#fff" fill="#fff" />
+    </View>
+  );
+}
+
 function CircularFlag({ flagUrl, colors }: CircularFlagProps) {
-  if (!flagUrl) {
+  const [svgXml, setSvgXml] = useState<string | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
+
+  useEffect(() => {
+    if (!flagUrl) {
+      setSvgXml(null);
+      setLoadFailed(false);
+      return undefined;
+    }
+
+    let cancelled = false;
+    setSvgXml(null);
+    setLoadFailed(false);
+
+    void fetch(flagUrl)
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`Flag request failed (${response.status})`);
+        }
+        return response.text();
+      })
+      .then((rawSvg) => {
+        if (!cancelled) {
+          setSvgXml(inlineSvgStyles(rawSvg));
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setLoadFailed(true);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [flagUrl]);
+
+  if (!flagUrl || loadFailed) {
+    return <FlagFallback colors={colors} />;
+  }
+
+  const isSvg = /\.svg(?:$|\?)/i.test(flagUrl);
+
+  if (isSvg) {
+    if (!svgXml) {
+      return <View style={[styles.flagCircle, { backgroundColor: colors.background.tertiary }]} />;
+    }
+
     return (
-      <View style={[styles.flagCircle, { backgroundColor: colors.primary }]}>
-        <Star size={14} color="#fff" fill="#fff" />
+      <View style={styles.flagCircle}>
+        <SvgXml
+          xml={svgXml}
+          width={FLAG_SIZE}
+          height={FLAG_SIZE}
+          onError={() => setLoadFailed(true)}
+          fallback={<FlagFallback colors={colors} />}
+        />
       </View>
     );
   }
 
   return (
     <View style={styles.flagCircle}>
-      <Image source={{ uri: flagUrl }} style={styles.flagImage} resizeMode="cover" />
+      <Image
+        source={{ uri: flagUrl }}
+        style={styles.flagImage}
+        resizeMode="cover"
+        onError={() => setLoadFailed(true)}
+      />
     </View>
   );
 }

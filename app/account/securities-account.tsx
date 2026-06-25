@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -38,19 +38,30 @@ export default function SecuritiesAccountScreen() {
   const [bicSwiftCode, setBicSwiftCode] = useState('');
   const [accountFocused, setAccountFocused] = useState(false);
   const [bicFocused, setBicFocused] = useState(false);
+  const isInitialLoad = useRef(true);
 
   const loadSecuritiesAccount = useCallback(async () => {
-    setLoading(true);
+    const showShimmer = isInitialLoad.current;
+    if (showShimmer) {
+      setLoading(true);
+    }
+
     const result = await userAccount.getUser();
     if (result.success && result.data) {
       const fields = readSecuritiesAccountFromUserResponse(result.data);
-      setAccountNumber(fields.securities_account_number);
-      setBicSwiftCode(fields.securities_bic_swift_code);
-      setLoading(false);
+      setAccountNumber((prev) => fields.securities_account_number || prev);
+      setBicSwiftCode((prev) => fields.securities_bic_swift_code || prev);
+      if (showShimmer) {
+        setLoading(false);
+        isInitialLoad.current = false;
+      }
       return;
     }
 
-    setLoading(false);
+    if (showShimmer) {
+      setLoading(false);
+      isInitialLoad.current = false;
+    }
     if (result.status === 401) {
       showAlert(t('profile.sessionExpired'), t('profile.loginAgain'));
       replaceLoginClearingAuthStack();
@@ -67,12 +78,21 @@ export default function SecuritiesAccountScreen() {
 
   const handleSave = () => {
     Keyboard.dismiss();
+
+    const trimmedAccountNumber = accountNumber.trim();
+    const trimmedBicSwiftCode = bicSwiftCode.trim();
+
+    if (!trimmedAccountNumber || !trimmedBicSwiftCode) {
+      showAlert(t('common.error'), t('auth.errors.fillAllFields'));
+      return;
+    }
+
     setSaving(true);
     void (async () => {
       try {
         const result = await userAccount.updateSecuritiesAccount({
-          securities_account_number: accountNumber.trim(),
-          securities_bic_swift_code: bicSwiftCode.trim(),
+          securities_account_number: trimmedAccountNumber,
+          securities_bic_swift_code: trimmedBicSwiftCode,
         });
 
         if (!result.success) {
@@ -88,12 +108,10 @@ export default function SecuritiesAccountScreen() {
           return;
         }
 
+        setAccountNumber(trimmedAccountNumber);
+        setBicSwiftCode(trimmedBicSwiftCode);
         showAlert(t('common.success'), t('account.securitiesAccountSaved'), {
           buttonText: t('common.ok'),
-          buttonCallback: () => {
-            setAccountNumber('');
-            setBicSwiftCode('');
-          },
         });
       } finally {
         setSaving(false);
@@ -102,6 +120,8 @@ export default function SecuritiesAccountScreen() {
   };
 
   const borderFor = (focused: boolean) => (focused ? colors.primary : colors.border.primary);
+  const canSave =
+    accountNumber.trim().length > 0 && bicSwiftCode.trim().length > 0 && !saving;
 
   if (loading) {
     return <SecuritiesAccountShimmer />;
@@ -153,9 +173,6 @@ export default function SecuritiesAccountScreen() {
         </Text>
 
         <View style={styles.fieldGroup}>
-          <Text style={[styles.label, { color: colors.text.primary }]}>
-            {t('account.securitiesAccountNumber')}
-          </Text>
           <TextInput
             style={[
               styles.input,
@@ -178,9 +195,6 @@ export default function SecuritiesAccountScreen() {
         </View>
 
         <View style={styles.fieldGroup}>
-          <Text style={[styles.label, { color: colors.text.primary }]}>
-            {t('account.securitiesBicSwiftCode')}
-          </Text>
           <TextInput
             style={[
               styles.input,
@@ -214,9 +228,15 @@ export default function SecuritiesAccountScreen() {
         ]}
       >
         <TouchableOpacity
-          style={[styles.saveButton, { backgroundColor: colors.primary, opacity: saving ? 0.6 : 1 }]}
+          style={[
+            styles.saveButton,
+            {
+              backgroundColor: colors.primary,
+              opacity: canSave ? 1 : 0.6,
+            },
+          ]}
           onPress={handleSave}
-          disabled={saving}
+          disabled={!canSave}
           activeOpacity={0.85}
         >
           <View style={styles.saveButtonInner}>
@@ -269,12 +289,6 @@ const styles = StyleSheet.create({
   },
   fieldGroup: {
     marginBottom: 20,
-    gap: 8,
-  },
-  label: {
-    fontFamily: 'Roboto-Regular',
-    fontSize: 15,
-    lineHeight: 21,
   },
   input: {
     borderWidth: 1,

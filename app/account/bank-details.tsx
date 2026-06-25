@@ -45,6 +45,7 @@ export default function BankDetailsScreen() {
   const [bankNameFocused, setBankNameFocused] = useState(false);
   const [ibanFocused, setIbanFocused] = useState(false);
   const [bicFocused, setBicFocused] = useState(false);
+  const isInitialLoad = useRef(true);
 
   const scrollRef = useRef<InstanceType<typeof KeyboardAwareScrollView> | null>(null);
   const bankNameRef = useRef<TextInput>(null);
@@ -56,6 +57,20 @@ export default function BankDetailsScreen() {
     [insets.top],
   );
 
+  const scrollBottomPadding = useMemo(() => {
+    const footerButtonHeight = 52;
+    const footerTopPadding = 16;
+    const tabBarClearance = 90;
+    const contentBuffer = 32;
+    return (
+      footerTopPadding +
+      footerButtonHeight +
+      tabBarClearance +
+      Math.max(insets.bottom, 16) +
+      contentBuffer
+    );
+  }, [insets.bottom]);
+
   const focusInput = useCallback((inputRef: React.RefObject<TextInput | null>) => {
     inputRef.current?.focus();
     requestAnimationFrame(() => {
@@ -64,20 +79,32 @@ export default function BankDetailsScreen() {
   }, []);
 
   const loadBankDetails = useCallback(async () => {
-    setLoading(true);
+    const showShimmer = isInitialLoad.current;
+    if (showShimmer) {
+      setLoading(true);
+    }
+
     const result = await userAccount.getUser();
     if (result.success && result.data) {
       const fields = readBankDetailsFromUserResponse(result.data);
-      setAccountHolderName(fields.account_holder_name);
-      setBankName(fields.bank_name);
-      setIban(fields.iban);
-      setBic(fields.bic);
-      setIsBankPayout(fields.is_bank_payout);
-      setLoading(false);
+      setAccountHolderName((prev) => fields.account_holder_name || prev);
+      setBankName((prev) => fields.bank_name || prev);
+      setIban((prev) => fields.iban || prev);
+      setBic((prev) => fields.bic || prev);
+      if (fields.account_holder_name || fields.bank_name || fields.iban || fields.bic) {
+        setIsBankPayout(fields.is_bank_payout);
+      }
+      if (showShimmer) {
+        setLoading(false);
+        isInitialLoad.current = false;
+      }
       return;
     }
 
-    setLoading(false);
+    if (showShimmer) {
+      setLoading(false);
+      isInitialLoad.current = false;
+    }
     if (result.status === 401) {
       showAlert(t('profile.sessionExpired'), t('profile.loginAgain'));
       replaceLoginClearingAuthStack();
@@ -94,14 +121,25 @@ export default function BankDetailsScreen() {
 
   const handleSave = () => {
     Keyboard.dismiss();
+
+    const trimmedAccountHolderName = accountHolderName.trim();
+    const trimmedBankName = bankName.trim();
+    const trimmedIban = iban.trim();
+    const trimmedBic = bic.trim();
+
+    if (!trimmedAccountHolderName || !trimmedBankName || !trimmedIban || !trimmedBic) {
+      showAlert(t('common.error'), t('auth.errors.fillAllFields'));
+      return;
+    }
+
     setSaving(true);
     void (async () => {
       try {
         const result = await userAccount.updateBankDetails({
-          account_holder_name: accountHolderName.trim(),
-          bank_name: bankName.trim(),
-          iban: iban.trim(),
-          bic: bic.trim(),
+          account_holder_name: trimmedAccountHolderName,
+          bank_name: trimmedBankName,
+          iban: trimmedIban,
+          bic: trimmedBic,
           is_bank_payout: isBankPayout,
         });
 
@@ -118,15 +156,12 @@ export default function BankDetailsScreen() {
           return;
         }
 
+        setAccountHolderName(trimmedAccountHolderName);
+        setBankName(trimmedBankName);
+        setIban(trimmedIban);
+        setBic(trimmedBic);
         showAlert(t('common.success'), t('account.bankDetailsSaved'), {
           buttonText: t('common.ok'),
-          buttonCallback: () => {
-            setAccountHolderName('');
-            setBankName('');
-            setIban('');
-            setBic('');
-            setIsBankPayout(false);
-          },
         });
       } finally {
         setSaving(false);
@@ -135,6 +170,12 @@ export default function BankDetailsScreen() {
   };
 
   const borderFor = (focused: boolean) => (focused ? colors.primary : colors.border.primary);
+  const canSave =
+    accountHolderName.trim().length > 0 &&
+    bankName.trim().length > 0 &&
+    iban.trim().length > 0 &&
+    bic.trim().length > 0 &&
+    !saving;
 
   if (loading) {
     return <BankDetailsShimmer />;
@@ -176,7 +217,7 @@ export default function BankDetailsScreen() {
         contentContainerStyle={{
           paddingHorizontal: 26,
           paddingTop: 24,
-          paddingBottom: Math.max(insets.bottom, 16) + 100,
+          paddingBottom: scrollBottomPadding,
         }}
         showsVerticalScrollIndicator={false}
         enableOnAndroid
@@ -191,9 +232,6 @@ export default function BankDetailsScreen() {
         </Text>
 
         <View style={styles.fieldGroup}>
-          <Text style={[styles.label, { color: colors.text.primary }]}>
-            {t('account.bankDetailsAccountHolderName')}
-          </Text>
           <TextInput
             style={[
               styles.input,
@@ -218,9 +256,6 @@ export default function BankDetailsScreen() {
         </View>
 
         <View style={styles.fieldGroup}>
-          <Text style={[styles.label, { color: colors.text.primary }]}>
-            {t('account.bankDetailsBankName')}
-          </Text>
           <TextInput
             ref={bankNameRef}
             style={[
@@ -246,9 +281,6 @@ export default function BankDetailsScreen() {
         </View>
 
         <View style={styles.fieldGroup}>
-          <Text style={[styles.label, { color: colors.text.primary }]}>
-            {t('account.bankDetailsIban')}
-          </Text>
           <TextInput
             ref={ibanRef}
             style={[
@@ -274,9 +306,6 @@ export default function BankDetailsScreen() {
         </View>
 
         <View style={styles.fieldGroup}>
-          <Text style={[styles.label, { color: colors.text.primary }]}>
-            {t('account.bankDetailsBic')}
-          </Text>
           <TextInput
             ref={bicRef}
             style={[
@@ -331,9 +360,15 @@ export default function BankDetailsScreen() {
         ]}
       >
         <TouchableOpacity
-          style={[styles.saveButton, { backgroundColor: colors.primary, opacity: saving ? 0.6 : 1 }]}
+          style={[
+            styles.saveButton,
+            {
+              backgroundColor: colors.primary,
+              opacity: canSave ? 1 : 0.6,
+            },
+          ]}
           onPress={handleSave}
-          disabled={saving}
+          disabled={!canSave}
           activeOpacity={0.85}
         >
           <View style={styles.saveButtonInner}>
@@ -386,12 +421,6 @@ const styles = StyleSheet.create({
   },
   fieldGroup: {
     marginBottom: 20,
-    gap: 8,
-  },
-  label: {
-    fontFamily: 'Roboto-Regular',
-    fontSize: 15,
-    lineHeight: 21,
   },
   input: {
     borderWidth: 1,
@@ -407,7 +436,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 4,
-    marginBottom: 8,
+    marginBottom: 16,
     gap: 12,
   },
   toggleSwitchWrap: {

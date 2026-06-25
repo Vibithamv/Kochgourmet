@@ -237,6 +237,7 @@
     "enterConfirmPassword": "Bitte bestätigen Sie das Passwort.",
     "success": "Ihr Profil wurde erfolgreich aktualisiert.",
     "validationError": "Das Passwort muss mindestens 8 Zeichen lang sein und Großbuchstaben, Kleinbuchstaben, Zahlen und Sonderzeichen enthalten.",
+    "currentPasswordIncorrect": "Das aktuelle Passwort ist falsch",
     "doNotMatch": "Die Passwörter stimmen nicht überein.",
     "settingsTitle": "Profil Einstellungen",
     "settingsSubtitle": "Verwalten Sie Ihr Profil und Ihre Sicherheit",
@@ -367,6 +368,9 @@
     "failedFetchPortfolio": "Portfolio konnte nicht geladen werden",
     "failedFetchActivities": "Portfolio-Aktivitäten konnten nicht geladen werden",
     "noRecentTransactions": "Keine aktuellen Transaktionen gefunden",
+    "transactionStatus": {
+      "noPayment": "Keine Zahlung"
+    },
     "transactionDetails": "Transaktionsdetails",
     "transactionDetailType": "Typ",
     "transactionDetailStatus": "Status",
@@ -1032,7 +1036,7 @@
     "namePlaceholder": "Name eingeben",
     "folderNotFound": "Ordner nicht gefunden",
     "folderEmpty": "Noch keine Rezepte in diesem Ordner",
-    "createFolder": "Ordner erstellen",
+    "createFolder": "Erstellen",
     "createFolderTitle": "Neuer Ordner",
     "addRecipes": "Hinzufügen",
     "addRecipesTitle": "Rezepte hinzufügen",

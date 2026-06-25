@@ -36,7 +36,7 @@ export const portfolio = () => {
         },
         API_HEADER_CONFIG,
       );
-
+      console.log('portfolio response', JSON.stringify(response, null, 2));
       if (response.success) {
         return { success: true, data: response.data };
       }
@@ -69,7 +69,7 @@ export const portfolio = () => {
         {},
         API_HEADER_CONFIG,
       );
-
+      console.log('portfolio activities response', JSON.stringify(response, null, 2));
       if (response.success) {
         return { success: true, data: response.data };
       }

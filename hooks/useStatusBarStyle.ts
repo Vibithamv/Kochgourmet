@@ -48,13 +48,22 @@ export function useStatusBarStyle(
   }, [enabled, resetStyle]);
 }
 
+export type DetailScreenStatusBarOptions = {
+  /** Android only: keep status bar icons dark regardless of hero scroll position. */
+  readonly forceDarkContentOnAndroid?: boolean;
+};
+
 export function useDetailScreenStatusBar(
   enabled: boolean,
   theme: ThemeMode,
   heroAtTop: boolean,
   _stripBackground: string,
+  options?: DetailScreenStatusBarOptions,
 ) {
-  const config = getDetailScreenStatusBarConfig(theme, heroAtTop);
+  let config = getDetailScreenStatusBarConfig(theme, heroAtTop);
+  if (options?.forceDarkContentOnAndroid && Platform.OS === 'android') {
+    config = { native: 'dark-content', expo: 'dark' };
+  }
   const resetConfig = getRootStatusBarConfig(theme);
 
   useEffect(() => {

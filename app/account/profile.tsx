@@ -44,6 +44,32 @@ import {
 
 const ANREDE_OPTIONS = ['Herr', 'Frau', 'Divers', 'Keine Angabe'];
 const PHONE_MAX_LENGTH = 10;
+const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d])\S{8,}$/;
+
+type ProfileFieldErrors = {
+  currentPassword?: string;
+  newPassword?: string;
+  confirmPassword?: string;
+};
+
+function resolvePasswordChangeFieldErrors(
+  error: unknown,
+  t: (key: string) => string,
+): ProfileFieldErrors {
+  const raw = messageFromApiError(error, '');
+  const lower = raw.toLowerCase();
+
+  if (
+    lower.includes('current password') ||
+    lower.includes('incorrect password') ||
+    lower.includes('wrong password') ||
+    lower.includes('invalid password')
+  ) {
+    return { currentPassword: t('profile.currentPasswordIncorrect') };
+  }
+
+  return { newPassword: raw || t('profile.validationError') };
+}
 
 function sanitizePhone(value: string): string {
   return value.replace(/\D/g, '').slice(0, PHONE_MAX_LENGTH);
@@ -161,6 +187,16 @@ export default function ProfileScreen() {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<ProfileFieldErrors>({});
+
+  const clearFieldError = useCallback((field: keyof ProfileFieldErrors) => {
+    setFieldErrors((prev) => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+  }, []);
 
   const countryDisplayName = useMemo(() => getCountryNameByAlpha2(country), [country]);
   const filteredCountries = useMemo(
@@ -336,6 +372,16 @@ export default function ProfileScreen() {
           lineHeight: 22,
           letterSpacing: 0,
           paddingVertical: 0,
+        },
+        fieldWrap: {
+          gap: 6,
+        },
+        fieldError: {
+          fontFamily: 'Roboto-Light',
+          fontSize: 13,
+          lineHeight: 18,
+          letterSpacing: 0,
+          paddingHorizontal: 8,
         },
         passwordPillInput: {
           paddingVertical: 12,
@@ -616,23 +662,24 @@ export default function ProfileScreen() {
 
   const handleSave = () => {
     Keyboard.dismiss();
+    setFieldErrors({});
+
     const wantsPasswordChange = password.trim() || confirmPassword.trim();
     if (wantsPasswordChange) {
       if (!currentPassword.trim()) {
-        showAlert(t('common.error'), t('profile.enterCurrentPassword'));
+        setFieldErrors({ currentPassword: t('profile.enterCurrentPassword') });
         return;
       }
       if (!password.trim()) {
-        showAlert(t('common.error'), t('profile.enterNewPassword'));
+        setFieldErrors({ newPassword: t('profile.enterNewPassword') });
         return;
       }
-      const pwRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d])\S{8,}$/;
-      if (!pwRegex.test(password)) {
-        showAlert(t('common.error'), t('profile.validationError'));
+      if (!PASSWORD_REGEX.test(password)) {
+        setFieldErrors({ newPassword: t('profile.validationError') });
         return;
       }
       if (password !== confirmPassword) {
-        showAlert(t('common.error'), t('profile.doNotMatch'));
+        setFieldErrors({ confirmPassword: t('profile.doNotMatch') });
         return;
       }
     }
@@ -675,10 +722,7 @@ export default function ProfileScreen() {
             newPassword: password.trim(),
           });
           if (!passwordResult.success) {
-            showAlert(
-              t('common.failed'),
-              messageFromApiError(passwordResult.error, t('profile.validationError')),
-            );
+            setFieldErrors(resolvePasswordChangeFieldErrors(passwordResult.error, t));
             return;
           }
         }
@@ -1013,74 +1057,125 @@ export default function ProfileScreen() {
             editable={false}
             autoCapitalize="none"
           />
-          <View style={[styles.pillInput, styles.passwordPillInput, pillBorder]}>
-            <TextInput
-              style={[styles.pillField, styles.flex1, fieldColor]}
-              placeholder={t('profile.currentPassword')}
-              placeholderTextColor={placeholderColor}
-              value={currentPassword}
-              onChangeText={setCurrentPassword}
-              secureTextEntry={!showCurrentPassword}
-              autoComplete="password"
-            />
-            <TouchableOpacity
-              style={styles.passwordEyeButton}
-              onPress={() => setShowCurrentPassword((prev) => !prev)}
-              hitSlop={8}
-              activeOpacity={0.7}
+          <View style={styles.fieldWrap}>
+            <View
+              style={[
+                styles.pillInput,
+                styles.passwordPillInput,
+                pillBorder,
+                fieldErrors.currentPassword ? { borderColor: colors.error } : null,
+              ]}
             >
-              {showCurrentPassword ? (
-                <EyeOff size={18} color={colors.text.tertiary} />
-              ) : (
-                <Eye size={18} color={colors.text.tertiary} />
-              )}
-            </TouchableOpacity>
+              <TextInput
+                style={[styles.pillField, styles.flex1, fieldColor]}
+                placeholder={t('profile.currentPassword')}
+                placeholderTextColor={placeholderColor}
+                value={currentPassword}
+                onChangeText={(text) => {
+                  setCurrentPassword(text);
+                  clearFieldError('currentPassword');
+                }}
+                secureTextEntry={!showCurrentPassword}
+                autoComplete="password"
+              />
+              <TouchableOpacity
+                style={styles.passwordEyeButton}
+                onPress={() => setShowCurrentPassword((prev) => !prev)}
+                hitSlop={8}
+                activeOpacity={0.7}
+              >
+                {showCurrentPassword ? (
+                  <EyeOff size={18} color={colors.text.tertiary} />
+                ) : (
+                  <Eye size={18} color={colors.text.tertiary} />
+                )}
+              </TouchableOpacity>
+            </View>
+            {fieldErrors.currentPassword ? (
+              <Text style={[styles.fieldError, { color: colors.error }]}>
+                {fieldErrors.currentPassword}
+              </Text>
+            ) : null}
           </View>
-          <View style={[styles.pillInput, styles.passwordPillInput, pillBorder]}>
-            <TextInput
-              style={[styles.pillField, styles.flex1, fieldColor]}
-              placeholder={t('profile.newPassword')}
-              placeholderTextColor={placeholderColor}
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry={!showPassword}
-              autoComplete="password-new"
-            />
-            <TouchableOpacity
-              style={styles.passwordEyeButton}
-              onPress={() => setShowPassword((prev) => !prev)}
-              hitSlop={8}
-              activeOpacity={0.7}
+          <View style={styles.fieldWrap}>
+            <View
+              style={[
+                styles.pillInput,
+                styles.passwordPillInput,
+                pillBorder,
+                fieldErrors.newPassword ? { borderColor: colors.error } : null,
+              ]}
             >
-              {showPassword ? (
-                <EyeOff size={18} color={colors.text.tertiary} />
-              ) : (
-                <Eye size={18} color={colors.text.tertiary} />
-              )}
-            </TouchableOpacity>
+              <TextInput
+                style={[styles.pillField, styles.flex1, fieldColor]}
+                placeholder={t('profile.newPassword')}
+                placeholderTextColor={placeholderColor}
+                value={password}
+                onChangeText={(text) => {
+                  setPassword(text);
+                  clearFieldError('newPassword');
+                }}
+                secureTextEntry={!showPassword}
+                autoComplete="password-new"
+              />
+              <TouchableOpacity
+                style={styles.passwordEyeButton}
+                onPress={() => setShowPassword((prev) => !prev)}
+                hitSlop={8}
+                activeOpacity={0.7}
+              >
+                {showPassword ? (
+                  <EyeOff size={18} color={colors.text.tertiary} />
+                ) : (
+                  <Eye size={18} color={colors.text.tertiary} />
+                )}
+              </TouchableOpacity>
+            </View>
+            {fieldErrors.newPassword ? (
+              <Text style={[styles.fieldError, { color: colors.error }]}>
+                {fieldErrors.newPassword}
+              </Text>
+            ) : null}
           </View>
-          <View style={[styles.pillInput, styles.passwordPillInput, pillBorder]}>
-            <TextInput
-              style={[styles.pillField, styles.flex1, fieldColor]}
-              placeholder={t('profile.confirmPassword')}
-              placeholderTextColor={placeholderColor}
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              secureTextEntry={!showConfirmPassword}
-              autoComplete="password-new"
-            />
-            <TouchableOpacity
-              style={styles.passwordEyeButton}
-              onPress={() => setShowConfirmPassword((prev) => !prev)}
-              hitSlop={8}
-              activeOpacity={0.7}
+          <View style={styles.fieldWrap}>
+            <View
+              style={[
+                styles.pillInput,
+                styles.passwordPillInput,
+                pillBorder,
+                fieldErrors.confirmPassword ? { borderColor: colors.error } : null,
+              ]}
             >
-              {showConfirmPassword ? (
-                <EyeOff size={18} color={colors.text.tertiary} />
-              ) : (
-                <Eye size={18} color={colors.text.tertiary} />
-              )}
-            </TouchableOpacity>
+              <TextInput
+                style={[styles.pillField, styles.flex1, fieldColor]}
+                placeholder={t('profile.confirmPassword')}
+                placeholderTextColor={placeholderColor}
+                value={confirmPassword}
+                onChangeText={(text) => {
+                  setConfirmPassword(text);
+                  clearFieldError('confirmPassword');
+                }}
+                secureTextEntry={!showConfirmPassword}
+                autoComplete="password-new"
+              />
+              <TouchableOpacity
+                style={styles.passwordEyeButton}
+                onPress={() => setShowConfirmPassword((prev) => !prev)}
+                hitSlop={8}
+                activeOpacity={0.7}
+              >
+                {showConfirmPassword ? (
+                  <EyeOff size={18} color={colors.text.tertiary} />
+                ) : (
+                  <Eye size={18} color={colors.text.tertiary} />
+                )}
+              </TouchableOpacity>
+            </View>
+            {fieldErrors.confirmPassword ? (
+              <Text style={[styles.fieldError, { color: colors.error }]}>
+                {fieldErrors.confirmPassword}
+              </Text>
+            ) : null}
           </View>
         </View>
 
