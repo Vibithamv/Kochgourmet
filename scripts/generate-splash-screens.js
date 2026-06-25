@@ -13,7 +13,7 @@ const sourceImage = path.join(__dirname, '../assets/images/kochgourmet-splash-ic
 const androidResPath = path.join(__dirname, '../android/app/src/main/res');
 const iosSplashPath = path.join(
   __dirname,
-  '../ios/boltexponativewind/Images.xcassets/SplashScreenLegacy.imageset'
+  '../ios/Kochgourmet/Images.xcassets/SplashScreenLegacy.imageset'
 );
 
 /** Must match constants/splash.ts and app.json expo-splash-screen imageWidth */

@@ -84,7 +84,7 @@ def main() -> None:
     app_icon.save(ASSETS / "kochgourmet-app-icon.png")
     app_icon.resize((192, 192), Image.Resampling.LANCZOS).save(ASSETS / "favicon.png")
     app_icon.save(
-        ROOT / "ios/boltexponativewind/Images.xcassets/AppIcon.appiconset/App-Icon-1024x1024@1x.png"
+        ROOT / "ios/Kochgourmet/Images.xcassets/AppIcon.appiconset/App-Icon-1024x1024@1x.png"
     )
 
     fg_expo = Image.new("RGBA", (1024, 1024), (0, 0, 0, 0))

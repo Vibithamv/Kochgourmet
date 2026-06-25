@@ -20,7 +20,7 @@ platform :ios, podfile_properties['ios.deploymentTarget'] || '15.1'
 
 prepare_react_native_project!
 
-target 'boltexponativewind' do
+target 'Kochgourmet' do
   use_expo_modules!
 
   # Required for @react-native-firebase/* with static linking (Swift / Obj-C interop).
