@@ -510,7 +510,11 @@ export default function ProjectDetailCommunityContent({
               activeOpacity={0.7}
             >
               <Plus size={16} color={colors.text.primary} />
-              <Text style={[styles.moreInfoText, { color: colors.text.primary }]}>
+              <Text
+                style={[styles.moreInfoText, { color: colors.text.primary }]}
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
                 {t('projectDetail.moreInfo')}
               </Text>
             </TouchableOpacity>
@@ -992,11 +996,14 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
     gap: 8,
     height: 45,
-    paddingHorizontal: 20,
+    paddingHorizontal: 10,
     borderRadius: 9999,
     borderWidth: 1,
+    overflow: 'hidden',
   },
   moreInfoText: {
+    flex: 1,
+    flexShrink: 1,
     fontFamily: 'Roboto-Light',
     fontSize: 17,
     lineHeight: 22,

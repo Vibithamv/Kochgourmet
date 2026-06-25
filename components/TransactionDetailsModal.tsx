@@ -183,7 +183,7 @@ export default function TransactionDetailsModal({
         title: {
           flex: 1,
           fontSize: typo.fontSize.xl,
-          fontFamily: 'PlayfairDisplay_700Bold',
+          fontFamily: typo.fontFamily.display,
           letterSpacing: typo.letterSpacing.normal,
         },
         closeButton: {
@@ -199,36 +199,34 @@ export default function TransactionDetailsModal({
           paddingTop: Spacing.lg,
         },
         detailBlock: {
-          borderBottomWidth: 1,
-          borderBottomColor: colors.border.primary,
           paddingBottom: Spacing.lg,
           marginBottom: Spacing.lg,
         },
         detailRow: {
           paddingVertical: Spacing.md,
-          borderBottomWidth: 1,
-          borderBottomColor: colors.border.primary,
         },
         detailRowLast: {
           paddingVertical: Spacing.md,
-          borderBottomWidth: 0,
         },
         detailLabel: {
           fontSize: typo.fontSize.sm,
           fontFamily: 'Roboto-Light',
+          lineHeight: Math.round(typo.fontSize.sm * typo.lineHeight.normal),
           marginBottom: Spacing.xs,
         },
         detailValue: {
-          fontSize: typo.fontSize.lg,
+          fontSize: typo.fontSize.base,
           fontFamily: 'Roboto-Regular',
+          lineHeight: Math.round(typo.fontSize.base * typo.lineHeight.normal),
           letterSpacing: typo.letterSpacing.normal,
         },
         bankSection: {
           marginTop: Spacing.xs,
         },
         bankTitle: {
-          fontSize: typo.fontSize.lg,
-          fontFamily: 'PlayfairDisplay_700Bold',
+          fontSize: typo.fontSize.xl,
+          fontFamily: typo.fontFamily.display,
+          letterSpacing: typo.letterSpacing.normal,
           marginBottom: Spacing.sm,
         },
         bankHint: {
@@ -243,11 +241,13 @@ export default function TransactionDetailsModal({
         bankLabel: {
           fontSize: typo.fontSize.sm,
           fontFamily: 'Roboto-Light',
+          lineHeight: Math.round(typo.fontSize.sm * typo.lineHeight.normal),
           marginBottom: Spacing.xs,
         },
         bankValue: {
           fontSize: typo.fontSize.base,
           fontFamily: 'Roboto-Regular',
+          lineHeight: Math.round(typo.fontSize.base * typo.lineHeight.normal),
         },
         bankShimmerRow: {
           marginBottom: Spacing.lg,

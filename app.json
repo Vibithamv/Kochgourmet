@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "KOCHGOURMET",
-    "slug": "bolt-expo-nativewind",
+    "slug": "kochgourmet",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/kochgourmet-app-icon.png",

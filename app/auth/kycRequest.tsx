@@ -181,7 +181,12 @@ export default function VerifyIdentityScreen() {
           resizeMode="contain"
         />
 
-        <Text style={[styles.title, { color: colors.text.primary }]}>
+        <Text
+          style={[styles.title, { color: colors.text.primary }]}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.75}
+        >
           {titleText}
         </Text>
 
@@ -296,9 +301,10 @@ const styles = StyleSheet.create({
     fontFamily: 'Roboto-Light',
     fontSize: 17,
     lineHeight: 24,
-    textAlign: 'center',
+    textAlign: 'left',
+    alignSelf: 'stretch',
+    width: '100%',
     marginBottom: Spacing['4xl'],
-    maxWidth: 320,
   },
   buttonRow: {
     flexDirection: 'row',
