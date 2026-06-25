@@ -278,6 +278,25 @@ const response = await NetworkService.get('/endpoint', {}, {
 });
 ```
 
+## Two backends — Floris portal vs Kochgourmet API
+
+This app talks to **two independent backends** with separate services, auth tokens, and hook families. Pick the right one for the feature:
+
+| | Floris / SimplyTokenized portal | Kochgourmet API (SimplyTokenized proxy) |
+|---|---|---|
+| Domain | tokenization: offerings, KYC, wallets, portfolio, investments | content: recipes, magazine, favorites/folders, app user profile |
+| Base URL | `stage.go.floris3.com/portal` ([config/environment.tsx](config/environment.tsx)) | `dev.go.simplytokenized.com/kochgourmet` ([config/kochgourmetApiConfig.ts](config/kochgourmetApiConfig.ts)) |
+| Service | [services/NetworkService.tsx](services/NetworkService.tsx) | [services/KochgourmetApiService.ts](services/KochgourmetApiService.ts) |
+| Headers | `API_HEADER_CONFIG` (`apiHeaderConfig.tsx`) | `KOCHGOURMET_API_HEADERS` (`Api-Key` / `Invest-Key`) |
+| Hooks | top-level [hooks/](hooks/) (e.g. `userManagement`, `listOfferings`) | [hooks/mobileApp/](hooks/mobileApp/) (re-exported via [hooks/mobileApp/index.ts](hooks/mobileApp/index.ts)) |
+| Types | [types/index.ts](types/index.ts) | [types/mobileAppApi.ts](types/mobileAppApi.ts) (Hydra collections) |
+
+The **Kochgourmet API is the live content/auth integration** (active on `feature/api-integration`); the demo screens that used `mockRecipeDetails.ts` / `mockArticleDetails.ts` / `FavouritesContext` / `FoldersContext` are being migrated to it.
+
+- `KochgourmetApiService` is a **proxy**: every call goes through an operation key from `KOCHGOURMET_OPERATIONS` ([config/kochgourmetApi.ts](config/kochgourmetApi.ts)) — use `proxyGet(op, {pathParams, query})` / `proxyPost(...)`, never raw paths. Returns the same `{ success, data, error, status }` contract as portal hooks.
+- It has its **own axios interceptors** that attach the Kochgourmet JWT and auto-refresh on expiry via [utils/kochgourmetTokenRefresh.ts](utils/kochgourmetTokenRefresh.ts) — independent of NetworkService's interceptors.
+- App auth now flows through the Kochgourmet login. `persistMobileAppAuth` ([utils/mobileAppAuthUtils.ts](utils/mobileAppAuthUtils.ts)) stores the JWT under `MobileAppJwtToken` / `MobileAppRefreshToken` **and** mirrors it into the legacy `IDToken` / `AccessToken` / `RefreshToken` keys so portal calls and the bootstrap flow keep working.
+
 ## API hook contract
 
 ```tsx
